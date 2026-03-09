@@ -1,14 +1,54 @@
 import Papa from 'papaparse';
 import { Yuvak, ParsedSheetData, SabhaType } from './types';
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Google Sheets/Excel serial epoch offset: days between Dec 30 1899 and Jan 1 1970.
+const SHEETS_EPOCH_OFFSET = 25569;
+
+/**
+ * Convert a Google Sheets / Excel date serial number to a "DD-Mon-YY" string.
+ * Serials are days since Dec 30, 1899. For datetime values (fractional serials,
+ * e.g. a cell storing midnight IST = 18:30 UTC = serial .770833), we Math.round
+ * to the nearest day so the correct calendar date is preserved regardless of
+ * what timezone the sheet owner used.
+ */
+function sheetSerialToStr(serial: number): string {
+  const daysSinceEpoch = Math.round(serial) - SHEETS_EPOCH_OFFSET;
+  const d = new Date(daysSinceEpoch * 86_400_000);
+  const year = d.getUTCFullYear();
+  if (year < 1990 || year > 2100) return String(serial); // not a plausible date
+  const dd  = String(d.getUTCDate()).padStart(2, '0');
+  const mon = MONTHS[d.getUTCMonth()];
+  const yy  = String(year).slice(-2);
+  return `${dd}-${mon}-${yy}`;
+}
+
 /** Coerce any cell value (number, Date, boolean, null, undefined) to a string */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toStr(val: any): string {
   if (val === null || val === undefined) return '';
   if (typeof val === 'string') return val;
+  if (typeof val === 'boolean') return val ? 'yes' : '';
   if (val instanceof Date) {
-    // Format as DD-Mon-YY to match date header pattern
-    return val.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+    // SheetJS may produce dates with a time component: when the spreadsheet owner is
+    // in IST (+5:30), a "Feb 25" date cell is stored as midnight IST = 18:30 UTC the
+    // previous day (serial 46077.770...). getUTCDate() on that returns Feb 24.
+    // Round to the nearest UTC day to recover the correct calendar date.
+    const MS_PER_DAY = 86_400_000;
+    const roundedMs = Math.round(val.getTime() / MS_PER_DAY) * MS_PER_DAY;
+    const d = new Date(roundedMs);
+    const dd  = String(d.getUTCDate()).padStart(2, '0');
+    const mon = MONTHS[d.getUTCMonth()];
+    const yy  = String(d.getUTCFullYear()).slice(-2);
+    return `${dd}-${mon}-${yy}`;
+  }
+  if (typeof val === 'number') {
+    // Google Sheets API UNFORMATTED_VALUE returns date serials as numbers.
+    // Values > 29221 correspond to dates after 1980-01-01, well above any
+    // realistic attendance count or percentage in this app.
+    if (val > 29_221) return sheetSerialToStr(val);
+    return String(val);
   }
   return String(val);
 }

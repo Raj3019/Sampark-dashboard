@@ -49,6 +49,11 @@ export async function GET() {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: fileId,
         range: range ?? 'A:ZZ',
+        // UNFORMATTED_VALUE returns raw cell values: numbers for dates/serials,
+        // strings for text, booleans for checkboxes. This lets us convert date
+        // serials ourselves with proper UTC math, avoiding the GSheets API
+        // timezone bug that formats datetime cells one day early for IST users.
+        valueRenderOption: 'UNFORMATTED_VALUE',
       });
       rows = (response.data.values ?? []) as string[][];
     } catch {
