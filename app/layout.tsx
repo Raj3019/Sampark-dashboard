@@ -37,6 +37,7 @@ export default function RootLayout({
           <main className="md:ml-60 pt-14 md:pt-0 min-h-screen">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
               {children}
+               <SpeedInsights />
             </div>
           </main>
         </ThemeProvider>
