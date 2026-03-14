@@ -206,9 +206,9 @@ export default function KKAnalysisPage() {
       </div>
 
       {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
         {/* Sabha toggle */}
-        <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium">
+        <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
           <button
             onClick={() => setSabhaFilter('cn')}
             className={`px-3 py-1.5 transition-colors ${
@@ -228,7 +228,7 @@ export default function KKAnalysisPage() {
         </div>
 
         {/* Attending filter */}
-        <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium">
+        <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
           {(['yes', 'no', 'all'] as const).map((v) => (
             <button
               key={v}
@@ -272,3 +272,4 @@ export default function KKAnalysisPage() {
     </div>
   );
 }
+

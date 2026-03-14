@@ -174,7 +174,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
     <div className="bg-slate-900 border border-slate-700/60 rounded-xl overflow-hidden">
 
       {/* ── Filters ── */}
-      <div className="px-4 py-3 border-b border-slate-700/60 flex flex-wrap gap-3 items-center">
+      <div className="px-4 py-3 border-b border-slate-700/60 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-center">
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs select-none">🔍</span>
           <input
@@ -182,13 +182,13 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
             placeholder="Search yuvak name..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 w-60"
+            className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 w-full sm:w-60"
           />
         </div>
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value as AttendanceStatus | 'all'); setPage(1); }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"
+          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
         >
           <option value="all">All Status</option>
           <option value="green">Active</option>
@@ -199,7 +199,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
           <select
             value={filterSabha}
             onChange={(e) => { setFilterSabha(e.target.value as 'all' | 'cn' | 'kishor'); setPage(1); }}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
           >
             <option value="all">All Sabhas</option>
             <option value="cn">Chirag Nagar</option>
@@ -209,7 +209,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
         <select
           value={filterKK}
           onChange={(e) => { setFilterKK(e.target.value); setPage(1); }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"
+          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
         >
           {kkList.map((k) => (
             <option key={k} value={k}>{k === 'all' ? 'All KKs' : k}</option>
@@ -218,7 +218,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
         <select
           value={dateWindow}
           onChange={(e) => { setDateWindow(e.target.value as typeof dateWindow); setPage(1); }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"
+          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
         >
           <option value="last6">Last 6 Sabhas</option>
           <option value="1m">Last 1 Month</option>
@@ -244,7 +244,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
             />
           </div>
         )}
-        <span className="ml-auto text-slate-500 text-sm">{filtered.length} of {yuvaks.length} yuvaks</span>
+        <span className="sm:ml-auto text-slate-500 text-sm">{filtered.length} of {yuvaks.length} yuvaks</span>
       </div>
 
       {/* ── Table ── */}
@@ -394,3 +394,4 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
     </div>
   );
 }
+

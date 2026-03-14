@@ -95,7 +95,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-slate-100">Sabha Dashboard</h1>
           <p className="text-slate-500 text-sm mt-1">Overview of all weekly sabha attendance & analytics</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
           <button onClick={refresh} className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors">
             ↻ Refresh
@@ -126,7 +126,7 @@ export default function DashboardPage() {
             <div><p className="text-2xl font-bold text-green-400">{cnStats.avgAttendance}%</p><p className="text-xs text-slate-500">Avg Att.</p></div>
             <div><p className="text-2xl font-bold text-orange-400">{predictedCN}%</p><p className="text-xs text-slate-500">Expected</p></div>
           </div>
-          <div className="mt-3 flex gap-2 text-xs">
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{cnStats.greenCount} active</span>
             <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{cnStats.yellowCount} attention</span>
             <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{cnStats.redCount} absent</span>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
             <div><p className="text-2xl font-bold text-green-400">{kishorStats.avgAttendance}%</p><p className="text-xs text-slate-500">Avg Att.</p></div>
             <div><p className="text-2xl font-bold text-purple-400">{predictedKishor}%</p><p className="text-xs text-slate-500">Expected</p></div>
           </div>
-          <div className="mt-3 flex gap-2 text-xs">
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{kishorStats.greenCount} active</span>
             <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{kishorStats.yellowCount} attention</span>
             <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{kishorStats.redCount} absent</span>
@@ -261,5 +261,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 

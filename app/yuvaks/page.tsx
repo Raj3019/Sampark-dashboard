@@ -49,9 +49,9 @@ export default function YuvaksPage() {
           <h1 className="text-2xl font-bold text-slate-100">Yuvak Directory</h1>
           <p className="text-slate-500 text-sm mt-1">All yuvaks across both sabhas with attendance status</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Attending filter */}
-          <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium">
+          <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
             {(['yes', 'no', 'all'] as const).map((v) => (
               <button
                 key={v}
@@ -104,3 +104,4 @@ export default function YuvaksPage() {
     </div>
   );
 }
+

@@ -122,7 +122,7 @@ export default function KishorSabhaPage() {
       {/* Page header */}
       <div className="space-y-3">
         {/* Row 1: title + actions */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="w-1 self-stretch rounded-full bg-purple-500" />
             <div>
@@ -131,7 +131,7 @@ export default function KishorSabhaPage() {
             </div>
           </div>
           {/* Actions — always a single line */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 md:shrink-0">
             <span className="bg-purple-500/15 text-purple-400 border border-purple-500/30 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap">
               {predicted}% expected next sabha
             </span>
@@ -175,12 +175,12 @@ export default function KishorSabhaPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-800">
+      <div className="flex border-b border-slate-800 overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
               activeTab === tab.id
                 ? 'border-purple-500 text-purple-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -397,7 +397,7 @@ export default function KishorSabhaPage() {
           ) : (
             <div className="space-y-2">
               {followUpYuvaks.map((y, i) => (
-                <div key={`${y.name}-${i}`} className="flex items-center justify-between px-4 py-3 bg-slate-900 rounded-lg">
+                <div key={`${y.name}-${i}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 bg-slate-900 rounded-lg">
                   <div>
                     <p className="text-slate-100 text-sm font-medium">{y.name}</p>
                     <p className="text-slate-500 text-xs mt-0.5">{y.area} · KK: {y.followUpKK || '—'}</p>
@@ -414,3 +414,5 @@ export default function KishorSabhaPage() {
     </div>
   );
 }
+
+
