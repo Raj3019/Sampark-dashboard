@@ -7,12 +7,37 @@ import { useState } from 'react';
 import { useTheme } from './ThemeProvider';
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: '⊞' },
-  { href: '/sabha/chirag-nagar', label: 'Chirag Nagar', icon: '🏛' },
-  { href: '/sabha/kishor', label: 'Kishor Sabha', icon: '📚' },
-  { href: '/kk-analysis', label: 'KK Analysis', icon: '👥' },
-  { href: '/yuvaks', label: 'Yuvak Directory', icon: '📋' },
+  { href: '/', label: 'Dashboard', icon: 'DB' },
+  { href: '/sabha/chirag-nagar', label: 'Chirag Nagar', icon: 'CN' },
+  { href: '/sabha/kishor', label: 'Kishor Sabha', icon: 'KS' },
+  { href: '/kk-analysis', label: 'KK Analysis', icon: 'KK' },
+  { href: '/yuvaks', label: 'Yuvak Directory', icon: 'YD' },
+  { href: '/ai', label: 'AI Akshar', icon: 'AI' },
 ];
+
+function ThemeToggleIcon({ theme }: { theme: 'dark' | 'light' }) {
+  if (theme === 'dark') {
+    return (
+      <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2" />
+        <path d="M12 20v2" />
+        <path d="m4.93 4.93 1.41 1.41" />
+        <path d="m17.66 17.66 1.41 1.41" />
+        <path d="M2 12h2" />
+        <path d="M20 12h2" />
+        <path d="m6.34 17.66-1.41 1.41" />
+        <path d="m19.07 4.93-1.41 1.41" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3a7 7 0 1 0 9 9 9 9 0 1 1-9-9z" />
+    </svg>
+  );
+}
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -21,7 +46,6 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Sidebar — desktop */}
       <aside className="hidden md:flex flex-col w-60 min-h-screen bg-slate-900 border-r border-slate-800 fixed top-0 left-0 z-30">
         <div className="px-6 py-5 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -34,6 +58,7 @@ export default function Navbar() {
             </div>
           </div>
         </div>
+
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map((item) => {
             const active = pathname === item.href;
@@ -47,25 +72,25 @@ export default function Navbar() {
                     : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                 }`}
               >
-                <span className="text-base w-5 text-center">{item.icon}</span>
+                <span className="text-xs w-5 text-center font-semibold">{item.icon}</span>
                 {item.label}
               </Link>
             );
           })}
         </nav>
+
         <div className="px-4 py-4 border-t border-slate-800 flex items-center justify-between gap-2">
           <p className="text-slate-600 text-xs">Auto-refreshes every 60s</p>
           <button
             onClick={toggle}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors text-base shrink-0"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors shrink-0 border border-slate-700"
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            <ThemeToggleIcon theme={theme} />
           </button>
         </div>
       </aside>
 
-      {/* Top bar — mobile */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-30 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-white overflow-hidden shrink-0 flex items-center justify-center">
@@ -73,25 +98,25 @@ export default function Navbar() {
           </div>
           <span className="text-orange-400 font-bold text-sm">Sabha Analytics</span>
         </div>
+
         <div className="flex items-center gap-1">
           <button
             onClick={toggle}
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="text-slate-400 hover:text-slate-100 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-slate-300 hover:text-slate-100 p-1.5 rounded-lg hover:bg-slate-800 transition-colors border border-slate-700"
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            <ThemeToggleIcon theme={theme} />
           </button>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="text-slate-400 hover:text-slate-100 p-1"
             aria-label="Toggle menu"
           >
-            {mobileOpen ? '✕' : '☰'}
+            {mobileOpen ? 'X' : 'M'}
           </button>
         </div>
       </header>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-20 bg-black/60" onClick={() => setMobileOpen(false)}>
           <aside
@@ -112,7 +137,7 @@ export default function Navbar() {
                         : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                     }`}
                   >
-                    <span className="text-base w-5 text-center">{item.icon}</span>
+                    <span className="text-xs w-5 text-center font-semibold">{item.icon}</span>
                     {item.label}
                   </Link>
                 );

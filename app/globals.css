@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Dark mode (default) ───────────────────────────────────── */
+/* Dark mode (default) */
 :root,
 html.dark {
   color-scheme: dark;
@@ -8,19 +8,17 @@ html.dark {
   --foreground: #f1f5f9;
 }
 
-/* ── Light mode: invert the slate scale ─────────────────────
-   Tailwind v4 generates utilities as var(--color-slate-*)
-   so overriding those vars here is all that's needed.         */
+/* Light mode */
 html.light {
   color-scheme: light;
-  --background: #f1f5f9;
+  --background: #f8fafc;
   --foreground: #0f172a;
 
-  /* slate scale — flipped */
-  --color-slate-950: #f8fafc;
-  --color-slate-900: #f1f5f9;
-  --color-slate-800: #e2e8f0;
-  --color-slate-700: #cbd5e1;
+  /* Refined slate scale for better contrast in cards/charts */
+  --color-slate-950: #ffffff;
+  --color-slate-900: #f8fafc;
+  --color-slate-800: #f1f5f9;
+  --color-slate-700: #e2e8f0;
   --color-slate-600: #94a3b8;
   --color-slate-500: #64748b;
   --color-slate-400: #475569;
@@ -50,7 +48,7 @@ body {
 html.light select,
 html.light input[type="text"],
 html.light input[type="date"] {
-  background-color: #f8fafc;
+  background-color: #ffffff;
   color: #0f172a;
   border-color: #cbd5e1;
 }
@@ -66,6 +64,6 @@ html.dark ::-webkit-scrollbar-track  { background: #1e293b; }
 html.dark ::-webkit-scrollbar-thumb  { background: #475569; border-radius: 3px; }
 html.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-html.light ::-webkit-scrollbar-track  { background: #f1f5f9; }
-html.light ::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 3px; }
-html.light ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+html.light ::-webkit-scrollbar-track  { background: #e2e8f0; }
+html.light ::-webkit-scrollbar-thumb  { background: #94a3b8; border-radius: 3px; }
+html.light ::-webkit-scrollbar-thumb:hover { background: #64748b; }

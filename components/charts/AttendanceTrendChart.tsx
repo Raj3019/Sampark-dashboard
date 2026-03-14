@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import { SabhaSessionStat } from '@/lib/types';
+import { useTheme } from '@/components/ThemeProvider';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -20,27 +21,30 @@ function parseDate(d: string): Date {
   return new Date(c);
 }
 
-type Mode  = 'attending' | 'nonAttending' | 'all';
+type Mode = 'attending' | 'nonAttending' | 'all';
 type Range = '1m' | '3m' | '6m' | '1y' | 'all';
 
 interface Props {
   sessionTrend: SabhaSessionStat[];
   sabhaLabel: string;
   totalYuvaks?: number;
-  chartType?: 'bar' | 'line'; // kept for backward compat
+  chartType?: 'bar' | 'line';
 }
 
 export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYuvaks = 0 }: Props) {
-  const [mode, setMode]   = useState<Mode>('attending');
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+
+  const [mode, setMode] = useState<Mode>('attending');
   const [range, setRange] = useState<Range>('3m');
 
   const filtered = useMemo(() => {
     const now = new Date();
     const cutoffMap: Record<Range, Date> = {
-      '1m':  new Date(now.getFullYear(), now.getMonth() - 1,  now.getDate()),
-      '3m':  new Date(now.getFullYear(), now.getMonth() - 3,  now.getDate()),
-      '6m':  new Date(now.getFullYear(), now.getMonth() - 6,  now.getDate()),
-      '1y':  new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
+      '1m': new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
+      '3m': new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()),
+      '6m': new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()),
+      '1y': new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
       'all': new Date(0),
     };
     return sessionTrend
@@ -48,13 +52,21 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
       .filter((s) => s.count > 0 || mode === 'nonAttending');
   }, [sessionTrend, range, mode]);
 
-  const labels    = filtered.map((s) => s.date);
+  const labels = filtered.map((s) => s.date);
   const attending = filtered.map((s) => s.count);
-  const absent    = filtered.map((s) => totalYuvaks - s.count);
-  const pcts      = filtered.map((s) => s.percentage);
-  const avgPct    = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
-  const skipN     = labels.length > 60 ? 10 : labels.length > 40 ? 6 : labels.length > 25 ? 4 : labels.length > 12 ? 2 : 1;
+  const absent = filtered.map((s) => totalYuvaks - s.count);
+  const pcts = filtered.map((s) => s.percentage);
+  const avgPct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+  const skipN = labels.length > 60 ? 10 : labels.length > 40 ? 6 : labels.length > 25 ? 4 : labels.length > 12 ? 2 : 1;
   const isStacked = mode === 'all';
+
+  const textPrimary = isLight ? '#334155' : '#94a3b8';
+  const textSecondary = isLight ? '#475569' : '#64748b';
+  const gridColor = isLight ? '#dbe4ef' : '#1e293b';
+  const tooltipBg = isLight ? '#ffffff' : '#1e293b';
+  const tooltipTitle = isLight ? '#0f172a' : '#f1f5f9';
+  const tooltipBody = isLight ? '#334155' : '#94a3b8';
+  const tooltipBorder = isLight ? '#cbd5e1' : '#334155';
 
   const chartData =
     mode === 'nonAttending'
@@ -66,8 +78,8 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
       ? {
           labels,
           datasets: [
-            { label: 'Attending',     data: attending, backgroundColor: 'rgba(34,197,94,0.75)',  stack: 'stack' },
-            { label: 'Not Attending', data: absent,    backgroundColor: 'rgba(239,68,68,0.28)',  stack: 'stack' },
+            { label: 'Attending', data: attending, backgroundColor: 'rgba(34,197,94,0.75)', stack: 'stack' },
+            { label: 'Not Attending', data: absent, backgroundColor: 'rgba(239,68,68,0.28)', stack: 'stack' },
           ],
         }
       : {
@@ -76,7 +88,7 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
             label: 'Attending',
             data: attending,
             backgroundColor: attending.map((_, i) =>
-              pcts[i] >= avgPct ? 'rgba(249,115,22,0.85)' : 'rgba(249,115,22,0.40)'
+              pcts[i] >= avgPct ? 'rgba(249,115,22,0.88)' : 'rgba(249,115,22,0.45)'
             ),
             borderRadius: 3,
           }],
@@ -88,13 +100,13 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
     plugins: {
       legend: {
         display: isStacked,
-        labels: { color: '#94a3b8', font: { size: 11 }, usePointStyle: true, pointStyleWidth: 8 },
+        labels: { color: textPrimary, font: { size: 11 }, usePointStyle: true, pointStyleWidth: 8 },
       },
       tooltip: {
-        backgroundColor: '#1e293b',
-        titleColor: '#f1f5f9',
-        bodyColor: '#94a3b8',
-        borderColor: '#334155',
+        backgroundColor: tooltipBg,
+        titleColor: tooltipTitle,
+        bodyColor: tooltipBody,
+        borderColor: tooltipBorder,
         borderWidth: 1,
         callbacks: {
           label: (ctx: { dataset: { label?: string }; dataIndex: number }) => {
@@ -112,7 +124,7 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
         stacked: isStacked,
         grid: { display: false },
         ticks: {
-          color: '#64748b',
+          color: textSecondary,
           maxRotation: 45,
           font: { size: 10 },
           autoSkip: false,
@@ -121,41 +133,39 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
       },
       y: {
         stacked: isStacked,
-        grid: { color: '#1e293b' },
-        ticks: { color: '#64748b', font: { size: 11 } },
+        grid: { color: gridColor },
+        ticks: { color: textSecondary, font: { size: 11 } },
         beginAtZero: true,
       },
     },
   };
 
   const modeBtns: { key: Mode; label: string }[] = [
-    { key: 'attending',    label: 'Attending' },
+    { key: 'attending', label: 'Attending' },
     { key: 'nonAttending', label: 'Not Attending' },
-    { key: 'all',          label: 'All' },
+    { key: 'all', label: 'All' },
   ];
 
   const rangeBtns: { key: Range; label: string }[] = [
-    { key: '1m',  label: '1M' },
-    { key: '3m',  label: '3M' },
-    { key: '6m',  label: '6M' },
-    { key: '1y',  label: '1Y' },
+    { key: '1m', label: '1M' },
+    { key: '3m', label: '3M' },
+    { key: '6m', label: '6M' },
+    { key: '1y', label: '1Y' },
     { key: 'all', label: 'All' },
   ];
 
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-      {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="text-slate-100 font-semibold">{sabhaLabel} — Attendance Trend</h3>
+          <h3 className="text-slate-100 font-semibold">{sabhaLabel} - Attendance Trend</h3>
           <p className="text-slate-500 text-xs mt-0.5">{filtered.length} sessions shown</p>
         </div>
-        <span className="text-orange-400 text-sm font-medium bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20 shrink-0">
+        <span className="text-orange-500 text-sm font-medium bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20 shrink-0">
           Avg {avgPct}%
         </span>
       </div>
 
-      {/* Controls */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="flex bg-slate-900/60 rounded-lg p-0.5">
           {modeBtns.map((b) => (
@@ -185,7 +195,6 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
         </div>
       </div>
 
-      {/* Chart */}
       <div className="h-56">
         {filtered.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-sm">
