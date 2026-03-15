@@ -18,6 +18,7 @@ import {
 } from '@/lib/server/aiTools';
 
 const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const TOOL_CAPABLE_MODELS = new Set(['llama-3.3-70b-versatile']);
 
 const requiredNameSchema = z.preprocess(
   (value) => (typeof value === 'string' ? value.trim() : value),
@@ -81,6 +82,8 @@ const SYSTEM_PROMPT = [
   'For broad or complex filtering questions, use get_yuvak_directory with default all-data scope unless user asks for a specific sabha.',
   'Use get_yuvaks_by_kk only when the user explicitly asks by KK name.',
   'If user asks for latest or last-updated data, include lastUpdated from tool output in the response.',
+  'Never print function tags, XML tags, or JSON function-call stubs in chat output (for example: <function=...>).',
+  'Always use native tool calls via the tools API, then respond with plain-language results only.',
   'When user asks for chart, call create_chart with validated labels and numeric series.',
 ].join(' ');
 
@@ -104,7 +107,8 @@ export async function POST(request: Request) {
     );
 
     const { data } = await getSabhaData();
-    const modelId = process.env.GROQ_MODEL || DEFAULT_MODEL;
+    const requestedModel = process.env.GROQ_MODEL || DEFAULT_MODEL;
+    const modelId = TOOL_CAPABLE_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
 
     const result = streamText({
       model: groq(modelId),
