@@ -47,17 +47,28 @@ function optionalEnumFrom<T extends z.ZodTypeAny>(schema: T) {
 function optionalIntSchema(min: number, max: number) {
   return z.preprocess(
     (value) => {
+      const normalize = (n: number) => {
+        const rounded = Math.round(n);
+        return Math.min(max, Math.max(min, rounded));
+      };
+
+      if (typeof value === 'number') {
+        return Number.isFinite(value) ? normalize(value) : value;
+      }
+
       if (typeof value === 'string') {
         const trimmed = value.trim();
         if (trimmed.length === 0) return undefined;
         const parsed = Number(trimmed);
-        return Number.isFinite(parsed) ? parsed : value;
+        return Number.isFinite(parsed) ? normalize(parsed) : value;
       }
+
       return value;
     },
-    z.number().int().min(min).max(max).optional()
+    z.number().int().optional()
   );
 }
+
 
 const SYSTEM_PROMPT = [
   'You are Akshar, the Sabha Analytics Assistant for this app only.',
@@ -162,3 +173,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
