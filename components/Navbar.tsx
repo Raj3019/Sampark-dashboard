@@ -8,11 +8,11 @@ import { useTheme } from './ThemeProvider';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: 'DB' },
-  { href: '/sabha/chirag-nagar', label: 'Chirag Nagar', icon: 'CN' },
-  { href: '/sabha/kishor', label: 'Kishor Sabha', icon: 'KS' },
+  { href: '/sabha/chirag-nagar', label: 'Nimit Sevaks', icon: 'CN' },
+  { href: '/sabha/kishor', label: 'Akshar Sevaks', icon: 'KS' },
   { href: '/kk-analysis', label: 'KK Analysis', icon: 'KK' },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: 'YD' },
-  { href: '/ai', label: 'AI Akshar', icon: 'AI' },
+  { href: '/ai', label: 'Ask Akshar', icon: 'AI' },
 ];
 
 function ThemeToggleIcon({ theme }: { theme: 'dark' | 'light' }) {

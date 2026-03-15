@@ -8,7 +8,8 @@ function InlineStatusBadge({ status }: { status: AttendanceStatus }) {
   const configs: Record<AttendanceStatus, { label: string; dot: string; bg: string; text: string }> = {
     green:  { label: 'Active',   dot: 'bg-green-400', bg: 'bg-green-500/10 border border-green-500/25', text: 'text-green-400' },
     yellow: { label: 'At Risk',  dot: 'bg-amber-400', bg: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-400' },
-    red:    { label: 'Inactive', dot: 'bg-red-400',   bg: 'bg-red-500/10   border border-red-500/25',   text: 'text-red-400'   },
+    // Keep red status key for compatibility, but render it as At Risk styling.
+    red:    { label: 'At Risk', dot: 'bg-amber-400', bg: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-400' },
   };
   const c = configs[status];
   return (
@@ -39,7 +40,7 @@ function Last3Badge({ yuvak, last3 }: { yuvak: Yuvak; last3: string[] }) {
   const count = last3.filter((d) => yuvak.dateAttendance[d]).length;
   const total = last3.length;
   const cls = count === total ? 'bg-green-500/20 text-green-400'
-    : count === 0 ? 'bg-red-500/20 text-red-400'
+    : count === 0 ? 'bg-amber-500/20 text-amber-400'
     : 'bg-amber-500/20 text-amber-400';
   return (
     <span className={`inline-flex items-center justify-center min-w-[40px] h-7 px-1.5 rounded font-bold text-sm tabular-nums ${cls}`}>
@@ -55,7 +56,7 @@ function LastSabhaBadge({ yuvak, lastDate }: { yuvak: Yuvak; lastDate: string | 
       <span>✅</span> Present
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 text-red-400 text-xs font-medium">
+    <span className="inline-flex items-center gap-1 text-amber-400 text-xs font-medium">
       <span className="font-bold">✗</span> Absent
     </span>
   );
@@ -193,7 +194,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
           <option value="all">All Status</option>
           <option value="green">Active</option>
           <option value="yellow">At Risk</option>
-          <option value="red">Inactive</option>
+          {/* <option value="red">Inactive</option> */}
         </select>
         {showSabhaType && (
           <select
@@ -350,7 +351,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                         <div
                           className={`h-full rounded-full ${
                             y.attendancePercent >= 60 ? 'bg-green-500' :
-                            y.attendancePercent >= 30 ? 'bg-yellow-400' : 'bg-red-500'
+                            y.attendancePercent >= 30 ? 'bg-yellow-400' : 'bg-yellow-400'
                           }`}
                           style={{ width: `${Math.min(100, y.attendancePercent)}%` }}
                         />
@@ -394,4 +395,5 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
     </div>
   );
 }
+
 

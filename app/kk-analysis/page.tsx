@@ -27,7 +27,7 @@ function KKSection({
   badgeClass: string;
 }) {
   const overloaded = kkStats.filter((k) => k.yuvaks.length > 6);
-  const withRed    = kkStats.filter((k) => k.redCount > 0);
+  // const withRed    = kkStats.filter((k) => k.redCount > 0);
   const total      = kkStats.reduce((s, k) => s + k.yuvaks.length, 0);
   const avgPerKK   = kkStats.length > 0 ? Math.round(total / kkStats.length) : 0;
 
@@ -45,7 +45,7 @@ function KKSection({
         <StatsCard title="Total KKs"        value={kkStats.length} subtitle="in this sabha"       accent="orange" />
         <StatsCard title="Avg Yuvaks/KK"    value={avgPerKK}        subtitle="per KK on average"   accent="blue" />
         <StatsCard title="Overloaded KKs"   value={overloaded.length} subtitle="more than 6 yuvaks" accent="yellow" />
-        <StatsCard title="KKs w/ Red"       value={withRed.length}  subtitle="need urgent attention" accent="red" />
+        {/* <StatsCard title="KKs w/ Red"       value={withRed.length}  subtitle="need urgent attention" accent="red" /> */}
       </div>
 
       {/* Overloaded alert */}
@@ -86,7 +86,7 @@ function KKSection({
           const total = kk.yuvaks.length;
 
           return (
-            <div key={kk.name} className={`bg-slate-800 border rounded-xl p-5 ${kk.redCount > 0 ? 'border-red-500/20' : kk.yellowCount > 0 ? 'border-yellow-500/20' : 'border-slate-700'}`}>
+            <div key={kk.name} className={`bg-slate-800 border rounded-xl p-5 ${kk.yellowCount > 0 ? 'border-yellow-500/20' : 'border-slate-700'}`}>
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <p className="text-slate-100 font-semibold">{kk.name}</p>
@@ -100,13 +100,13 @@ function KKSection({
               <div className="flex gap-0 h-2 rounded-full overflow-hidden mb-3">
                 {kk.greenCount  > 0 && <div className="bg-green-500"  style={{ width: `${(kk.greenCount /total)*100}%` }} />}
                 {kk.yellowCount > 0 && <div className="bg-yellow-400" style={{ width: `${(kk.yellowCount/total)*100}%` }} />}
-                {kk.redCount    > 0 && <div className="bg-red-500"    style={{ width: `${(kk.redCount   /total)*100}%` }} />}
+                {/* {kk.redCount    > 0 && <div className="bg-red-500"    style={{ width: `${(kk.redCount   /total)*100}%` }} />} */}
               </div>
 
               <div className="flex gap-3 text-xs mb-3">
                 <span className="text-green-400">{kk.greenCount} active</span>
                 <span className="text-yellow-400">{kk.yellowCount} at risk</span>
-                <span className="text-red-400">{kk.redCount} inactive</span>
+                {/* <span className="text-red-400">{kk.redCount} inactive</span> */}
                 <span className="ml-auto text-slate-400">avg {kk.avgAttendance}%</span>
               </div>
 
@@ -229,7 +229,8 @@ export default function KKAnalysisPage() {
 
         {/* Attending filter */}
         <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
-          {(['yes', 'no', 'all'] as const).map((v) => (
+          {/* 'no' and 'all' temporarily commented out */}
+          {(['yes'] as const).map((v) => (
             <button
               key={v}
               onClick={() => setAttendingFilter(v)}

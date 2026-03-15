@@ -1,7 +1,7 @@
 'use client';
 
 import { useSheetData } from '@/hooks/useSheetData';
-import { getSabhaStats, getKKStats, getLowestSessions, getHighestSessions, predictNextAttendance, getAreaBreakdown, getAttendanceStatus, getPastDates } from '@/lib/analytics';
+import { getSabhaStats, getKKStats, getLowestSessions, getHighestSessions, predictNextAttendance, getAreaBreakdown, getPastDates } from '@/lib/analytics';
 import StatsCard from '@/components/StatsCard';
 import StatusPieChart from '@/components/charts/StatusPieChart';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
   const totalGreen = cnStats.greenCount + kishorStats.greenCount;
   const totalYellow = cnStats.yellowCount + kishorStats.yellowCount;
-  const totalRed = cnStats.redCount + kishorStats.redCount;
+  // const totalRed = cnStats.redCount + kishorStats.redCount;
   const totalYuvaks = yuvaks.length;
 
   // Overall trend: only dates where at least one yuvak attended (avoids 0% tail on chart)
@@ -108,7 +108,7 @@ export default function DashboardPage() {
         <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="Both sabhas combined" icon="👥" accent="orange" />
         <StatsCard title="Active (Green)" value={totalGreen} subtitle={`${totalYuvaks > 0 ? Math.round((totalGreen / totalYuvaks) * 100) : 0}% of total`} icon="✅" accent="green" />
         <StatsCard title="Needs Attention" value={totalYellow} subtitle="Absent last 3 sabhas" icon="⚠️" accent="yellow" />
-        <StatsCard title="Absent (Red)" value={totalRed} subtitle="Absent 6+ sabhas" icon="🚫" accent="red" />
+        {/* <StatsCard title="Absent (Red)" value={totalRed} subtitle="Absent 6+ sabhas" icon="🚫" accent="red" /> */}
       </div>
 
       {/* Sabha comparison */}
@@ -129,7 +129,7 @@ export default function DashboardPage() {
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{cnStats.greenCount} active</span>
             <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{cnStats.yellowCount} attention</span>
-            <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{cnStats.redCount} absent</span>
+            {/* <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{cnStats.redCount} absent</span> */}
           </div>
         </div>
         <div className="bg-slate-800 border border-purple-500/20 rounded-xl p-5">
@@ -148,7 +148,7 @@ export default function DashboardPage() {
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{kishorStats.greenCount} active</span>
             <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{kishorStats.yellowCount} attention</span>
-            <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{kishorStats.redCount} absent</span>
+            {/* <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{kishorStats.redCount} absent</span> */}
           </div>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <AttendanceTrendChart sessionTrend={overallTrend} sabhaLabel="All Sabhas" totalYuvaks={totalYuvaks} />
         </div>
-        <StatusPieChart green={totalGreen} yellow={totalYellow} red={totalRed} title="Overall Status" />
+        <StatusPieChart green={totalGreen} yellow={totalYellow} red={0} title="Overall Status" />
       </div>
 
       {/* Insights */}
@@ -172,8 +172,8 @@ export default function DashboardPage() {
                 <div key={s.date} className="flex items-center justify-between">
                   <span className="text-slate-300 text-sm">{s.date}</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-24 bg-slate-700 rounded-full h-1.5"><div className="h-full bg-red-500 rounded-full" style={{ width: `${s.percentage}%` }} /></div>
-                    <span className="text-red-400 text-sm font-medium w-16 text-right">{s.count} ({s.percentage}%)</span>
+                    <div className="w-24 bg-slate-700 rounded-full h-1.5"><div className="h-full bg-yellow-500 rounded-full" style={{ width: `${s.percentage}%` }} /></div>
+                    <span className="text-yellow-400 text-sm font-medium w-16 text-right">{s.count} ({s.percentage}%)</span>
                   </div>
                 </div>
               ))}
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                   <div className="flex gap-1.5 text-xs">
                     <span className="px-1.5 py-0.5 rounded bg-green-500/15 text-green-400">{kk.greenCount}</span>
                     <span className="px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400">{kk.yellowCount}</span>
-                    <span className="px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">{kk.redCount}</span>
+                    {/* <span className="px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">{kk.redCount}</span> */}
                   </div>
                 </div>
               ))}
@@ -236,28 +236,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {totalRed > 0 && (
-        <div className="bg-slate-800 border border-red-500/20 rounded-xl p-5">
-          <h3 className="text-red-400 font-semibold mb-1">🚨 Immediate Follow-Up Needed</h3>
-          <p className="text-slate-500 text-xs mb-4">Absent 6+ consecutive sabhas</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {yuvaks.filter((y) => getAttendanceStatus(y, dates) === 'red').slice(0, 12).map((y, i) => (
-              <div key={`${y.name}-${i}`} className="flex items-center justify-between bg-slate-900/50 rounded-lg px-3 py-2">
-                <div>
-                  <p className="text-slate-200 text-sm">{y.name}</p>
-                  <p className="text-slate-500 text-xs">{y.followUpKK || 'No KK'} · {y.sabhaType === 'Chirag Nagar(Kishor)' ? 'Kishor' : 'CN'}</p>
-                </div>
-                <span className="text-red-400 text-xs font-medium">{y.attendancePercent.toFixed(0)}%</span>
-              </div>
-            ))}
-            {totalRed > 12 && (
-              <div className="flex items-center justify-center bg-slate-900/50 rounded-lg px-3 py-2">
-                <p className="text-slate-500 text-sm">+{totalRed - 12} more in Yuvak Directory</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Immediate Follow-Up block commented out */}
     </div>
   );
 }

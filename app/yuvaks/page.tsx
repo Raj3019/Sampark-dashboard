@@ -33,7 +33,7 @@ export default function YuvaksPage() {
 
   const green = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'green').length;
   const yellow = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'yellow').length;
-  const red = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'red').length;
+  // const red = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'red').length;
   const cnCount = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar').length;
   const kishorCount = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar(Kishor)').length;
 
@@ -52,7 +52,8 @@ export default function YuvaksPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Attending filter */}
           <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
-            {(['yes', 'no', 'all'] as const).map((v) => (
+            {/* 'no' and 'all' temporarily commented out */}
+            {(['yes'] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setAttendingFilter(v)}
@@ -80,7 +81,7 @@ export default function YuvaksPage() {
         <StatsCard title="Chirag Nagar" value={cnCount} icon="🏛" accent="blue" />
         <StatsCard title="Kishor Sabha" value={kishorCount} icon="📚" accent="blue" />
         <StatsCard title="Active" value={green} icon="✅" accent="green" />
-        <StatsCard title="Need Follow-Up" value={yellow + red} icon="⚠️" accent="red" />
+        <StatsCard title="Need Attention" value={yellow} icon="⚠️" accent="yellow" />
       </div>
 
       {/* Legend */}
@@ -93,10 +94,10 @@ export default function YuvaksPage() {
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block" />
           <span><strong className="text-yellow-400">Attention (Yellow)</strong> — Absent last 3 sabhas, attended within 6</span>
         </div>
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
           <span><strong className="text-red-400">Absent (Red)</strong> — Absent for 6+ consecutive sabhas</span>
-        </div>
+        </div> */}
       </div>
 
       {/* Full table */}

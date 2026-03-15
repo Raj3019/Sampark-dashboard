@@ -142,8 +142,8 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
 
   const modeBtns: { key: Mode; label: string }[] = [
     { key: 'attending', label: 'Attending' },
-    { key: 'nonAttending', label: 'Not Attending' },
-    { key: 'all', label: 'All' },
+    // { key: 'nonAttending', label: 'Not Attending' },
+    // { key: 'all', label: 'All' },
   ];
 
   const rangeBtns: { key: Range; label: string }[] = [

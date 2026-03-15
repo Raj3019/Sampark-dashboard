@@ -13,7 +13,7 @@ import AreaBreakdownChart from '@/components/charts/AreaBreakdownChart';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-type TabType = 'overview' | 'yuvaks' | 'kk' | 'followup';
+type TabType = 'overview' | 'yuvaks' | 'kk';
 
 export default function ChiragNagarPage() {
   const { data, loading, error, refresh } = useSheetData();
@@ -59,10 +59,10 @@ export default function ChiragNagarPage() {
   // Use the same getAttendanceStatus logic that the table/badges use — keeps all counts consistent
   const activeCount   = stats.greenCount;
   const atRiskCount   = stats.yellowCount;
-  const inactiveCount = stats.redCount;
+  // const inactiveCount = stats.redCount;
 
   // last6 still needed for followUpYuvaks (missed ALL last 6 = red)
-  const last6 = activePastDates.slice(-6);
+  // const last6 = activePastDates.slice(-6);
 
   // Last active sabha for this group
   const lastDate = activePastDates[activePastDates.length - 1];
@@ -79,17 +79,17 @@ export default function ChiragNagarPage() {
   const highest = getHighestSessions(trackedTrend, 3);
 
   // Follow-up list (inactive based on active past dates)
-  const followUpYuvaks = filteredYuvaks
-    .filter((y) => last6.filter((d) => y.dateAttendance[d]).length === 0)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // const followUpYuvaks = filteredYuvaks
+  //   .filter((y) => last6.filter((d) => y.dateAttendance[d]).length === 0)
+  //   .sort((a, b) => a.name.localeCompare(b.name));
 
   // Donut chart
   const donutData = {
-    labels: ['Active', 'At Risk', 'Inactive'],
+    labels: ['Active', 'At Risk' /*, 'Inactive' */],
     datasets: [{
-      data: [activeCount, atRiskCount, inactiveCount],
-      backgroundColor: ['rgba(34,197,94,0.85)', 'rgba(234,179,8,0.85)', 'rgba(239,68,68,0.85)'],
-      borderColor: ['rgb(34,197,94)', 'rgb(234,179,8)', 'rgb(239,68,68)'],
+      data: [activeCount, atRiskCount /*, inactiveCount */],
+      backgroundColor: ['rgba(34,197,94,0.85)', 'rgba(234,179,8,0.85)' /*, 'rgba(239,68,68,0.85)' */],
+      borderColor: ['rgb(34,197,94)', 'rgb(234,179,8)' /*, 'rgb(239,68,68)' */],
       borderWidth: 2,
       hoverOffset: 6,
     }],
@@ -120,7 +120,7 @@ export default function ChiragNagarPage() {
     { id: 'overview', label: 'Overview' },
     { id: 'yuvaks', label: 'All Yuvaks' },
     { id: 'kk', label: 'KK Workload' },
-    { id: 'followup', label: 'Follow-Up' },
+    // { id: 'followup', label: 'Follow-Up' },
   ];
 
   return (
@@ -140,7 +140,8 @@ export default function ChiragNagarPage() {
           {/* Actions — always a single line */}
           <div className="flex flex-wrap items-center gap-2 md:shrink-0">
             <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium">
-              {(['yes', 'no', 'all'] as const).map((v) => (
+              {/* 'no' and 'all' temporarily commented out */}
+              {(['yes'] as const).map((v) => (
                 <button
                   key={v}
                   onClick={() => setAttendingFilter(v)}
@@ -171,10 +172,10 @@ export default function ChiragNagarPage() {
             <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
             <span className="text-yellow-400 font-semibold">At Risk</span>&nbsp;= absent last 3, attended within 6
           </span>
-          <span className="flex items-center gap-1.5 text-slate-400">
+          {/* <span className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
             <span className="text-red-400 font-semibold">Inactive</span>&nbsp;= missed all last 6
-          </span>
+          </span> */}
         </div>
       </div>
 
@@ -191,9 +192,9 @@ export default function ChiragNagarPage() {
             }`}
           >
             {tab.label}
-            {tab.id === 'followup' && inactiveCount > 0 && (
+            {/* {tab.id === 'followup' && inactiveCount > 0 && (
               <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-400 rounded-full">{inactiveCount}</span>
-            )}
+            )} */}
           </button>
         ))}
       </div>
@@ -205,7 +206,7 @@ export default function ChiragNagarPage() {
               <StatsCard title="Total Yuvaks" value={totalCount} subtitle="in this sabha" accent="blue" />
               <StatsCard title="Active" value={activeCount} subtitle="attended within last 3" accent="green" />
               <StatsCard title="At Risk" value={atRiskCount} subtitle="absent last 3, attended within 6" accent="yellow" />
-              <StatsCard title="Inactive" value={inactiveCount} subtitle="missed all last 6" accent="red" />
+              {/* <StatsCard title="Inactive" value={inactiveCount} subtitle="missed all last 6" accent="red" /> */}
               <StatsCard title="Last Sabha ✅" value={`${lastSabhaCount}/${totalCount}`} subtitle={lastDate ? `${lastDate} · ${lastSabhaPct}% showed up` : '—'} accent="orange" />
             </div>
 
@@ -225,7 +226,7 @@ export default function ChiragNagarPage() {
                   {[
                     { label: 'Active', count: activeCount, color: 'bg-green-500', text: 'text-green-400' },
                     { label: 'At Risk', count: atRiskCount, color: 'bg-yellow-400', text: 'text-yellow-400' },
-                    { label: 'Inactive', count: inactiveCount, color: 'bg-red-500', text: 'text-red-400' },
+                    // { label: 'Inactive', count: inactiveCount, color: 'bg-red-500', text: 'text-red-400' },
                   ].map(({ label, count, color, text }) => (
                     <div key={label} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5">
@@ -256,9 +257,9 @@ export default function ChiragNagarPage() {
                       <span className="text-slate-300">{s.date}</span>
                       <div className="flex items-center gap-2">
                         <div className="w-20 bg-slate-700 h-1.5 rounded-full">
-                          <div className="h-full bg-red-500 rounded-full" style={{ width: `${s.percentage}%` }} />
+                          <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${s.percentage}%` }} />
                         </div>
-                        <span className="text-red-400 w-16 text-right">{s.count} ({s.percentage}%)</span>
+                        <span className="text-yellow-400 w-16 text-right">{s.count} ({s.percentage}%)</span>
                       </div>
                     </div>
                   ))}
@@ -285,7 +286,7 @@ export default function ChiragNagarPage() {
 
             {/* Real-time action suggestions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Urgent */}
+              {/* Urgent
               <div className="rounded-xl border border-red-500/40 bg-red-500/5 p-5">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">🚨</span>
@@ -305,7 +306,7 @@ export default function ChiragNagarPage() {
                 >
                   View {inactiveCount} yuvaks →
                 </button>
-              </div>
+              </div> */}
 
               {/* At Risk */}
               <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/5 p-5">
@@ -365,35 +366,12 @@ export default function ChiragNagarPage() {
       {activeTab === 'kk' && (
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">KK Workload — Chirag Nagar Sabha</h3>
-          <p className="text-slate-500 text-xs mb-5">Active / At Risk / Inactive based on last 6 sabhas</p>
+          <p className="text-slate-500 text-xs mb-5">Active / At Risk based on last 6 sabhas</p>
           <KKWorkloadChart kkStats={kkStats} dates={activePastDates} />
         </div>
       )}
 
-      {/* Follow-Up */}
-      {activeTab === 'followup' && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-slate-100 font-semibold mb-1">Follow-Up Required</h3>
-          <p className="text-slate-500 text-xs mb-4">Yuvaks who missed all of the last 6 sabhas · {followUpYuvaks.length} total</p>
-          {followUpYuvaks.length === 0 ? (
-            <p className="text-slate-400 text-sm py-6 text-center">No yuvaks need follow-up 🎉</p>
-          ) : (
-            <div className="space-y-2">
-              {followUpYuvaks.map((y, i) => (
-                <div key={`${y.name}-${i}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 bg-slate-900 rounded-lg">
-                  <div>
-                    <p className="text-slate-100 text-sm font-medium">{y.name}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">{y.area} · KK: {y.followUpKK || '—'}</p>
-                  </div>
-                  <span className="px-2 py-0.5 text-xs bg-red-500/15 text-red-400 border border-red-500/25 rounded-full shrink-0 ml-4">
-                    {y.attendancePercent}% overall
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Follow-Up section commented out */}
     </div>
   );
 }
