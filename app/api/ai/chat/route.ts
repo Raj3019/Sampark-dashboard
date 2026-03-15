@@ -149,15 +149,54 @@ export async function POST(request: Request) {
         }),
         get_yuvak_directory: tool({
           description: 'Get yuvak directory with flexible filters (sabha, attending yes/no/all, status, kkName, query).',
+          // Keep schema permissive to avoid provider-side tool-call validation failures.
           inputSchema: z.object({
-            sabhaType: optionalEnumFrom(sabhaTypeSchema),
-            attendingFilter: optionalEnumFrom(attendingFilterSchema),
-            statusFilter: optionalEnumFrom(statusFilterSchema),
-            kkName: optionalTextFilterSchema,
-            query: optionalTextFilterSchema,
-            limit: optionalIntSchema(1, 200),
-          }),
-          execute: async (input) => getYuvakDirectory(data, input),
+            sabhaType: z.any().optional(),
+            attendingFilter: z.any().optional(),
+            statusFilter: z.any().optional(),
+            kkName: z.any().optional(),
+            query: z.any().optional(),
+            limit: z.any().optional(),
+          }).passthrough(),
+          execute: async (input) => {
+            const normalizeText = (value: unknown): string | undefined => {
+              if (typeof value !== 'string') return undefined;
+              const t = value.trim();
+              return t.length ? t : undefined;
+            };
+
+            const asSabha = (value: unknown): 'Chirag Nagar' | 'Chirag Nagar(Kishor)' | undefined =>
+              value === 'Chirag Nagar' || value === 'Chirag Nagar(Kishor)' ? value : undefined;
+
+            const asAttending = (value: unknown): 'yes' | 'no' | 'all' | undefined =>
+              value === 'yes' || value === 'no' || value === 'all' ? value : undefined;
+
+            const asStatus = (value: unknown): 'green' | 'yellow' | 'red' | 'all' | undefined =>
+              value === 'green' || value === 'yellow' || value === 'red' || value === 'all' ? value : undefined;
+
+            const clampLimit = (value: unknown): number | undefined => {
+              const toNum = (v: unknown): number | undefined => {
+                if (typeof v === 'number' && Number.isFinite(v)) return v;
+                if (typeof v === 'string' && v.trim().length) {
+                  const parsed = Number(v.trim());
+                  if (Number.isFinite(parsed)) return parsed;
+                }
+                return undefined;
+              };
+              const n = toNum(value);
+              if (n === undefined) return undefined;
+              return Math.min(200, Math.max(1, Math.round(n)));
+            };
+
+            return getYuvakDirectory(data, {
+              sabhaType: asSabha(input?.sabhaType),
+              attendingFilter: asAttending(input?.attendingFilter),
+              statusFilter: asStatus(input?.statusFilter),
+              kkName: normalizeText(input?.kkName),
+              query: normalizeText(input?.query),
+              limit: clampLimit(input?.limit),
+            });
+          },
         }),
         create_chart: tool({
           description: 'Create validated chart payload for inline UI rendering',
@@ -173,4 +212,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
 
