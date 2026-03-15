@@ -59,13 +59,11 @@ export default function YuvaksPage() {
                 onClick={() => setAttendingFilter(v)}
                 className={`px-3 py-1.5 transition-colors ${
                   attendingFilter === v
-                    ? v === 'yes' ? 'bg-green-700/60 text-green-200'
-                      : v === 'no' ? 'bg-red-700/60 text-red-200'
-                      : 'bg-slate-600 text-slate-100'
+                    ? 'bg-green-700/60 text-green-200'
                     : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {v === 'all' ? 'All' : v === 'yes' ? '✓ Attending' : '✗ Not Attending'}
+                ? Attending
               </button>
             ))}
           </div>
@@ -105,4 +103,5 @@ export default function YuvaksPage() {
     </div>
   );
 }
+
 

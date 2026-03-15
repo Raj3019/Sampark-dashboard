@@ -79,7 +79,7 @@ export default function AIPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Akshar</h1>
-            <p className="text-slate-400 text-sm mt-1">Your in-app Sabha data assistant for trends, summaries, and charts.</p>
+            <p className="text-slate-400 text-sm mt-1">Your in-app Sabha data assistant for full dataset queries, trends, summaries, and charts.</p>
           </div>
           <span className="hidden sm:inline-flex px-3 py-1 rounded-full text-xs font-medium border border-orange-500/30 bg-orange-500/10 text-orange-300">
             Data-only mode
@@ -165,7 +165,7 @@ export default function AIPage() {
             <input
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask about Chirag Nagar last 3 months, trends, or charts..."
+              placeholder="Ask anything across the full Sabha dataset (both sabhas, yuvaks, KKs, trends) ..."
               className="flex-1 rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-orange-500"
             />
             <button
@@ -181,3 +181,4 @@ export default function AIPage() {
     </div>
   );
 }
+

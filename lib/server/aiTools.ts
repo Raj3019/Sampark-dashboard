@@ -10,6 +10,7 @@ const MAX_RESULT_ROWS = 200;
 export const attendingFilterSchema = z.enum(['yes', 'no', 'all']);
 export const sabhaTypeSchema = z.enum(['Chirag Nagar', 'Chirag Nagar(Kishor)']);
 export const trendModeSchema = z.enum(['attending', 'nonAttending', 'all']);
+export const statusFilterSchema = z.enum(['green', 'yellow', 'red', 'all']);
 
 export const chartSpecSchema = z.object({
   type: z.enum(['bar', 'line', 'pie']),
@@ -244,6 +245,71 @@ export function getYuvaksByKK(
   };
 }
 
+export function getYuvakDirectory(
+  data: ParsedSheetData,
+  options?: {
+    sabhaType?: SabhaType;
+    attendingFilter?: AttendingFilter;
+    statusFilter?: 'green' | 'yellow' | 'red' | 'all';
+    kkName?: string;
+    query?: string;
+    limit?: number;
+  }
+) {
+  const attendingFilter = options?.attendingFilter ?? 'all';
+  const statusFilter = options?.statusFilter ?? 'all';
+  const limit = sanitizeLimit(options?.limit);
+  const q = normalizeName(options?.query ?? '');
+  const kkQ = normalizeName(options?.kkName ?? '');
+
+  const base = applyOptionalFilters(data.yuvaks, {
+    sabhaType: options?.sabhaType,
+    attendingFilter,
+  });
+
+  const past = getPastDates(data.dates);
+  const sabhaActiveDates: Record<SabhaType, string[]> = {
+    'Chirag Nagar': activeDates(filterBySabha(data.yuvaks, 'Chirag Nagar'), past),
+    'Chirag Nagar(Kishor)': activeDates(filterBySabha(data.yuvaks, 'Chirag Nagar(Kishor)'), past),
+  };
+
+  const withStatus = base.map((y) => ({
+    ...y,
+    computedStatus: getAttendanceStatus(y, sabhaActiveDates[y.sabhaType]),
+  }));
+
+  const filtered = withStatus
+    .filter((y) => (statusFilter === 'all' ? true : y.computedStatus === statusFilter))
+    .filter((y) => (kkQ ? matchesPersonLikeQuery(y.followUpKK ?? '', kkQ) : true))
+    .filter((y) => {
+      if (!q) return true;
+      return (
+        matchesPersonLikeQuery(y.name, q) ||
+        matchesPersonLikeQuery(y.followUpKK ?? '', q) ||
+        normalizeName(y.area).includes(q)
+      );
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    lastUpdated: data.lastUpdated,
+    sabhaType: options?.sabhaType ?? 'all',
+    attendingFilter,
+    statusFilter,
+    totalMatches: filtered.length,
+    yuvaks: filtered.slice(0, limit).map((y) => ({
+      name: y.name,
+      followUpKK: y.followUpKK || '',
+      sabhaType: y.sabhaType,
+      area: y.area,
+      std: y.std,
+      attendingSabha: y.attendingSabha,
+      attendancePercent: y.attendancePercent,
+      status: y.computedStatus,
+    })),
+  };
+}
 export function validateChartSpec(chart: ChartSpec): ChartSpec {
   return chartSpecSchema.parse(chart);
 }
+
