@@ -93,28 +93,26 @@ export default function Navbar() {
 
       <header className="md:hidden fixed top-0 left-0 right-0 z-30 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="text-slate-400 hover:text-slate-100 p-1.5 rounded-lg hover:bg-slate-800 transition-colors border border-slate-700"
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? '✕' : '☰'}
+          </button>
           <div className="w-7 h-7 rounded-md bg-white overflow-hidden shrink-0 flex items-center justify-center">
             <Image src="/sampark_logo.jpeg" alt="Sampark Logo" width={28} height={28} className="w-full h-full object-cover" />
           </div>
           <span className="text-orange-400 font-bold text-sm">Sabha Analytics</span>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            onClick={toggle}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="text-slate-300 hover:text-slate-100 p-1.5 rounded-lg hover:bg-slate-800 transition-colors border border-slate-700"
-          >
-            <ThemeToggleIcon theme={theme} />
-          </button>
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="text-slate-400 hover:text-slate-100 p-1"
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? 'X' : 'M'}
-          </button>
-        </div>
+        <button
+          onClick={toggle}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="text-slate-300 hover:text-slate-100 p-1.5 rounded-lg hover:bg-slate-800 transition-colors border border-slate-700"
+        >
+          <ThemeToggleIcon theme={theme} />
+        </button>
       </header>
 
       {mobileOpen && (
