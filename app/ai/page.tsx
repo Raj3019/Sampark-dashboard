@@ -1,3 +1,24 @@
+export default function AIPage() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-8 sm:p-10">
+        <div className="space-y-4 text-center">
+          <div className="inline-flex items-center rounded-full border border-orange-500/20 bg-orange-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-orange-300">
+            Coming Soon
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-50 sm:text-4xl">
+            Ask Akshar is coming soon.
+          </h1>
+          <p className="mx-auto max-w-2xl text-sm leading-7 text-slate-400 sm:text-base">
+            This feature will be introduced in a future update after the website release.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/*
 'use client';
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
@@ -181,4 +202,4 @@ export default function AIPage() {
     </div>
   );
 }
-
+*/

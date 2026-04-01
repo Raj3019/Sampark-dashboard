@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useTheme } from './ThemeProvider';
+import { authClient } from '@/lib/auth/client';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: 'DB' },
@@ -41,8 +42,23 @@ function ThemeToggleIcon({ theme }: { theme: 'dark' | 'light' }) {
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { theme, toggle } = useTheme();
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+
+    try {
+      await authClient.signOut();
+      setMobileOpen(false);
+      router.replace('/login');
+      router.refresh();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <>
@@ -55,6 +71,9 @@ export default function Navbar() {
             <div>
               <p className="text-orange-400 font-bold text-sm leading-tight">Sabha Analytics</p>
               <p className="text-slate-500 text-xs">Sampark Management</p>
+              <span className="mt-1 inline-flex rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300">
+                V1
+              </span>
             </div>
           </div>
         </div>
@@ -79,15 +98,24 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="px-4 py-4 border-t border-slate-800 flex items-center justify-between gap-2">
+        <div className="px-4 py-4 border-t border-slate-800 space-y-3">
           <p className="text-slate-600 text-xs">Auto-refreshes every 60s</p>
-          <button
-            onClick={toggle}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors shrink-0 border border-slate-700"
-          >
-            <ThemeToggleIcon theme={theme} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="flex-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-200 disabled:opacity-60"
+            >
+              {isSigningOut ? 'Signing out...' : 'Logout'}
+            </button>
+            <button
+              onClick={toggle}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors shrink-0 border border-slate-700"
+            >
+              <ThemeToggleIcon theme={theme} />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -103,7 +131,10 @@ export default function Navbar() {
           <div className="w-7 h-7 rounded-md bg-white overflow-hidden shrink-0 flex items-center justify-center">
             <Image src="/sampark_logo.jpeg" alt="Sampark Logo" width={28} height={28} className="w-full h-full object-cover" />
           </div>
-          <span className="text-orange-400 font-bold text-sm">Sabha Analytics</span>
+          <div>
+            <span className="block text-orange-400 font-bold text-sm leading-tight">Sabha Analytics</span>
+            <span className="block text-[10px] uppercase tracking-[0.16em] text-sky-300">Website V1</span>
+          </div>
         </div>
 
         <button
@@ -141,6 +172,16 @@ export default function Navbar() {
                 );
               })}
             </nav>
+            <div className="px-3 py-4 border-t border-slate-800 space-y-3">
+              <p className="text-slate-600 text-xs">Auto-refreshes every 60s</p>
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="w-full rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm font-medium text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-200 disabled:opacity-60"
+              >
+                {isSigningOut ? 'Signing out...' : 'Logout'}
+              </button>
+            </div>
           </aside>
         </div>
       )}

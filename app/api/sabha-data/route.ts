@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
+import { requireApiSession } from '@/lib/auth/session';
 import { getSabhaData } from '@/lib/server/sabhaDataService';
 
 export async function GET() {
+  const { response } = await requireApiSession();
+
+  if (response) {
+    return response;
+  }
+
   try {
     const { data, cache } = await getSabhaData();
 

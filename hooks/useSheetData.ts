@@ -13,6 +13,10 @@ export function useSheetData() {
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/sabha-data');
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? `HTTP ${res.status}`);

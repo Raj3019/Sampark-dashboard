@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import AppShell from "@/components/AppShell";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const geistSans = Geist({
@@ -32,14 +32,10 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} antialiased bg-slate-950 text-slate-100 min-h-screen`}>
         <ThemeProvider>
-          <Navbar />
-          {/* Offset for sidebar on desktop, top bar on mobile */}
-          <main className="md:ml-60 pt-14 md:pt-0 min-h-screen">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-              {children}
-               <SpeedInsights />
-            </div>
-          </main>
+          <AppShell>
+            {children}
+            <SpeedInsights />
+          </AppShell>
         </ThemeProvider>
       </body>
     </html>
