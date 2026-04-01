@@ -9,8 +9,8 @@ import { authClient } from '@/lib/auth/client';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: 'DB' },
-  { href: '/sabha/chirag-nagar', label: 'Nimit Sevaks', icon: 'CN' },
-  { href: '/sabha/kishor', label: 'Akshar Sevaks', icon: 'KS' },
+  { href: '/sabha/chirag-nagar', label: 'Yuva Sabha', icon: 'CN' },
+  { href: '/sabha/kishor', label: 'AYC Sabha', icon: 'KS' },
   { href: '/kk-analysis', label: 'KK Analysis', icon: 'KK' },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: 'YD' },
   { href: '/ai', label: 'Ask Akshar', icon: 'AI' },
