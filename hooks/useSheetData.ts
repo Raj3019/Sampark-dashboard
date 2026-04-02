@@ -11,8 +11,11 @@ export function useSheetData() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000); // allow Drive retries to complete
+
     try {
-      const res = await fetch('/api/sabha-data');
+      const res = await fetch('/api/sabha-data', { signal: controller.signal });
       if (res.status === 401) {
         window.location.href = '/login';
         return;
@@ -25,8 +28,13 @@ export function useSheetData() {
       setData(json);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Loading timed out while fetching Sabha data. Please verify the Google Sheet file and tab names.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      }
     } finally {
+      clearTimeout(timeout);
       setLoading(false);
     }
   }, []);

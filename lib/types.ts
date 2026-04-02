@@ -1,5 +1,11 @@
-export type SabhaType = 'Chirag Nagar' | 'Chirag Nagar(Kishor)';
+export type SabhaType = string;
 export type AttendanceStatus = 'green' | 'yellow' | 'red';
+
+export interface SabhaMeta {
+  vakta: string;
+  topic: string;
+  sheetName: string;
+}
 
 export interface Yuvak {
   name: string;
@@ -19,6 +25,7 @@ export interface ParsedSheetData {
   yuvaks: Yuvak[];
   dates: string[];
   lastUpdated: string;
+  sabhaMeta: Record<SabhaType, SabhaMeta>;
 }
 
 export interface KKStats {

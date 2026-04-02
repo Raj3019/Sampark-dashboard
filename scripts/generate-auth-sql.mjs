@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
-import { username } from 'better-auth/plugins';
+import { admin, username } from 'better-auth/plugins';
 import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 
@@ -10,11 +10,7 @@ const { Pool } = pg;
 
 function requireEnv(name) {
   const value = process.env[name];
-
-  if (!value) {
-    throw new Error(`${name} is required.`);
-  }
-
+  if (!value) throw new Error(`${name} is required.`);
   return value;
 }
 
@@ -24,25 +20,19 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-const db = new Kysely({
-  dialect: new PostgresDialect({ pool }),
-});
+const db = new Kysely({ dialect: new PostgresDialect({ pool }) });
 
 const auth = betterAuth({
-  database: {
-    db,
-    type: 'postgres',
-  },
+  database: { db, type: 'postgres' },
   secret: requireEnv('BETTER_AUTH_SECRET'),
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   basePath: '/api/auth',
-  emailAndPassword: {
-    enabled: true,
-  },
-  rateLimit: {
-    enabled: false,
-  },
-  plugins: [username()],
+  emailAndPassword: { enabled: true },
+  rateLimit: { enabled: false },
+  plugins: [
+    username(),
+    admin({ defaultRole: 'kk', adminRoles: ['admin'] }),
+  ],
 });
 
 try {

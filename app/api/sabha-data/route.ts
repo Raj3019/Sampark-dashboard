@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
-import { requireApiSession } from '@/lib/auth/session';
-import { getSabhaData } from '@/lib/server/sabhaDataService';
+import { getSabhaData } from '@/lib/sabhaWorkbookService';
+
+export const maxDuration = 60; // seconds — allow time for Drive retries
 
 export async function GET() {
-  const { response } = await requireApiSession();
-
-  if (response) {
-    return response;
-  }
-
   try {
     const { data, cache } = await getSabhaData();
 

@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
-import { username } from 'better-auth/plugins';
-import { getAuthDb } from '@/lib/auth/db';
+import { admin, username } from 'better-auth/plugins';
+import { getAuthDb, getAuthPool } from '@/lib/auth/db';
 
 const baseURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
 
@@ -23,5 +23,43 @@ export const auth = betterAuth({
   plugins: [
     nextCookies(),
     username(),
+    admin({
+      defaultRole: 'kk',
+      adminRoles: ['admin'],
+    }),
   ],
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          try {
+            const pool = getAuthPool();
+            const userRes = await pool.query<{ name: string; email: string; role: string }>(
+              `SELECT "name", "email", "role" FROM "user" WHERE "id" = $1`,
+              [session.userId]
+            );
+            const user = userRes.rows[0];
+            if (!user) return;
+
+            await pool.query(
+              `INSERT INTO "activity_log"
+                 ("id", "userId", "userName", "userEmail", "userRole", "action", "ipAddress", "userAgent", "createdAt")
+               VALUES ($1, $2, $3, $4, $5, 'login', $6, $7, NOW())`,
+              [
+                crypto.randomUUID(),
+                session.userId,
+                user.name,
+                user.email,
+                user.role,
+                session.ipAddress ?? null,
+                session.userAgent ?? null,
+              ]
+            );
+          } catch (err) {
+            console.error('Failed to write activity log:', err);
+          }
+        },
+      },
+    },
+  },
 });

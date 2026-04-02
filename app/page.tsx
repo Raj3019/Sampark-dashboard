@@ -1,11 +1,22 @@
 'use client';
 
 import { useSheetData } from '@/hooks/useSheetData';
-import { getSabhaStats, getKKStats, getLowestSessions, getHighestSessions, predictNextAttendance, getAreaBreakdown, getPastDates } from '@/lib/analytics';
-import StatsCard from '@/components/StatsCard';
-import StatusPieChart from '@/components/charts/StatusPieChart';
-import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
+import {
+  getAreaBreakdown,
+  getHighestSessions,
+  getKKStats,
+  getLowestSessions,
+  getPastDates,
+  getSabhaStats,
+  predictNextAttendance,
+} from '@/lib/analytics';
+import { SABHA_DISPLAY, SABHA_TYPES } from '@/lib/sabha';
+import { SabhaType } from '@/lib/types';
 import AreaBreakdownChart from '@/components/charts/AreaBreakdownChart';
+import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
+import StatusPieChart from '@/components/charts/StatusPieChart';
+import SabhaMetaPanel from '@/components/SabhaMetaPanel';
+import StatsCard from '@/components/StatsCard';
 
 function LoadingSpinner() {
   return (
@@ -25,12 +36,6 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
         <div className="text-4xl">⚠️</div>
         <p className="text-slate-300 font-medium">Failed to load data</p>
         <p className="text-slate-500 text-sm">{message}</p>
-        {message.includes('GOOGLE_SHEET_CSV_URL') && (
-          <p className="text-slate-600 text-xs bg-slate-800 rounded p-3 text-left">
-            Create <code className="text-orange-400">.env.local</code> with:<br />
-            <code className="text-slate-300">GOOGLE_SHEET_CSV_URL=https://docs.google.com/spreadsheets/d/YOUR_ID/export?format=csv&amp;gid=0</code>
-          </p>
-        )}
         <button
           onClick={onRetry}
           className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
@@ -42,6 +47,32 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
+function getSabhaAccentClasses(sabhaType: SabhaType) {
+  switch (SABHA_DISPLAY[sabhaType]?.accent) {
+    case 'purple':
+      return {
+        border: 'border-purple-500/20',
+        title: 'text-purple-400',
+        chip: 'bg-purple-500/15 text-purple-300',
+        expected: 'text-purple-400',
+      };
+    case 'orange':
+      return {
+        border: 'border-orange-500/20',
+        title: 'text-orange-400',
+        chip: 'bg-orange-500/15 text-orange-300',
+        expected: 'text-orange-400',
+      };
+    default:
+      return {
+        border: 'border-blue-500/20',
+        title: 'text-blue-400',
+        chip: 'bg-blue-500/15 text-blue-300',
+        expected: 'text-blue-400',
+      };
+  }
+}
+
 export default function DashboardPage() {
   const { data, loading, error, refresh } = useSheetData();
 
@@ -50,50 +81,52 @@ export default function DashboardPage() {
   if (!data || data.yuvaks.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-slate-400">No data found. Check your Google Sheet CSV URL in .env.local</p>
+        <p className="text-slate-400">No data found. Check your Google Sheets tab names in the environment config.</p>
       </div>
     );
   }
 
-  const { yuvaks, dates, lastUpdated } = data;
+  const { yuvaks, dates, lastUpdated, sabhaMeta } = data;
   const pastDates = getPastDates(dates);
+  const activePastDates = pastDates.filter((date) => yuvaks.some((y) => y.dateAttendance[date]));
 
-  // Per-sabha active dates: exclude columns where nobody attended (blank/future dates)
-  const cnYuvaks     = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar');
-  const kishorYuvaks = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar(Kishor)');
-  const cnActiveDates     = pastDates.filter((d) => cnYuvaks.some((y)     => y.dateAttendance[d]));
-  const kishorActiveDates = pastDates.filter((d) => kishorYuvaks.some((y) => y.dateAttendance[d]));
+  const sabhaCards = SABHA_TYPES.map((sabhaType) => {
+    const sabhaYuvaks = yuvaks.filter((y) => y.sabhaType === sabhaType);
+    const sabhaDates = pastDates.filter((date) => sabhaYuvaks.some((y) => y.dateAttendance[date]));
 
-  const cnStats     = getSabhaStats(yuvaks, cnActiveDates,     'Chirag Nagar');
-  const kishorStats = getSabhaStats(yuvaks, kishorActiveDates, 'Chirag Nagar(Kishor)');
-  const kkStats     = getKKStats(yuvaks, pastDates.filter((d) => yuvaks.some((y) => y.dateAttendance[d])));
-  const areaBreakdown = getAreaBreakdown(yuvaks, pastDates.filter((d) => yuvaks.some((y) => y.dateAttendance[d])));
+    return {
+      sabhaType,
+      yuvaks: sabhaYuvaks,
+      dates: sabhaDates,
+      stats: getSabhaStats(yuvaks, sabhaDates, sabhaType),
+      predicted: predictNextAttendance(getSabhaStats(yuvaks, sabhaDates, sabhaType).sessionTrend),
+      meta: sabhaMeta[sabhaType],
+      ui: SABHA_DISPLAY[sabhaType],
+      accent: getSabhaAccentClasses(sabhaType),
+    };
+  });
 
-  const totalGreen = cnStats.greenCount + kishorStats.greenCount;
-  const totalYellow = cnStats.yellowCount + kishorStats.yellowCount;
-  // const totalRed = cnStats.redCount + kishorStats.redCount;
+  const totalGreen = sabhaCards.reduce((sum, card) => sum + card.stats.greenCount, 0);
+  const totalYellow = sabhaCards.reduce((sum, card) => sum + card.stats.yellowCount, 0);
   const totalYuvaks = yuvaks.length;
 
-  // Overall trend: only dates where at least one yuvak attended (avoids 0% tail on chart)
-  const activePastDates = pastDates.filter((d) => yuvaks.some((y) => y.dateAttendance[d]));
   const overallTrend = activePastDates.map((date) => {
     const count = yuvaks.filter((y) => y.dateAttendance[date]).length;
     return { date, count, percentage: totalYuvaks > 0 ? Math.round((count / totalYuvaks) * 100) : 0 };
   });
 
-  const lowestCN = getLowestSessions(cnStats.sessionTrend, 3);
-  const highestCN = getHighestSessions(cnStats.sessionTrend, 3);
-  const predictedCN = predictNextAttendance(cnStats.sessionTrend);
-  const predictedKishor = predictNextAttendance(kishorStats.sessionTrend);
+  const lowestOverall = getLowestSessions(overallTrend, 3);
+  const highestOverall = getHighestSessions(overallTrend, 3);
+  const kkStats = getKKStats(yuvaks, activePastDates);
+  const areaBreakdown = getAreaBreakdown(yuvaks, activePastDates);
   const updatedTime = new Date(lastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Sabha Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Overview of all weekly sabha attendance & analytics</p>
+          <p className="text-slate-500 text-sm mt-1">Overview of Yuva, Kishor, and Bal sabha attendance</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
@@ -103,57 +136,42 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Top stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="Both sabhas combined" icon="👥" accent="orange" />
-        <StatsCard title="Active (Green)" value={totalGreen} subtitle={`${totalYuvaks > 0 ? Math.round((totalGreen / totalYuvaks) * 100) : 0}% of total`} icon="✅" accent="green" />
+        <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="All three sabhas combined" icon="👥" accent="orange" />
+        <StatsCard title="Active" value={totalGreen} subtitle={`${totalYuvaks > 0 ? Math.round((totalGreen / totalYuvaks) * 100) : 0}% of total`} icon="✅" accent="green" />
         <StatsCard title="Needs Attention" value={totalYellow} subtitle="Absent last 3 sabhas" icon="⚠️" accent="yellow" />
-        {/* <StatsCard title="Absent (Red)" value={totalRed} subtitle="Absent 6+ sabhas" icon="🚫" accent="red" /> */}
+        <StatsCard title="Active Sabhas" value={sabhaCards.filter((card) => card.stats.totalYuvaks > 0).length} subtitle="Yuva, Kishor, Bal" icon="🗂" accent="blue" />
       </div>
 
-      {/* Sabha comparison */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-slate-800 border border-blue-500/20 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-blue-400 font-semibold">Chirag Nagar Sabha</h3>
-              <p className="text-slate-500 text-xs">STD 13+ · Senior gathering</p>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        {sabhaCards.map((card) => (
+          <div key={card.sabhaType} className={`bg-slate-800 border rounded-xl p-5 ${card.accent.border}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className={`font-semibold ${card.accent.title}`}>{card.ui.fullLabel}</h3>
+                <p className="text-slate-500 text-xs">{card.ui.subtitle}</p>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${card.accent.chip}`}>{card.ui.shortLabel}</span>
             </div>
-            <span className="text-2xl">🏛</span>
-          </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div><p className="text-2xl font-bold text-slate-100">{cnStats.totalYuvaks}</p><p className="text-xs text-slate-500">Total</p></div>
-            <div><p className="text-2xl font-bold text-green-400">{cnStats.avgAttendance}%</p><p className="text-xs text-slate-500">Avg Att.</p></div>
-            <div><p className="text-2xl font-bold text-orange-400">{predictedCN}%</p><p className="text-xs text-slate-500">Expected</p></div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{cnStats.greenCount} active</span>
-            <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{cnStats.yellowCount} attention</span>
-            {/* <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{cnStats.redCount} absent</span> */}
-          </div>
-        </div>
-        <div className="bg-slate-800 border border-purple-500/20 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-purple-400 font-semibold">Kishor Sabha</h3>
-              <p className="text-slate-500 text-xs">STD 9–12 · Youth gathering</p>
+
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div><p className="text-2xl font-bold text-slate-100">{card.stats.totalYuvaks}</p><p className="text-xs text-slate-500">Total</p></div>
+              <div><p className="text-2xl font-bold text-green-400">{card.stats.avgAttendance}%</p><p className="text-xs text-slate-500">Avg Att.</p></div>
+              <div><p className={`text-2xl font-bold ${card.accent.expected}`}>{card.predicted}%</p><p className="text-xs text-slate-500">Expected</p></div>
             </div>
-            <span className="text-2xl">📚</span>
+
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{card.stats.greenCount} active</span>
+              <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{card.stats.yellowCount} attention</span>
+            </div>
+
+            <div className="mt-4 border-t border-slate-700 pt-4">
+              <SabhaMetaPanel {...card.meta} compact={true} />
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div><p className="text-2xl font-bold text-slate-100">{kishorStats.totalYuvaks}</p><p className="text-xs text-slate-500">Total</p></div>
-            <div><p className="text-2xl font-bold text-green-400">{kishorStats.avgAttendance}%</p><p className="text-xs text-slate-500">Avg Att.</p></div>
-            <div><p className="text-2xl font-bold text-purple-400">{predictedKishor}%</p><p className="text-xs text-slate-500">Expected</p></div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{kishorStats.greenCount} active</span>
-            <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{kishorStats.yellowCount} attention</span>
-            {/* <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">{kishorStats.redCount} absent</span> */}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <AttendanceTrendChart sessionTrend={overallTrend} sabhaLabel="All Sabhas" totalYuvaks={totalYuvaks} />
@@ -161,14 +179,13 @@ export default function DashboardPage() {
         <StatusPieChart green={totalGreen} yellow={totalYellow} red={0} title="Overall Status" />
       </div>
 
-      {/* Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">Lowest Attendance Sessions</h3>
-          <p className="text-slate-500 text-xs mb-4">Chirag Nagar — possible festivals or holidays</p>
-          {lowestCN.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
+          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, Kishor, and Bal</p>
+          {lowestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
             <div className="space-y-3">
-              {lowestCN.map((s) => (
+              {lowestOverall.map((s) => (
                 <div key={s.date} className="flex items-center justify-between">
                   <span className="text-slate-300 text-sm">{s.date}</span>
                   <div className="flex items-center gap-2">
@@ -180,12 +197,13 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">Highest Attendance Sessions</h3>
-          <p className="text-slate-500 text-xs mb-4">Chirag Nagar — best performing days</p>
-          {highestCN.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
+          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, Kishor, and Bal</p>
+          {highestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
             <div className="space-y-3">
-              {highestCN.map((s) => (
+              {highestOverall.map((s) => (
                 <div key={s.date} className="flex items-center justify-between">
                   <span className="text-slate-300 text-sm">{s.date}</span>
                   <div className="flex items-center gap-2">
@@ -215,7 +233,6 @@ export default function DashboardPage() {
                   <div className="flex gap-1.5 text-xs">
                     <span className="px-1.5 py-0.5 rounded bg-green-500/15 text-green-400">{kk.greenCount}</span>
                     <span className="px-1.5 py-0.5 rounded bg-yellow-500/15 text-yellow-400">{kk.yellowCount}</span>
-                    {/* <span className="px-1.5 py-0.5 rounded bg-red-500/15 text-red-400">{kk.redCount}</span> */}
                   </div>
                 </div>
               ))}
@@ -223,23 +240,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {kkStats.some((k) => k.yuvaks.length > 6) && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 flex gap-3">
-          <span className="text-yellow-400 text-xl">⚠️</span>
-          <div>
-            <p className="text-yellow-300 font-medium text-sm">Some KKs have many yuvaks to follow-up</p>
-            <p className="text-yellow-500/80 text-xs mt-1">
-              {kkStats.filter((k) => k.yuvaks.length > 6).map((k) => `${k.name} (${k.yuvaks.length})`).join(', ')} — consider redistributing for more effective follow-up.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Immediate Follow-Up block commented out */}
     </div>
   );
 }
-
-
-

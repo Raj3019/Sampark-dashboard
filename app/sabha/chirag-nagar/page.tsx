@@ -10,6 +10,7 @@ import YuvakTable from '@/components/YuvakTable';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import AreaBreakdownChart from '@/components/charts/AreaBreakdownChart';
+import SabhaMetaPanel from '@/components/SabhaMetaPanel';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -36,7 +37,7 @@ export default function ChiragNagarPage() {
 
   if (!data) return null;
 
-  const { yuvaks, dates } = data;
+  const { yuvaks, dates, sabhaMeta } = data;
 
   // Only consider dates that have already occurred (≤ today)
   const pastDates = getPastDates(dates);
@@ -174,6 +175,9 @@ export default function ChiragNagarPage() {
             <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
             <span className="text-red-400 font-semibold">Inactive</span>&nbsp;= missed all last 6
           </span> */}
+        </div>
+        <div className="pl-4">
+          <SabhaMetaPanel {...sabhaMeta[sabhaType]} compact={true} />
         </div>
       </div>
 

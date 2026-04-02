@@ -73,7 +73,7 @@ type SortKey = 'name' | 'area' | 'attendance' | 'status' | 'kk';
 export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Props) {
   const [search, setSearch]             = useState('');
   const [filterStatus, setFilterStatus] = useState<AttendanceStatus | 'all'>('all');
-  const [filterSabha, setFilterSabha]   = useState<'all' | 'cn' | 'kishor'>('all');
+  const [filterSabha, setFilterSabha]   = useState<'all' | 'cn' | 'kishor' | 'bal'>('all');
   const [filterKK, setFilterKK]         = useState('all');
   const [dateWindow, setDateWindow]     = useState<'last6' | '1m' | '3m' | '6m' | 'all' | 'custom'>('last6');
   const [customFrom, setCustomFrom]     = useState('');
@@ -137,6 +137,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
     if (filterStatus !== 'all' && y.status !== filterStatus) return false;
     if (filterSabha === 'cn'     && y.sabhaType !== 'Chirag Nagar') return false;
     if (filterSabha === 'kishor' && y.sabhaType !== 'Chirag Nagar(Kishor)') return false;
+    if (filterSabha === 'bal' && y.sabhaType !== 'Bal Sabha') return false;
     if (filterKK !== 'all' && y.followUpKK !== filterKK) return false;
     if (search &&
       !y.name.toLowerCase().includes(search.toLowerCase()) &&
@@ -199,12 +200,13 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
         {showSabhaType && (
           <select
             value={filterSabha}
-            onChange={(e) => { setFilterSabha(e.target.value as 'all' | 'cn' | 'kishor'); setPage(1); }}
+            onChange={(e) => { setFilterSabha(e.target.value as 'all' | 'cn' | 'kishor' | 'bal'); setPage(1); }}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
           >
             <option value="all">All Sabhas</option>
             <option value="cn">Chirag Nagar</option>
             <option value="kishor">Kishor</option>
+            <option value="bal">Bal</option>
           </select>
         )}
         <select
@@ -323,9 +325,11 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                     <span className={`text-xs px-2 py-0.5 rounded font-medium ${
                       y.sabhaType === 'Chirag Nagar(Kishor)'
                         ? 'bg-purple-500/20 text-purple-400'
+                        : y.sabhaType === 'Bal Sabha'
+                        ? 'bg-orange-500/20 text-orange-400'
                         : 'bg-blue-500/20 text-blue-400'
                     }`}>
-                      {y.sabhaType === 'Chirag Nagar(Kishor)' ? 'Kishor' : 'CN'}
+                      {y.sabhaType === 'Chirag Nagar(Kishor)' ? 'Kishor' : y.sabhaType === 'Bal Sabha' ? 'Bal' : 'CN'}
                     </span>
                   </td>
                 )}

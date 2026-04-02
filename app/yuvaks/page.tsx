@@ -36,6 +36,7 @@ export default function YuvaksPage() {
   // const red = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'red').length;
   const cnCount = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar').length;
   const kishorCount = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar(Kishor)').length;
+  const balCount = yuvaks.filter((y) => y.sabhaType === 'Bal Sabha').length;
 
   const filteredYuvaks = yuvaks.filter((y) => {
     const byAttending = attendingFilter === 'all' ? true : attendingFilter === 'yes' ? y.attendingSabha : !y.attendingSabha;
@@ -47,7 +48,7 @@ export default function YuvaksPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Yuvak Directory</h1>
-          <p className="text-slate-500 text-sm mt-1">All yuvaks across both sabhas with attendance status</p>
+          <p className="text-slate-500 text-sm mt-1">All yuvaks across all sabhas with attendance status</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Attending filter */}
@@ -74,10 +75,11 @@ export default function YuvaksPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <StatsCard title="Total Yuvaks" value={yuvaks.length} icon="👥" accent="orange" />
         <StatsCard title="Chirag Nagar" value={cnCount} icon="🏛" accent="blue" />
         <StatsCard title="Kishor Sabha" value={kishorCount} icon="📚" accent="blue" />
+        <StatsCard title="Bal Sabha" value={balCount} icon="BS" accent="orange" />
         <StatsCard title="Active" value={green} icon="✅" accent="green" />
         <StatsCard title="Need Attention" value={yellow} icon="⚠️" accent="yellow" />
       </div>
