@@ -343,17 +343,21 @@ export default function DashboardPage() {
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
         <div className="mb-4">
           <h3 className="text-slate-100 font-semibold">Last 4 Sabha Average Attendance</h3>
-          <p className="text-slate-500 text-xs mt-0.5">Hover on a card for more details about sessions used and latest date.</p>
+          <p className="text-slate-500 text-xs mt-0.5">Hover on a card for latest session, sessions used, and yuvak coverage.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <div className="group relative rounded-lg border border-slate-700 bg-slate-900/50 p-4">
             <p className="text-[11px] uppercase tracking-wide text-slate-400">Overall</p>
             <p className="text-3xl font-bold text-blue-300 mt-1">{overallLast4AvgAttendance}%</p>
             <p className="text-xs text-slate-500 mt-1">Based on last {Math.min(4, overallTrend.length)} recorded sessions</p>
-            <div className="pointer-events-none absolute left-3 right-3 top-[calc(100%+8px)] z-20 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-              <div className="rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-xl text-xs text-slate-300">
-                <p>Latest session: {overallLast4Dates[overallLast4Dates.length - 1] ?? 'N/A'}</p>
-                <p className="mt-1">Sessions used: {overallLast4Dates.join(', ') || 'N/A'}</p>
+            <div className="pointer-events-none absolute left-3 right-3 bottom-[calc(100%+8px)] z-20 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+              <div className="rounded-xl border border-slate-600 bg-slate-900/98 p-3 shadow-2xl text-xs text-slate-200">
+                <p className="text-slate-100 font-semibold">Overall Last-4 Snapshot</p>
+                <p className="mt-2 text-slate-300">
+                  Latest session: <span className="text-slate-100">{overallLast4Dates[overallLast4Dates.length - 1] ?? 'N/A'}</span>
+                </p>
+                <p className="mt-1 text-slate-300">Sessions used ({overallLast4Dates.length}):</p>
+                <p className="mt-1 text-slate-400 leading-relaxed">{overallLast4Dates.join(' • ') || 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -365,11 +369,17 @@ export default function DashboardPage() {
                 <p className={`text-[11px] uppercase tracking-wide ${card.accent.title}`}>{card.ui.shortLabel}</p>
                 <p className="text-3xl font-bold text-slate-100 mt-1">{card.avgAttendanceLast4}%</p>
                 <p className="text-xs text-slate-500 mt-1">Based on last {Math.min(4, card.dates.length)} recorded sessions</p>
-                <div className="pointer-events-none absolute left-3 right-3 top-[calc(100%+8px)] z-20 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                  <div className="rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-xl text-xs text-slate-300">
-                    <p>Latest session: {last4Dates[last4Dates.length - 1] ?? 'N/A'}</p>
-                    <p className="mt-1">Sessions used: {last4Dates.join(', ') || 'N/A'}</p>
-                    <p className="mt-1">Total yuvaks considered: {card.stats.totalYuvaks}</p>
+                <div className="pointer-events-none absolute left-3 right-3 bottom-[calc(100%+8px)] z-20 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+                  <div className="rounded-xl border border-slate-600 bg-slate-900/98 p-3 shadow-2xl text-xs text-slate-200">
+                    <p className={`font-semibold ${card.accent.title}`}>{card.ui.shortLabel} Last-4 Snapshot</p>
+                    <p className="mt-2 text-slate-300">
+                      Latest session: <span className="text-slate-100">{last4Dates[last4Dates.length - 1] ?? 'N/A'}</span>
+                    </p>
+                    <p className="mt-1 text-slate-300">Sessions used ({last4Dates.length}):</p>
+                    <p className="mt-1 text-slate-400 leading-relaxed">{last4Dates.join(' • ') || 'N/A'}</p>
+                    <p className="mt-2 text-slate-300">
+                      Yuvaks considered: <span className="text-slate-100">{card.stats.totalYuvaks}</span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -510,7 +520,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="order-1 bg-slate-800 border border-slate-700 rounded-xl p-5">
+        <div className="order-2 lg:order-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">Lowest Attendance Sessions</h3>
           <p className="text-slate-500 text-xs mb-4">Overall across Yuva, Kishor, and Bal</p>
           {lowestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
@@ -533,7 +543,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="order-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
+        <div className="order-1 lg:order-1 bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">Highest Attendance Sessions</h3>
           <p className="text-slate-500 text-xs mb-4">Overall across Yuva, Kishor, and Bal</p>
           {highestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (

@@ -65,6 +65,10 @@ export interface SabhaSessionStat {
   date: string;
   count: number;
   percentage: number;
+  areaBreakdown?: Array<{
+    area: string;
+    attended: number;
+  }>;
 }
 
 export interface SabhaStats {

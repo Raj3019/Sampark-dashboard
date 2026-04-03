@@ -7,20 +7,22 @@ interface Props {
   title?: string;
 }
 
-export default function StatusPieChart({ green, yellow, red: _red, title = 'Overall Status' }: Props) {
-  const total = green + yellow;
-  const gPct  = total > 0 ? (green  / total) * 100 : 0;
-  const yPct  = total > 0 ? (yellow / total) * 100 : 0;
-  // const rPct  = total > 0 ? (red    / total) * 100 : 0;
+export default function StatusPieChart({ green, yellow, red, title = 'Overall Status' }: Props) {
+  const total = green + yellow + red;
+  const gPct = total > 0 ? (green / total) * 100 : 0;
+  const yPct = total > 0 ? (yellow / total) * 100 : 0;
+  const rPct = total > 0 ? (red / total) * 100 : 0;
+  const gEnd = gPct;
+  const yEnd = gPct + yPct;
 
   const gradient = total > 0
-    ? `conic-gradient(#22c55e 0% ${gPct}%, #eab308 ${gPct}% 100%)`
+    ? `conic-gradient(#22c55e 0% ${gEnd}%, #eab308 ${gEnd}% ${yEnd}%, #ef4444 ${yEnd}% 100%)`
     : 'conic-gradient(#334155 0% 100%)';
 
   const segments = [
-    { label: 'Active',     count: green,  pct: gPct, color: '#22c55e', text: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-    { label: 'Attention',  count: yellow, pct: yPct, color: '#eab308', text: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-    // { label: 'Absent',     count: red,    pct: rPct, color: '#ef4444', text: 'text-red-400',   bg: 'bg-red-500/10   border-red-500/20'   },
+    { label: 'Low Risk', count: green, pct: gPct, color: '#22c55e', text: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+    { label: 'Moderate Risk', count: yellow, pct: yPct, color: '#eab308', text: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+    { label: 'At Risk', count: red, pct: rPct, color: '#ef4444', text: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
   ];
 
   return (

@@ -49,11 +49,21 @@ export function getStatusLabel(status: AttendanceStatus): string {
 /** Computes per-session attendance counts from date attendance data */
 export function getSessionTrend(yuvaks: Yuvak[], dates: string[]): SabhaSessionStat[] {
   return dates.map((date) => {
-    const attended = yuvaks.filter((y) => y.dateAttendance[date]).length;
+    const areaMap = new Map<string, number>();
+    const attended = yuvaks.filter((y) => {
+      const present = y.dateAttendance[date];
+      if (!present) return false;
+      const area = y.area?.trim() || 'Unknown';
+      areaMap.set(area, (areaMap.get(area) ?? 0) + 1);
+      return true;
+    }).length;
     return {
       date,
       count: attended,
       percentage: yuvaks.length > 0 ? Math.round((attended / yuvaks.length) * 100) : 0,
+      areaBreakdown: Array.from(areaMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([area, areaCount]) => ({ area, attended: areaCount })),
     };
   });
 }

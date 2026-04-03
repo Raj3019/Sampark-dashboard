@@ -12,6 +12,14 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
   const [search, setSearch] = useState('');
   const [filterArea, setFilterArea] = useState('all');
 
+  const activeDates = useMemo(() => {
+    const allYuvaks = kkStats.flatMap((kk) => kk.yuvaks);
+    return dates.filter((d) => allYuvaks.some((y) => y.dateAttendance[d]));
+  }, [dates, kkStats]);
+
+  const last2Dates = useMemo(() => activeDates.slice(-2), [activeDates]);
+  const last4Dates = useMemo(() => activeDates.slice(-4), [activeDates]);
+
   // Use the last date where at least one yuvak actually attended.
   const lastDate = useMemo(() => {
     const allYuvaks = kkStats.flatMap((kk) => kk.yuvaks);
@@ -37,8 +45,8 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
   return (
     <div className="space-y-5">
       <p className="text-slate-400 text-sm leading-relaxed">
-        Each row below is one <strong className="text-slate-200">KK (follow-up coordinator)</strong> and all the yuvaks under their care.
-        Status is based on the <strong className="text-slate-200">last 6 sabhas</strong>. The bar shows attendance health.
+        Each row below is one <strong className="text-slate-200">KK (follow-up coordinator)</strong> with summary counts.
+        Risk buckets use the <strong className="text-slate-200">last 2 / last 4 sabhas</strong>.
       </p>
 
       <div className="flex flex-wrap gap-3 items-center">
@@ -64,43 +72,54 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
         <span className="ml-auto text-slate-500 text-sm">{filtered.length} of {kkStats.length} KKs</span>
       </div>
 
-      <div className="space-y-3">
-        {filtered.map((kk) => {
-          const total = kk.yuvaks.length;
-          const absentLast = lastDate ? kk.yuvaks.filter((y) => !y.dateAttendance[lastDate]).length : null;
-          const greenPct = total > 0 ? (kk.greenCount / total) * 100 : 0;
-          const yellowPct = total > 0 ? (kk.yellowCount / total) * 100 : 0;
+      <div className="border border-slate-700/70 rounded-xl overflow-hidden bg-slate-800/40">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-215">
+            <thead className="bg-slate-900/60">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">KK Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wide">Areas</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Total</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Active</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Moderate Risk</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">At Risk</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Active %</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wide">Absent Last Sabha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((kk, idx) => {
+                const total = kk.yuvaks.length;
+                const absentLast = lastDate ? kk.yuvaks.filter((y) => !y.dateAttendance[lastDate]).length : 0;
+                const activePct = total > 0 ? Math.round((kk.greenCount / total) * 100) : 0;
+                const areas = Array.from(new Set(kk.yuvaks.map((y) => y.area).filter(Boolean))).sort();
+                const riskCounts = kk.yuvaks.reduce(
+                  (acc, yuvak) => {
+                    const missedLast2 = last2Dates.length === 2 && last2Dates.every((date) => !yuvak.dateAttendance[date]);
+                    const missedLast4 = last4Dates.length === 4 && last4Dates.every((date) => !yuvak.dateAttendance[date]);
+                    if (missedLast4) acc.atRisk++;
+                    else if (missedLast2) acc.moderateRisk++;
+                    return acc;
+                  },
+                  { moderateRisk: 0, atRisk: 0 }
+                );
 
-          return (
-            <div key={kk.name} className="border rounded-xl p-5 bg-slate-800/60 border-slate-700/60">
-              <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-slate-100 font-bold">{kk.name}</span>
-                </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <span><span className="font-bold text-green-400">{kk.greenCount}</span> <span className="text-slate-500 text-xs">Active</span></span>
-                  <span><span className="font-bold text-amber-400">{kk.yellowCount}</span> <span className="text-slate-500 text-xs">At Risk</span></span>
-                  {/* <span><span className="font-bold text-red-400">{kk.redCount}</span> <span className="text-slate-500 text-xs">Inactive</span></span> */}
-                  <span className="text-slate-600 text-xs">/ {total} total</span>
-                </div>
-              </div>
-
-              <div className="flex h-3 rounded-full overflow-hidden bg-slate-700/40">
-                {greenPct > 0 && <div style={{ width: `${greenPct}%` }} className="bg-green-500" />}
-                {yellowPct > 0 && <div style={{ width: `${yellowPct}%` }} className="bg-amber-500" />}
-                {/* red segment commented out */}
-                {/* {redPct > 0 && <div style={{ width: `${redPct}%` }} className="bg-red-500" />} */}
-              </div>
-
-              {absentLast !== null && (
-                <p className="text-slate-500 text-xs mt-2">
-                  Absent from last Sabha: <span className="text-slate-300">{absentLast} of {total} yuvaks</span>
-                </p>
-              )}
-            </div>
-          );
-        })}
-
+                return (
+                  <tr key={kk.name} className={idx % 2 === 0 ? 'bg-slate-800/20' : 'bg-slate-800/5'}>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-100">{kk.name}</td>
+                    <td className="px-4 py-3 text-sm text-slate-400">{areas.length > 0 ? areas.join(', ') : '—'}</td>
+                    <td className="px-4 py-3 text-sm text-right text-slate-300">{total}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-green-400">{kk.greenCount}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-amber-400">{riskCounts.moderateRisk}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-red-400">{riskCounts.atRisk}</td>
+                    <td className="px-4 py-3 text-sm text-right text-slate-300">{activePct}%</td>
+                    <td className="px-4 py-3 text-sm text-right text-slate-300">{absentLast} / {total}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         {filtered.length === 0 && (
           <p className="text-slate-500 text-sm py-8 text-center">No KKs match your filters.</p>
         )}
