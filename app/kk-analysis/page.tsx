@@ -95,7 +95,7 @@ function KKSection({
 
               <div className="flex gap-3 text-xs mb-3">
                 <span className="text-green-400">{kk.greenCount} active</span>
-                <span className="text-yellow-400">{kk.yellowCount} at risk</span>
+                <span className="text-yellow-400">{kk.yellowCount} attention</span>
                 <span className="ml-auto text-slate-400">avg {kk.avgAttendance}%</span>
               </div>
 

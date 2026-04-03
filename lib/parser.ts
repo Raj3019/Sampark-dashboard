@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { ParsedSheetData, SabhaMeta, SabhaType, Yuvak } from './types';
+import { ParsedSheetData, SabhaMeta, SabhaType, SessionMeta, Yuvak } from './types';
 import { SABHA_TYPES } from './sabha';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -56,7 +56,13 @@ function normalizeHeader(h: string): string {
 }
 
 function parseBool(val: string): boolean {
-  return val?.trim().toLowerCase() === 'yes';
+  const normalized = val?.trim().toLowerCase();
+  if (!normalized) return false;
+  return ['yes', 'y', 'true', '1', 'attending', 'active'].includes(normalized);
+}
+
+function parseYesStrict(val: string): boolean {
+  return val?.trim() === 'Yes';
 }
 
 function parsePercent(val: string): number {
@@ -100,17 +106,17 @@ export interface SheetParseInput {
   rows: any[][];
 }
 
-function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: string[]; sabhaMeta: SabhaMeta } {
+function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: string[]; sabhaMeta: SabhaMeta; sessionMetaByDate: Record<string, SessionMeta> } {
   const rows = normalizeRows(input.rows);
   if (rows.length < 2) {
-    return { yuvaks: [], dates: [], sabhaMeta: createEmptySabhaMeta(input.sheetName) };
+    return { yuvaks: [], dates: [], sabhaMeta: createEmptySabhaMeta(input.sheetName), sessionMetaByDate: {} };
   }
 
   const headerRowIdx = rows.findIndex((row) =>
     row.some((cell) => normalizeHeader(cell).includes('yuvak name'))
   );
   if (headerRowIdx === -1) {
-    return { yuvaks: [], dates: [], sabhaMeta: createEmptySabhaMeta(input.sheetName) };
+    return { yuvaks: [], dates: [], sabhaMeta: createEmptySabhaMeta(input.sheetName), sessionMetaByDate: {} };
   }
 
   const headers = rows[headerRowIdx].map((h) => h.trim());
@@ -124,7 +130,10 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
     area: headers.findIndex((h) => normalizeHeader(h) === 'area'),
     followUpKK: headers.findIndex((h) => normalizeHeader(h).includes('follow') && normalizeHeader(h).includes('kk')),
     std: headers.findIndex((h) => normalizeHeader(h) === 'std'),
-    attendingSabha: headers.findIndex((h) => normalizeHeader(h).includes('attending sabha')),
+    attendingSabha: headers.findIndex((h) => {
+      const nh = normalizeHeader(h);
+      return nh.includes('attending sabha') || nh === 'attending' || (nh.includes('attending') && nh.includes('status'));
+    }),
     sabhasAttended: headers.findIndex((h) => normalizeHeader(h).includes('no. of sabhas') || normalizeHeader(h).includes('sabhas attended')),
     attendancePercent: headers.findIndex((h) => normalizeHeader(h).includes('attendance %') || normalizeHeader(h).includes('attandance %')),
     superActive: headers.findIndex((h) => normalizeHeader(h).includes('super active')),
@@ -137,6 +146,18 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
   });
 
   const dates = dateColIndices.map((i) => dateRow[i]?.trim() || headers[i]).filter(Boolean);
+  const sessionMetaByDate: Record<string, SessionMeta> = {};
+
+  dateColIndices.forEach((colIdx, di) => {
+    const date = dates[di];
+    if (!date) return;
+
+    const vakta = (vaktaRow?.[colIdx] ?? '').trim();
+    const topic = (topicRow?.[colIdx] ?? '').trim();
+
+    if (!vakta && !topic) return;
+    sessionMetaByDate[date] = { vakta, topic };
+  });
 
   const yuvaks: Yuvak[] = dataRows
     .filter((row) => {
@@ -154,6 +175,8 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
       const pct = idx.attendancePercent >= 0 ? parsePercent(row[idx.attendancePercent] ?? '') : 0;
       const attended = idx.sabhasAttended >= 0 ? parseInt(row[idx.sabhasAttended] ?? '0', 10) || 0 : 0;
       const total = dates.length > 0 ? dates.length : (pct > 0 && attended > 0 ? Math.round((attended / pct) * 100) : 0);
+      const hasAnySessionAttendance = Object.values(dateAttendance).some(Boolean);
+      const inferredAttending = hasAnySessionAttendance || attended > 0 || pct > 0;
 
       return {
         name: idx.name >= 0 ? row[idx.name]?.trim() ?? '' : '',
@@ -161,10 +184,10 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
         followUpKK: idx.followUpKK >= 0 ? row[idx.followUpKK]?.trim() ?? '' : '',
         sabhaType: input.sabhaType,
         std: idx.std >= 0 ? row[idx.std]?.trim() ?? '' : '',
-        attendingSabha: idx.attendingSabha >= 0 ? parseBool(row[idx.attendingSabha] ?? '') : true,
+        attendingSabha: idx.attendingSabha >= 0 ? parseBool(row[idx.attendingSabha] ?? '') : inferredAttending,
         sabhasAttended: attended,
         attendancePercent: pct,
-        superActive: idx.superActive >= 0 ? parseBool(row[idx.superActive] ?? '') : false,
+        superActive: idx.superActive >= 0 ? parseYesStrict(row[idx.superActive] ?? '') : false,
         dateAttendance,
         totalSabhas: total,
       };
@@ -178,6 +201,7 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
       topic: extractLabelValue(topicRow),
       sheetName: input.sheetName,
     },
+    sessionMetaByDate,
   };
 }
 
@@ -188,12 +212,16 @@ export function parseWorkbookSheets(sheets: SheetParseInput[]): ParsedSheetData 
 
   const yuvaks: Yuvak[] = [];
   const uniqueDates = new Set<string>();
+  const sabhaSessionMeta = Object.fromEntries(
+    SABHA_TYPES.map((sabhaType) => [sabhaType, {} as Record<string, SessionMeta>])
+  ) as Record<SabhaType, Record<string, SessionMeta>>;
 
   for (const sheet of sheets) {
     const parsed = parseSingleSheet(sheet);
     yuvaks.push(...parsed.yuvaks);
     parsed.dates.forEach((date) => uniqueDates.add(date));
     sabhaMeta[sheet.sabhaType] = parsed.sabhaMeta;
+    sabhaSessionMeta[sheet.sabhaType] = parsed.sessionMetaByDate;
   }
 
   return {
@@ -201,6 +229,7 @@ export function parseWorkbookSheets(sheets: SheetParseInput[]): ParsedSheetData 
     dates: Array.from(uniqueDates).sort((a, b) => toComparableDate(a) - toComparableDate(b)),
     lastUpdated: new Date().toISOString(),
     sabhaMeta,
+    sabhaSessionMeta,
   };
 }
 

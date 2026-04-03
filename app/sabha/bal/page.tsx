@@ -123,11 +123,11 @@ export default function BalSabhaPage() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs pl-4">
           <span className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-            <span className="text-green-400 font-semibold">Active</span>&nbsp;= attended within last 3
+            <span className="text-green-400 font-semibold">Active</span>&nbsp;= super active (last 4 sabha yes)
           </span>
           <span className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
-            <span className="text-yellow-400 font-semibold">At Risk</span>&nbsp;= absent last 3, attended within 6
+            <span className="text-yellow-400 font-semibold">At Risk</span>&nbsp;= not super active (last 4 sabha no)
           </span>
         </div>
 
@@ -160,8 +160,8 @@ export default function BalSabhaPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <StatsCard title="Total Yuvaks" value={totalCount} subtitle="in Bal sabha" accent="orange" />
-            <StatsCard title="Active" value={activeCount} subtitle="attended within last 3" accent="green" />
-            <StatsCard title="At Risk" value={atRiskCount} subtitle="absent last 3, attended within 6" accent="yellow" />
+            <StatsCard title="Active" value={activeCount} subtitle="last 4 sabha yes (sheet)" accent="green" />
+            <StatsCard title="At Risk" value={atRiskCount} subtitle="last 4 sabha no (sheet)" accent="yellow" />
             <StatsCard title="Last Sabha ✅" value={`${lastSabhaCount}/${totalCount}`} subtitle={lastDate ? `${lastDate} · ${lastSabhaPct}%` : '—'} accent="blue" />
           </div>
 
@@ -223,7 +223,7 @@ export default function BalSabhaPage() {
       {activeTab === 'kk' && (
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">KK Workload — Bal Sabha</h3>
-          <p className="text-slate-500 text-xs mb-5">Active / At Risk based on last 6 sabhas</p>
+          <p className="text-slate-500 text-xs mb-5">Active / At Risk based on sheet (last 4 sabha)</p>
           <KKWorkloadChart kkStats={kkStats} dates={activePastDates} />
         </div>
       )}

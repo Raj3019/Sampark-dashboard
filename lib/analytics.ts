@@ -18,28 +18,16 @@ export function getPastDates(dates: string[]): string[] {
 }
 
 /**
- * Determines the attendance status of a yuvak based on consecutive absences.
- * Red   → absent in ALL of the last 6 sabhas
- * Yellow → absent in ALL of the last 3 sabhas (but attended within last 6)
- * Green  → attended at least one in the last 3 sabhas
+ * Determines attendance status using sheet-driven fields only.
+ * Green  → Super Active (last 4 Sabha Yes)
+ * Yellow → Not super active (attention)
  */
 export function getAttendanceStatus(yuvak: Yuvak, sortedDates: string[]): AttendanceStatus {
-  if (sortedDates.length === 0) {
-    // Fallback to summary stats when no date columns available
-    if (yuvak.attendancePercent === 0) return 'red';
-    if (yuvak.attendancePercent < 50) return 'yellow';
-    return 'green';
-  }
+  // Keep parameter for API compatibility with existing call-sites.
+  void sortedDates;
 
-  const last6 = sortedDates.slice(-6);
-  const last3 = sortedDates.slice(-3);
-
-  const attendedLast6 = last6.some((d) => yuvak.dateAttendance[d]);
-  const attendedLast3 = last3.some((d) => yuvak.dateAttendance[d]);
-
-  if (!attendedLast6) return 'red';
-  if (!attendedLast3) return 'yellow';
-  return 'green';
+  if (yuvak.superActive) return 'green';
+  return 'yellow';
 }
 
 export function getStatusColor(status: AttendanceStatus) {
@@ -52,8 +40,8 @@ export function getStatusColor(status: AttendanceStatus) {
 
 export function getStatusLabel(status: AttendanceStatus): string {
   switch (status) {
-    case 'red': return 'Absent 6+';
-    case 'yellow': return 'Absent 3+';
+    case 'red': return 'Not Attending';
+    case 'yellow': return 'Needs Attention';
     case 'green': return 'Active';
   }
 }

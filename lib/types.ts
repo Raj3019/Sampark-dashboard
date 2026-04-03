@@ -7,6 +7,11 @@ export interface SabhaMeta {
   sheetName: string;
 }
 
+export interface SessionMeta {
+  vakta: string;
+  topic: string;
+}
+
 export interface Yuvak {
   name: string;
   area: string;
@@ -26,6 +31,24 @@ export interface ParsedSheetData {
   dates: string[];
   lastUpdated: string;
   sabhaMeta: Record<SabhaType, SabhaMeta>;
+  sabhaSessionMeta: Record<SabhaType, Record<string, SessionMeta>>;
+}
+
+export interface UpcomingEkadashi {
+  dateIso: string;
+  displayDate: string;
+  tithiName: string;
+  paksha: string;
+  daysUntil: number;
+  location: string;
+  timezone: string;
+  nextTen: Array<{
+    dateIso: string;
+    displayDate: string;
+    tithiName: string;
+    paksha: string;
+    daysUntil: number;
+  }>;
 }
 
 export interface KKStats {

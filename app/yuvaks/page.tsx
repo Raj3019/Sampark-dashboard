@@ -88,11 +88,11 @@ export default function YuvaksPage() {
       <div className="flex flex-wrap gap-4 text-xs text-slate-400">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
-          <span><strong className="text-green-400">Active (Green)</strong> — Attended within last 3 sabhas</span>
+          <span><strong className="text-green-400">Active (Green)</strong> — Super Active (last 4 Sabha Yes)</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block" />
-          <span><strong className="text-yellow-400">Attention (Yellow)</strong> — Absent last 3 sabhas, attended within 6</span>
+          <span><strong className="text-yellow-400">Attention (Yellow)</strong> — Not Super Active (last 4 Sabha No)</span>
         </div>
         {/* <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
