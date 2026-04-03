@@ -205,7 +205,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
           >
             <option value="all">All Sabhas</option>
             <option value="cn">Chirag Nagar</option>
-            <option value="kishor">Kishor</option>
+            <option value="kishor">AYC</option>
             <option value="bal">Bal</option>
           </select>
         )}
@@ -329,7 +329,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                         ? 'bg-orange-500/20 text-orange-400'
                         : 'bg-blue-500/20 text-blue-400'
                     }`}>
-                      {y.sabhaType === 'Chirag Nagar(Kishor)' ? 'Kishor' : y.sabhaType === 'Bal Sabha' ? 'Bal' : 'CN'}
+                      {y.sabhaType === 'Chirag Nagar(Kishor)' ? 'AYC' : y.sabhaType === 'Bal Sabha' ? 'Bal' : 'CN'}
                     </span>
                   </td>
                 )}

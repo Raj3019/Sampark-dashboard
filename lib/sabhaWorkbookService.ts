@@ -160,15 +160,15 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
 }
 
 async function fetchWorkbookRows(): Promise<WorkbookRows[]> {
-  const fileId = process.env.GOOGLE_SHEET_ID;
-  if (!fileId) {
-    throw new Error('GOOGLE_SHEET_ID is not set in .env');
-  }
-
   const sheetConfigs: SheetConfig[] = getSabhaSheetEnvConfig().map((config) => ({
     ...config,
     sheetName: process.env[config.envKey] || config.fallback,
   }));
+
+  const fileId = process.env.GOOGLE_SHEET_ID;
+  if (!fileId) {
+    throw new Error('GOOGLE_SHEET_ID is not set in .env');
+  }
 
   try {
     const sheets = getSheetsClient();
@@ -261,7 +261,13 @@ async function fetchWorkbookRowsFromDrive(
     throw lastErr ?? new Error('Drive download failed after retries');
   }
   const workbook = XLSX.read(buffer!, { type: 'buffer', cellDates: true });
+  return extractConfiguredSheetsFromWorkbook(workbook, sheetConfigs);
+}
 
+function extractConfiguredSheetsFromWorkbook(
+  workbook: XLSX.WorkBook,
+  sheetConfigs: SheetConfig[]
+): WorkbookRows[] {
   return sheetConfigs.map((config) => {
     const worksheet = workbook.Sheets[config.sheetName];
 

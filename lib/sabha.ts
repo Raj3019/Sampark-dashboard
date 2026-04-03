@@ -25,8 +25,8 @@ export const SABHA_DISPLAY: Record<SabhaType, {
     subtitle: 'STD 13+ · Senior gathering',
   },
   'Chirag Nagar(Kishor)': {
-    shortLabel: 'Kishor',
-    fullLabel: 'Kishor Sabha',
+    shortLabel: 'AYC',
+    fullLabel: 'AYC Sabha',
     navLabel: 'AYC Sabha',
     route: '/sabha/kishor',
     accent: 'purple',

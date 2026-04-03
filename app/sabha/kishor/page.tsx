@@ -185,7 +185,7 @@ export default function KishorSabhaPage() {
           <div className="flex items-start gap-3">
             <div className="w-1 self-stretch rounded-full bg-purple-500" />
             <div>
-              <h1 className="text-2xl font-bold text-purple-400">Kishor Sabha</h1>
+              <h1 className="text-2xl font-bold text-purple-400">AYC Sabha</h1>
               <p className="text-slate-500 text-sm mt-0.5">STD 9 to 12 · Chirag Nagar</p>
             </div>
           </div>
@@ -292,7 +292,7 @@ export default function KishorSabhaPage() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <StatsCard title="Total Yuvaks" value={totalCount} subtitle="in Kishor sabha" accent="blue" />
+            <StatsCard title="Total Yuvaks" value={totalCount} subtitle="in AYC sabha" accent="blue" />
             <StatsCard title="Active" value={activeCount} subtitle="last 4 sabha yes (sheet)" accent="green" />
             <StatsCard title="At Risk" value={atRiskCount} subtitle="last 4 sabha no (sheet)" accent="yellow" />
             {/* <StatsCard title="Inactive" value={inactiveCount} subtitle="missed all last 6" accent="red" /> */}
@@ -341,7 +341,7 @@ export default function KishorSabhaPage() {
             </div>
 
             <div className="lg:col-span-2">
-              <AttendanceTrendChart sessionTrend={last20Trend} sabhaLabel="Kishor Sabha" totalYuvaks={stats.totalYuvaks} />
+              <AttendanceTrendChart sessionTrend={last20Trend} sabhaLabel="AYC Sabha" totalYuvaks={stats.totalYuvaks} />
             </div>
           </div>
 
@@ -554,7 +554,7 @@ export default function KishorSabhaPage() {
           <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 flex gap-3">
             <span className="text-purple-400 text-xl">💡</span>
             <div>
-              <p className="text-purple-300 font-medium text-sm">Topic Planning Tip for Kishor Sabha</p>
+              <p className="text-purple-300 font-medium text-sm">Topic Planning Tip for AYC Sabha</p>
               <p className="text-slate-400 text-xs mt-1">
                 Kishor yuvaks (STD 9–12) respond better to topics on identity, peer challenges, and practical life values.
                 Sessions around exams (Nov–Mar) may see lower attendance — plan lighter or motivational topics for those dates.

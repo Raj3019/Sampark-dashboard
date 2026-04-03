@@ -71,6 +71,23 @@ function getSabhaAccentClasses(sabhaType: SabhaType) {
   }
 }
 
+function getKkYuvakRowKey(prefix: string, kkName: string | undefined, yuvak: {
+  name: string;
+  area: string;
+  std: string;
+  attendancePercent: number;
+}, index: number) {
+  return [
+    prefix,
+    kkName ?? 'unknown-kk',
+    yuvak.name,
+    yuvak.area || 'unknown-area',
+    yuvak.std || 'unknown-std',
+    yuvak.attendancePercent,
+    index,
+  ].join('-');
+}
+
 export default function DashboardPage() {
   const { data, loading, error, refresh } = useSheetData();
   const {
@@ -177,11 +194,6 @@ export default function DashboardPage() {
   const lowestOverall = getLowestSessions(overallTrend, 3);
   const highestOverall = getHighestSessions(overallTrend, 3);
   const kkStats = getKKStats(yuvaks, activePastDates);
-  const kkRankedByAvg = [...kkStats]
-    .filter((kk) => kk.yuvaks.length > 0)
-    .sort((a, b) => b.avgAttendance - a.avgAttendance);
-  const mostActiveKK = kkRankedByAvg.length > 0 ? kkRankedByAvg[0] : null;
-  const mostDeactiveKK = kkRankedByAvg.length > 0 ? kkRankedByAvg[kkRankedByAvg.length - 1] : null;
   const updatedTime = new Date(lastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
   const sabhaColumns = [
@@ -287,7 +299,7 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">Sabha Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Overview of Yuva, Kishor, and Bal sabha attendance</p>
+          <p className="text-slate-500 text-sm mt-1">Overview of Yuva, AYC, and Bal sabha attendance</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           <div className="w-52 rounded-xl border border-slate-700 bg-slate-900/90 shadow-lg">
@@ -522,7 +534,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="order-2 lg:order-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">Lowest Attendance Sessions</h3>
-          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, Kishor, and Bal</p>
+          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, AYC, and Bal</p>
           {lowestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
             <div className="space-y-3">
               {lowestOverall.map((s) => (
@@ -545,7 +557,7 @@ export default function DashboardPage() {
 
         <div className="order-1 lg:order-1 bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">Highest Attendance Sessions</h3>
-          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, Kishor, and Bal</p>
+          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, AYC, and Bal</p>
           {highestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
             <div className="space-y-3">
               {highestOverall.map((s) => (
@@ -603,13 +615,13 @@ export default function DashboardPage() {
                       <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                         {[...insight.mostActiveKK.yuvaks]
                           .sort((a, b) => b.attendancePercent - a.attendancePercent)
-                          .map((y) => {
+                          .map((y, index) => {
                             const yLast4Pct = insight.last4Dates.length > 0
                               ? Math.round((insight.last4Dates.filter((d) => y.dateAttendance[d]).length / insight.last4Dates.length) * 100)
                               : 0;
 
                             return (
-                            <div key={`active-${insight.mostActiveKK?.name}-${y.name}`} className="flex items-center justify-between text-xs">
+                            <div key={getKkYuvakRowKey('active', insight.mostActiveKK?.name, y, index)} className="flex items-center justify-between text-xs">
                               <span className="text-slate-300">{y.name}</span>
                               <span className="text-green-300 font-medium">{yLast4Pct}%</span>
                             </div>
@@ -648,13 +660,13 @@ export default function DashboardPage() {
                       <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                         {[...insight.mostDeactiveKK.yuvaks]
                           .sort((a, b) => a.attendancePercent - b.attendancePercent)
-                          .map((y) => {
+                          .map((y, index) => {
                             const yLast4Pct = insight.last4Dates.length > 0
                               ? Math.round((insight.last4Dates.filter((d) => y.dateAttendance[d]).length / insight.last4Dates.length) * 100)
                               : 0;
 
                             return (
-                            <div key={`deactive-${insight.mostDeactiveKK?.name}-${y.name}`} className="flex items-center justify-between text-xs">
+                            <div key={getKkYuvakRowKey('deactive', insight.mostDeactiveKK?.name, y, index)} className="flex items-center justify-between text-xs">
                               <span className="text-slate-300">{y.name}</span>
                               <span className="text-yellow-300 font-medium">{yLast4Pct}%</span>
                             </div>
