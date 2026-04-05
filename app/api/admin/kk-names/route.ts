@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApiSession } from '@/lib/auth/session';
-import { getSabhaData } from '@/lib/server/sabhaDataService';
+import { getSabhaData } from '@/lib/sabhaWorkbookService';
 
 export const runtime = 'nodejs';
 

@@ -12,6 +12,11 @@ function parseSabhaDate(value: string): Date {
   return new Date(normalized);
 }
 
+function isKishorAlias(sabhaType: string) {
+  const normalized = sabhaType.trim().toLowerCase();
+  return normalized === 'chirag nagar(kishor)' || normalized === 'chirag nagar';
+}
+
 export default function KkHomeClient() {
   const { data, loading, error, refresh } = useSheetData();
   const { data: fullData } = useSheetData({ scope: 'full' });
@@ -46,7 +51,7 @@ export default function KkHomeClient() {
   const fullDates = fullData?.dates ?? [];
   const fullPastDates = getPastDates(fullDates);
   const fullActivePastDates = fullPastDates.filter((d) => fullYuvaks.some((y) => y.dateAttendance[d]));
-  const fullKishorAllYuvaks = fullYuvaks.filter((y) => y.sabhaType === sabhaType);
+  const fullKishorAllYuvaks = fullYuvaks.filter((y) => isKishorAlias(y.sabhaType));
   const fullKishorYuvaks = fullKishorAllYuvaks.filter((y) => y.attendingSabha);
   const fullKishorActivePastDates = fullPastDates.filter((d) => fullKishorAllYuvaks.some((y) => y.dateAttendance[d]));
 

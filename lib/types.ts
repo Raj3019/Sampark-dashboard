@@ -1,5 +1,7 @@
 export type SabhaType = string;
 export type AttendanceStatus = 'green' | 'yellow' | 'red';
+export type ReminderRiskLevel = 'moderate' | 'high';
+export type ReminderStatus = 'pending' | 'acknowledged' | 'escalated' | 'resolved';
 
 export interface SabhaMeta {
   vakta: string;
@@ -15,6 +17,8 @@ export interface SessionMeta {
 export interface Yuvak {
   name: string;
   area: string;
+  phoneNumber: string;
+  dob: string;
   followUpKK: string;
   sabhaType: SabhaType;
   std: string;
@@ -32,6 +36,38 @@ export interface ParsedSheetData {
   lastUpdated: string;
   sabhaMeta: Record<SabhaType, SabhaMeta>;
   sabhaSessionMeta: Record<SabhaType, Record<string, SessionMeta>>;
+}
+
+export interface ReminderItem {
+  id: string;
+  reminderKey: string;
+  yuvakName: string;
+  phoneNumber: string;
+  followUpKK: string;
+  sabhaType: SabhaType;
+  riskLevel: ReminderRiskLevel;
+  missedSabhaCount: number;
+  missedSabhaDates: string[];
+  status: ReminderStatus;
+  requiresLeaderReview: boolean;
+  escalatedByUserId: string | null;
+  escalatedByName: string | null;
+  escalatedAt: string | null;
+  takenOverByUserId: string | null;
+  takenOverByName: string | null;
+  takenOverAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReminderSummary {
+  total: number;
+  moderate: number;
+  high: number;
+  pending: number;
+  acknowledged: number;
+  escalated: number;
+  resolved: number;
 }
 
 export interface UpcomingEkadashi {

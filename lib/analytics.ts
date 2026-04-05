@@ -91,7 +91,9 @@ export function getSessionTrend(yuvaks: Yuvak[], dates: string[]): SabhaSessionS
 
 /** Aggregated stats for a single sabha type */
 export function getSabhaStats(yuvaks: Yuvak[], dates: string[], sabhaType: SabhaType): SabhaStats {
-  const filtered = yuvaks.filter((y) => y.sabhaType === sabhaType);
+  // Callers provide sabha-scoped datasets. Do not re-filter by exact string,
+  // so alias labels (e.g. Chirag Nagar vs Chirag Nagar(Kishor)) still work.
+  const filtered = yuvaks;
 
   const statuses = filtered.map((y) => getAttendanceStatus(y, dates));
   const greenCount = statuses.filter((s) => s === 'green').length;

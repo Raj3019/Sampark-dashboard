@@ -31,7 +31,6 @@ function toStr(val: any): string {
     return `${dd}-${mon}-${yy}`;
   }
   if (typeof val === 'number') {
-    if (val > 29_221) return sheetSerialToStr(val);
     return String(val);
   }
   return String(val);
@@ -55,10 +54,71 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+function coerceDateLabel(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const numericValue = Number(trimmed);
+    if (numericValue >= 29_221 && numericValue <= 80_000) {
+      return sheetSerialToStr(numericValue);
+    }
+  }
+
+  return trimmed;
+}
+
+function formatDateAsIso(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseDobValue(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const numericValue = Number(trimmed);
+    if (numericValue >= 1 && numericValue <= 80_000) {
+      const daysSinceEpoch = Math.round(numericValue) - SHEETS_EPOCH_OFFSET;
+      const date = new Date(daysSinceEpoch * 86_400_000);
+      if (!Number.isNaN(date.getTime())) {
+        return formatDateAsIso(date);
+      }
+    }
+  }
+
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const [, month, day, year] = slashMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    return formatDateAsIso(parsed);
+  }
+
+  return trimmed;
+}
+
 function parseBool(val: string): boolean {
   const normalized = val?.trim().toLowerCase();
   if (!normalized) return false;
-  return ['yes', 'y', 'true', '1', 'attending', 'active'].includes(normalized);
+  return [
+    'yes',
+    'y',
+    'true',
+    '1',
+    '1.0',
+    'attending',
+    'active',
+    'present',
+    'p',
+    'attended',
+  ].includes(normalized);
 }
 
 function parseYesStrict(val: string): boolean {
@@ -120,7 +180,23 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
   }
 
   const headers = rows[headerRowIdx].map((h) => h.trim());
-  const dateRow = rows[headerRowIdx - 1] ?? [];
+  const rowsAboveHeader = rows.slice(0, headerRowIdx);
+  let bestDateRow: string[] = [];
+  let bestDateCount = 0;
+
+  // Some sheets place vakta/topic rows directly above headers, while date labels are higher.
+  // Pick the row above headers that contains the highest number of date-like cells.
+  rowsAboveHeader.forEach((candidate) => {
+    const count = candidate.reduce((sum, cell) => {
+      const coerced = coerceDateLabel(cell ?? '');
+      return sum + (isDateHeader(coerced) ? 1 : 0);
+    }, 0);
+    if (count > bestDateCount) {
+      bestDateCount = count;
+      bestDateRow = candidate;
+    }
+  });
+
   const dataRows = rows.slice(headerRowIdx + 1).filter((row) => row.some((c) => c?.trim()));
   const vaktaRow = rows.find((row, idx) => idx < headerRowIdx && row.some((cell) => /^vakta/i.test(cell.trim())));
   const topicRow = rows.find((row, idx) => idx < headerRowIdx && row.some((cell) => /^topic/i.test(cell.trim())));
@@ -128,6 +204,11 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
   const idx = {
     name: headers.findIndex((h) => normalizeHeader(h).includes('yuvak name')),
     area: headers.findIndex((h) => normalizeHeader(h) === 'area'),
+    dob: headers.findIndex((h) => normalizeHeader(h) === 'dob'),
+    phoneNumber: headers.findIndex((h) => {
+      const nh = normalizeHeader(h);
+      return nh.includes('phone') || nh.includes('mobile') || nh.includes('contact');
+    }),
     followUpKK: headers.findIndex((h) => normalizeHeader(h).includes('follow') && normalizeHeader(h).includes('kk')),
     std: headers.findIndex((h) => normalizeHeader(h) === 'std'),
     attendingSabha: headers.findIndex((h) => {
@@ -141,11 +222,18 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
 
   const dateColIndices: number[] = [];
   headers.forEach((h, i) => {
-    const dateLabel = dateRow[i]?.trim() || h;
+    const fromDateRow = coerceDateLabel(bestDateRow[i] ?? '');
+    const fromHeader = coerceDateLabel(h);
+    const dateLabel = isDateHeader(fromDateRow) ? fromDateRow : fromHeader;
     if (isDateHeader(dateLabel)) dateColIndices.push(i);
   });
 
-  const dates = dateColIndices.map((i) => dateRow[i]?.trim() || headers[i]).filter(Boolean);
+  const dates = dateColIndices
+    .map((i) => {
+      const fromDateRow = coerceDateLabel(bestDateRow[i] ?? '');
+      return isDateHeader(fromDateRow) ? fromDateRow : coerceDateLabel(headers[i]);
+    })
+    .filter(Boolean);
   const sessionMetaByDate: Record<string, SessionMeta> = {};
 
   dateColIndices.forEach((colIdx, di) => {
@@ -181,6 +269,8 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
       return {
         name: idx.name >= 0 ? row[idx.name]?.trim() ?? '' : '',
         area: idx.area >= 0 ? row[idx.area]?.trim() ?? '' : '',
+        phoneNumber: idx.phoneNumber >= 0 ? row[idx.phoneNumber]?.trim() ?? '' : '',
+        dob: idx.dob >= 0 ? parseDobValue(row[idx.dob] ?? '') : '',
         followUpKK: idx.followUpKK >= 0 ? row[idx.followUpKK]?.trim() ?? '' : '',
         sabhaType: input.sabhaType,
         std: idx.std >= 0 ? row[idx.std]?.trim() ?? '' : '',

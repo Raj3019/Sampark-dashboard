@@ -58,9 +58,12 @@ export default function BalSabhaPage() {
   const allBalYuvaks = yuvaks.filter((y) => y.sabhaType === sabhaType);
   const activePastDates = pastDates.filter((d) => allBalYuvaks.some((y) => y.dateAttendance[d]));
 
-  const balYuvaks = allBalYuvaks.filter((y) =>
+  const filteredBalYuvaks = allBalYuvaks.filter((y) =>
     attendingFilter === 'all' ? true : attendingFilter === 'yes' ? y.attendingSabha : !y.attendingSabha
   );
+  const balYuvaks = attendingFilter === 'yes' && filteredBalYuvaks.length === 0
+    ? allBalYuvaks
+    : filteredBalYuvaks;
 
   const stats = getSabhaStats(balYuvaks, activePastDates, sabhaType);
   const kkStats = getKKStats(balYuvaks, activePastDates);

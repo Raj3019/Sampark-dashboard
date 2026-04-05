@@ -1,0 +1,322 @@
+'use client';
+
+import { useState } from 'react';
+import { authClient } from '@/lib/auth/client';
+import { useReminders } from '@/hooks/useReminders';
+
+type ReminderCenterProps = {
+  variant?: 'compact' | 'full';
+};
+
+const RISK_STYLES: Record<'moderate' | 'high', { card: string; badge: string; dot: string; label: string }> = {
+  moderate: {
+    card: 'border-amber-500/25 bg-amber-950/30',
+    badge: 'border-amber-400/30 bg-amber-400/15 text-amber-200',
+    dot: 'bg-amber-300',
+    label: 'Moderate risk',
+  },
+  high: {
+    card: 'border-red-500/25 bg-red-950/30',
+    badge: 'border-red-400/30 bg-red-400/15 text-red-200',
+    dot: 'bg-red-300',
+    label: 'High risk',
+  },
+};
+
+function formatDates(dates: string[]) {
+  return dates.join(', ');
+}
+
+function isKishorReminder(sabhaType: string) {
+  return sabhaType.toLowerCase().includes('kishor');
+}
+
+function normalizePhoneHref(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.replace(/[^\d+]/g, '');
+  if (!normalized) return null;
+
+  return `tel:${normalized}`;
+}
+
+function formatTimestamp(value: string | null) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatActorLine(label: string, name: string | null, timestamp: string | null) {
+  if (!name) return null;
+  const time = formatTimestamp(timestamp);
+  return `${label} ${name}${time ? ` on ${time}` : ''}`;
+}
+
+export default function ReminderCenter({ variant = 'compact' }: ReminderCenterProps) {
+  const { data: session } = authClient.useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role ?? '';
+  const isLeader = role === 'leader' || role === 'admin';
+  const { reminders, loading, error } = useReminders();
+  const [expanded, setExpanded] = useState(variant === 'full');
+  const [selectedKk, setSelectedKk] = useState('all');
+
+  const kishorReminders = reminders.filter((item) => isKishorReminder(item.sabhaType));
+  const kkOptions = Array.from(new Set(kishorReminders.map((item) => item.followUpKK))).sort((a, b) => a.localeCompare(b));
+  const visibleReminders = isLeader && selectedKk !== 'all'
+    ? kishorReminders.filter((item) => item.followUpKK === selectedKk)
+    : kishorReminders;
+
+  const visibleSummary = visibleReminders.reduce((acc, item) => {
+    acc.total += 1;
+    acc[item.riskLevel] += 1;
+    acc[item.status] += 1;
+    return acc;
+  }, {
+    total: 0,
+    moderate: 0,
+    high: 0,
+    pending: 0,
+    acknowledged: 0,
+    escalated: 0,
+    resolved: 0,
+  });
+
+  /*
+  const handleAction = async (reminder: ReminderItem, action: 'acknowledge' | 'takeover' | 'resolve' | 'escalate') => {
+    try {
+      const result = await updateReminder(reminder.id, action, reminder.reminderKey);
+      const reminderName = result.reminder?.yuvakName ?? reminder.yuvakName;
+      const actionLabel = action === 'acknowledge'
+        ? 'marked as seen'
+        : action === 'takeover'
+          ? 'taken over'
+          : action === 'resolve'
+            ? 'resolved'
+            : 'escalated';
+
+      toast.success(`${reminderName} reminder ${actionLabel}`);
+      await refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update reminder');
+    }
+  };
+  */
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-4 shadow-sm">
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-40 rounded bg-slate-800" />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="h-16 rounded-xl bg-slate-800" />
+            <div className="h-16 rounded-xl bg-slate-800" />
+            <div className="h-16 rounded-xl bg-slate-800" />
+            <div className="h-16 rounded-xl bg-slate-800" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-950/30 px-4 py-4 text-sm text-red-200">
+        <p className="font-semibold">Reminder feed unavailable</p>
+        <p className="mt-1 text-red-100/80">{error}</p>
+      </div>
+    );
+  }
+
+  const reminderCountLabel = visibleSummary.total === 1 ? 'reminder' : 'reminders';
+  const subtitle = isLeader
+    ? 'Leaders see every moderate and high risk follow-up item.'
+    : 'Your assigned follow-up reminders appear here first.';
+
+  return (
+    <section className={`rounded-2xl border border-slate-800 bg-slate-900/80 shadow-[0_16px_45px_rgba(2,6,23,0.28)] ${variant === 'full' ? 'p-4 sm:p-5' : 'p-4'}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-slate-100">Follow-up reminders</h2>
+            <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+              {visibleSummary.total} {reminderCountLabel}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
+          {isLeader && selectedKk !== 'all' && (
+            <p className="mt-1 text-[11px] text-sky-300">Filtered by KK: {selectedKk}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {isLeader && (
+            <select
+              value={selectedKk}
+              onChange={(event) => setSelectedKk(event.target.value)}
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-200 outline-none ring-0 focus:border-sky-500"
+            >
+              <option value="all">All KKs ({kishorReminders.length})</option>
+              {kkOptions.map((kkName) => (
+                <option key={kkName} value={kkName}>{kkName}</option>
+              ))}
+            </select>
+          )}
+          {variant === 'compact' && (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800"
+            >
+              {expanded ? 'Collapse' : 'View all'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          { label: 'High risk', value: visibleSummary.high, tone: 'text-red-300' },
+          { label: 'Moderate risk', value: visibleSummary.moderate, tone: 'text-amber-300' },
+          { label: 'Pending', value: visibleSummary.pending, tone: 'text-sky-300' },
+          { label: 'Resolved', value: visibleSummary.resolved, tone: 'text-emerald-300' },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+            <p className={`mt-1 text-lg font-semibold ${item.tone}`}>{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {(variant === 'full' || expanded) && (
+        <div className="mt-4 space-y-3">
+          {visibleReminders.length === 0 ? (
+            <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-5 text-sm text-slate-400">
+              {isLeader && selectedKk !== 'all'
+                ? 'No reminders for this KK right now.'
+                : 'No moderate or high risk reminders right now.'}
+            </div>
+          ) : (
+            visibleReminders.map((reminder) => {
+              const styles = RISK_STYLES[reminder.riskLevel];
+              const phoneHref = normalizePhoneHref(reminder.phoneNumber);
+              return (
+                <article key={reminder.id} className={`rounded-2xl border px-4 py-4 ${styles.card}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-sm font-semibold text-slate-50">{reminder.yuvakName}</h3>
+                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${styles.badge}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
+                          {styles.label}
+                        </span>
+                        <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+                          Kishor
+                        </span>
+                        {/* Temporarily hiding raw sabha labels like Chirag Nagar(Kishor) and Bal Sabha. */}
+                        {/* <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+                          {reminder.sabhaType}
+                        </span> */}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-300">
+                        Follow-up KK: <span className="font-semibold text-slate-100">{reminder.followUpKK}</span>
+                      </p>
+                      <p className="mt-1 text-xs text-slate-300">
+                        Missed last {reminder.missedSabhaCount} sabhas: <span className="text-slate-100">{formatDates(reminder.missedSabhaDates)}</span>
+                      </p>
+                      {reminder.status === 'escalated' && (
+                        <p className="mt-1 text-xs text-rose-200">
+                          {formatActorLine('Escalated by', reminder.escalatedByName, reminder.escalatedAt) && (
+                            <>{formatActorLine('Escalated by', reminder.escalatedByName, reminder.escalatedAt)}</>
+                          )}
+                        </p>
+                      )}
+                      {reminder.takenOverByName && (
+                        <p className="mt-1 text-xs text-violet-200">
+                          {formatActorLine('Taken over by', reminder.takenOverByName, reminder.takenOverAt) && (
+                            <>{formatActorLine('Taken over by', reminder.takenOverByName, reminder.takenOverAt)}</>
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Reminder actions are temporarily disabled in the UI.
+                        Keep this block commented so the feature can be restored later. */}
+                    {/* <div className="flex flex-wrap gap-2">
+                      {!isLeader && reminder.status === 'pending' && (
+                        <ActionButton
+                          label="Acknowledge"
+                          onClick={() => handleAction(reminder, 'acknowledge')}
+                        />
+                      )}
+                      {!isLeader && reminder.status !== 'escalated' && reminder.status !== 'resolved' && (
+                        <ActionButton
+                          label="Escalate"
+                          tone="warning"
+                          onClick={() => handleAction(reminder, 'escalate')}
+                        />
+                      )}
+                      {isLeader && reminder.status !== 'resolved' && (
+                        <ActionButton
+                          label="Take over"
+                          tone="warning"
+                          onClick={() => handleAction(reminder, 'takeover')}
+                        />
+                      )}
+                      {isLeader && reminder.status !== 'resolved' && (
+                        <ActionButton
+                          label="Mark resolved"
+                          tone="neutral"
+                          onClick={() => handleAction(reminder, 'resolve')}
+                        />
+                      )}
+                    </div> */}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                    <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 uppercase tracking-[0.16em] text-slate-300">
+                      {reminder.status}
+                    </span>
+                    {reminder.requiresLeaderReview && (
+                      <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 uppercase tracking-[0.16em] text-violet-200">
+                        Leader review
+                      </span>
+                    )}
+                    {phoneHref && (
+                      <a
+                        href={phoneHref}
+                        aria-label={`Call ${reminder.yuvakName}`}
+                        title={`Call ${reminder.yuvakName}`}
+                        className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 uppercase tracking-[0.16em] text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          className="h-3.5 w-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.64 2.62a2 2 0 0 1-.45 2.11L8.03 9.72a16 16 0 0 0 6.25 6.25l1.27-1.27a2 2 0 0 1 2.11-.45c.84.31 1.72.52 2.62.64A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        Call
+                      </a>
+                    )}
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

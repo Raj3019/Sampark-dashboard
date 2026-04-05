@@ -27,6 +27,11 @@ function parseSabhaDate(value: string): Date {
   return new Date(normalized);
 }
 
+function isKishorAlias(sabhaType: string) {
+  const normalized = sabhaType.trim().toLowerCase();
+  return normalized === 'chirag nagar(kishor)' || normalized === 'chirag nagar';
+}
+
 export default function KishorSabhaPage() {
   const { data, loading, error, refresh } = useSheetData();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -55,12 +60,15 @@ export default function KishorSabhaPage() {
   const pastDates = getPastDates(dates);
 
   const sabhaType = 'Chirag Nagar(Kishor)' as const;
-  const allKishorYuvaks = yuvaks.filter((y) => y.sabhaType === sabhaType);
+  const allKishorYuvaks = yuvaks.filter((y) => isKishorAlias(y.sabhaType));
   const activePastDates = pastDates.filter((d) => allKishorYuvaks.some((y) => y.dateAttendance[d]));
 
-  const kishorYuvaks = allKishorYuvaks.filter((y) =>
+  const filteredKishorYuvaks = allKishorYuvaks.filter((y) =>
     attendingFilter === 'all' ? true : attendingFilter === 'yes' ? y.attendingSabha : !y.attendingSabha
   );
+  const kishorYuvaks = attendingFilter === 'yes' && filteredKishorYuvaks.length === 0
+    ? allKishorYuvaks
+    : filteredKishorYuvaks;
 
   const stats    = getSabhaStats(kishorYuvaks, activePastDates, sabhaType);
   const kkStats  = getKKStats(kishorYuvaks, activePastDates);
@@ -143,7 +151,10 @@ export default function KishorSabhaPage() {
   const recentSabhaSummaries: RecentSabhaSummary[] = recentDates.map((date) => {
     const attendanceCount = kishorYuvaks.filter((y) => y.dateAttendance[date]).length;
     const attendancePct = totalCount > 0 ? Math.round((attendanceCount / totalCount) * 100) : 0;
-    const vakta = sabhaSessionMeta?.[sabhaType]?.[date]?.vakta?.trim() || 'Not added yet';
+    const vakta =
+      sabhaSessionMeta?.['Chirag Nagar(Kishor)']?.[date]?.vakta?.trim()
+      ?? sabhaSessionMeta?.['Chirag Nagar']?.[date]?.vakta?.trim()
+      ?? 'Not added yet';
 
     return {
       date,
@@ -167,7 +178,9 @@ export default function KishorSabhaPage() {
     .map((date) => {
       const attendanceCount = kishorYuvaks.filter((y) => y.dateAttendance[date]).length;
       const attendancePct = totalCount > 0 ? Math.round((attendanceCount / totalCount) * 100) : 0;
-      const meta = sabhaSessionMeta?.[sabhaType]?.[date];
+      const meta =
+        sabhaSessionMeta?.['Chirag Nagar(Kishor)']?.[date]
+        ?? sabhaSessionMeta?.['Chirag Nagar']?.[date];
 
       return {
         date,

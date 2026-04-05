@@ -57,8 +57,9 @@ export default function ChiragNagarPage() {
   // Dates where any CN yuvak attended — always based on all CN, unaffected by attending filter
   const activePastDates = pastDates.filter((d) => allCNYuvaks.some((y) => y.dateAttendance[d]));
 
-  // Apply the attending-sabha filter for all stats / charts / tables
-  const filteredYuvaks = allCNYuvaks.filter((y) => y.attendingSabha);
+  // Apply attending-only filter, but fail safe to all rows if source flag is missing.
+  const attendingYuvaks = allCNYuvaks.filter((y) => y.attendingSabha);
+  const filteredYuvaks = attendingYuvaks.length > 0 ? attendingYuvaks : allCNYuvaks;
 
   const stats = getSabhaStats(filteredYuvaks, activePastDates, sabhaType);
   const kkStats = getKKStats(filteredYuvaks, activePastDates);
