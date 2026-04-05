@@ -2,19 +2,35 @@
 
 import { useState, useMemo } from 'react';
 import { Yuvak, AttendanceStatus } from '@/lib/types';
-import { getAttendanceStatus } from '@/lib/analytics';
+
+function getRiskStatus(yuvak: Yuvak, sortedDates: string[]): AttendanceStatus {
+  const last1 = sortedDates.slice(-1);
+  const last2 = sortedDates.slice(-2);
+  const last4 = sortedDates.slice(-4);
+
+  const missedLast4 = last4.length === 4 && last4.every((d) => !yuvak.dateAttendance[d]);
+  if (missedLast4) return 'red';
+
+  const missedLast2 = last2.length === 2 && last2.every((d) => !yuvak.dateAttendance[d]);
+  if (missedLast2) return 'yellow';
+
+  const missedLast1 = last1.length === 1 && last1.every((d) => !yuvak.dateAttendance[d]);
+  if (missedLast1) return 'green';
+
+  // If attended last sabha, keep as low-risk bucket.
+  return 'green';
+}
 
 function InlineStatusBadge({ status }: { status: AttendanceStatus }) {
   const configs: Record<AttendanceStatus, { label: string; dot: string; bg: string; text: string }> = {
-    green:  { label: 'Active',   dot: 'bg-green-400', bg: 'bg-green-500/10 border border-green-500/25', text: 'text-green-400' },
-    yellow: { label: 'At Risk',  dot: 'bg-amber-400', bg: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-400' },
-    // Keep red status key for compatibility, but render it as At Risk styling.
-    red:    { label: 'At Risk', dot: 'bg-amber-400', bg: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-400' },
+    green:  { label: 'Low Risk', dot: 'bg-green-400', bg: 'bg-green-500/10 border border-green-500/25', text: 'text-green-400' },
+    yellow: { label: 'Moderate Risk', dot: 'bg-amber-400', bg: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-400' },
+    red:    { label: 'High Risk', dot: 'bg-red-400', bg: 'bg-red-500/10 border border-red-500/25', text: 'text-red-400' },
   };
   const c = configs[status];
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${c.bg} ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`} />
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.dot}`} />
       {c.label}
     </span>
   );
@@ -27,7 +43,7 @@ function AttendanceDots({ yuvak, last6 }: { yuvak: Yuvak; last6: string[] }) {
       <div className="flex gap-0.5">
         {last6.map((d, i) => (
           <span key={i} title={d}
-            className={`w-[14px] h-[14px] rounded-sm ${yuvak.dateAttendance[d] ? 'bg-green-500' : 'bg-slate-700'}`}
+            className={`w-3.5 h-3.5 rounded-sm ${yuvak.dateAttendance[d] ? 'bg-green-500' : 'bg-slate-700'}`}
           />
         ))}
       </div>
@@ -43,7 +59,7 @@ function Last3Badge({ yuvak, last3 }: { yuvak: Yuvak; last3: string[] }) {
     : count === 0 ? 'bg-amber-500/20 text-amber-400'
     : 'bg-amber-500/20 text-amber-400';
   return (
-    <span className={`inline-flex items-center justify-center min-w-[40px] h-7 px-1.5 rounded font-bold text-sm tabular-nums ${cls}`}>
+    <span className={`inline-flex items-center justify-center min-w-10 h-7 px-1.5 rounded font-bold text-sm tabular-nums ${cls}`}>
       {count}/{total}
     </span>
   );
@@ -75,7 +91,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
   const [filterStatus, setFilterStatus] = useState<AttendanceStatus | 'all'>('all');
   const [filterSabha, setFilterSabha]   = useState<'all' | 'cn' | 'kishor' | 'bal'>('all');
   const [filterKK, setFilterKK]         = useState('all');
-  const [dateWindow, setDateWindow]     = useState<'last6' | '1m' | '3m' | '6m' | 'all' | 'custom'>('last6');
+  const [dateWindow, setDateWindow]     = useState<'last6' | '1m' | '3m' | 'custom'>('last6');
   const [customFrom, setCustomFrom]     = useState('');
   const [customTo, setCustomTo]         = useState('');
   const [sortKey, setSortKey]           = useState<SortKey>('name');
@@ -95,20 +111,23 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
   // Effective dates based on the selected time window
   const effectiveDates = useMemo(() => {
     if (dateWindow === 'last6') return dates.slice(-6);
-    if (dateWindow === 'all') return dates;
     if (dateWindow === 'custom') {
       if (!customFrom && !customTo) return dates;
       return dates.filter((d) => {
         const dt = parseSheetDate(d);
+        if (Number.isNaN(dt.getTime())) return false;
         if (customFrom && dt < new Date(customFrom)) return false;
         if (customTo   && dt > new Date(customTo + 'T23:59:59')) return false;
         return true;
       });
     }
-    const months = dateWindow === '1m' ? 1 : dateWindow === '3m' ? 3 : 6;
+    const months = dateWindow === '1m' ? 1 : 3;
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - months);
-    return dates.filter((d) => parseSheetDate(d) >= cutoff);
+    return dates.filter((d) => {
+      const dt = parseSheetDate(d);
+      return !Number.isNaN(dt.getTime()) && dt >= cutoff;
+    });
   }, [dates, dateWindow, customFrom, customTo]);
 
   const dotsDisplay = effectiveDates.slice(-8); // cap at 8 dots for readability
@@ -121,7 +140,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
   );
 
   const withStatus = useMemo(
-    () => yuvaks.map((y) => ({ ...y, status: getAttendanceStatus(y, effectiveDates) })),
+    () => yuvaks.map((y) => ({ ...y, status: getRiskStatus(y, effectiveDates) })),
     [yuvaks, effectiveDates],
   );
 
@@ -193,9 +212,9 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
           className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
         >
           <option value="all">All Status</option>
-          <option value="green">Active</option>
-          <option value="yellow">At Risk</option>
-          {/* <option value="red">Inactive</option> */}
+          <option value="green">Low Risk</option>
+          <option value="yellow">Moderate Risk</option>
+          <option value="red">High Risk</option>
         </select>
         {showSabhaType && (
           <select
@@ -220,14 +239,12 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
         </select>
         <select
           value={dateWindow}
-          onChange={(e) => { setDateWindow(e.target.value as typeof dateWindow); setPage(1); }}
+          onChange={(e) => { setDateWindow(e.target.value as 'last6' | '1m' | '3m' | 'custom'); setPage(1); }}
           className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
         >
           <option value="last6">Last 6 Sabhas</option>
           <option value="1m">Last 1 Month</option>
           <option value="3m">Last 3 Months</option>
-          <option value="6m">Last 6 Months</option>
-          <option value="all">All Time</option>
           <option value="custom">Custom Range...</option>
         </select>
         {dateWindow === 'custom' && (

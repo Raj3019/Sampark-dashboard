@@ -7,7 +7,6 @@ import { useSheetData } from '@/hooks/useSheetData';
 import { getHighestSessions, getKKStats, getLowestSessions, getPastDates, getSabhaStats, predictNextAttendance } from '@/lib/analytics';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
-import SabhaMetaPanel from '@/components/SabhaMetaPanel';
 import StatsCard from '@/components/StatsCard';
 import YuvakTable from '@/components/YuvakTable';
 
@@ -53,7 +52,7 @@ export default function BalSabhaPage() {
 
   if (!data) return null;
 
-  const { yuvaks, dates, sabhaMeta, sabhaSessionMeta } = data;
+  const { yuvaks, dates, sabhaSessionMeta } = data;
   const pastDates = getPastDates(dates);
   const sabhaType = 'Bal Sabha' as const;
   const allBalYuvaks = yuvaks.filter((y) => y.sabhaType === sabhaType);
@@ -125,7 +124,7 @@ export default function BalSabhaPage() {
   const highRiskCount = riskBuckets.atRisk.length;
 
   const donutData = {
-    labels: ['Low Risk', 'Moderate Risk', 'At Risk'],
+    labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
     datasets: [{
       data: [lowRiskCount, moderateRiskCount, highRiskCount],
       backgroundColor: ['rgba(34,197,94,0.85)', 'rgba(234,179,8,0.85)', 'rgba(239,68,68,0.85)'],
@@ -181,16 +180,16 @@ export default function BalSabhaPage() {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs pl-4">
           <span className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-            <span className="text-green-400 font-semibold">Active</span>&nbsp;= super active (last 4 sabha yes)
+            <span className="text-green-400 font-semibold">Low Risk</span>&nbsp;= missed last 1 sabha
           </span>
           <span className="flex items-center gap-1.5 text-slate-400">
             <span className="w-2 h-2 rounded-full bg-yellow-400 shrink-0" />
-            <span className="text-yellow-400 font-semibold">At Risk</span>&nbsp;= not super active (last 4 sabha no)
+            <span className="text-yellow-400 font-semibold">Moderate Risk</span>&nbsp;= missed last 2 sabhas
           </span>
-        </div>
-
-        <div className="pl-4">
-          <SabhaMetaPanel {...sabhaMeta[sabhaType]} compact={true} />
+          <span className="flex items-center gap-1.5 text-slate-400">
+            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+            <span className="text-red-400 font-semibold">High Risk</span>&nbsp;= missed last 4 sabhas
+          </span>
         </div>
       </div>
 
@@ -222,7 +221,7 @@ export default function BalSabhaPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-[0.12em]">
-                      {index === 0 ? 'Last Sabha' : 'Previous Sabha'}
+                      {index === 0 ? 'Most Recent Sabha' : '2nd Most Recent Sabha'}
                     </p>
                     <h3 className="text-slate-100 font-semibold mt-1">{session.date}</h3>
                   </div>
@@ -272,7 +271,7 @@ export default function BalSabhaPage() {
                 {[
                   { label: 'Low Risk', count: lowRiskCount, color: 'bg-green-500', text: 'text-green-400' },
                   { label: 'Moderate Risk', count: moderateRiskCount, color: 'bg-yellow-400', text: 'text-yellow-400' },
-                  { label: 'At Risk', count: highRiskCount, color: 'bg-red-500', text: 'text-red-400' },
+                  { label: 'High Risk', count: highRiskCount, color: 'bg-red-500', text: 'text-red-400' },
                 ].map(({ label, count, color, text }) => (
                   <div key={label} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5">
@@ -335,7 +334,7 @@ export default function BalSabhaPage() {
                 },
                 {
                   key: 'atRisk',
-                  title: 'At Risk',
+                  title: 'High Risk',
                   subtitle: 'Missed the last 4 sabhas',
                   items: riskBuckets.atRisk,
                   border: 'border-red-500/30',

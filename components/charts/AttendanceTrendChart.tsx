@@ -11,7 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { SabhaSessionStat } from '@/lib/types';
+import { SabhaSessionStat, SessionMeta } from '@/lib/types';
 import { useTheme } from '@/components/ThemeProvider';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -22,7 +22,7 @@ function parseDate(d: string): Date {
 }
 
 type Mode = 'attending' | 'nonAttending' | 'all';
-type Range = '1m' | '3m' | '6m' | '1y' | 'all';
+type Range = '1m' | '3m' | '6m' | 'all';
 type View = 'total' | 'areaSplit';
 
 const AREA_PALETTE = [
@@ -33,22 +33,28 @@ const AREA_PALETTE = [
   'rgba(236,72,153,0.82)',
   'rgba(14,165,233,0.82)',
 ];
-const MAX_VISIBLE_AREAS = 5;
+const MAX_VISIBLE_AREAS = 3;
 
 interface Props {
   sessionTrend: SabhaSessionStat[];
   sabhaLabel: string;
   totalYuvaks?: number;
   chartType?: 'bar' | 'line';
+  sessionMetaByDate?: Record<string, SessionMeta | undefined>;
 }
 
-export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYuvaks = 0 }: Props) {
+export default function AttendanceTrendChart({
+  sessionTrend,
+  sabhaLabel,
+  totalYuvaks = 0,
+  sessionMetaByDate,
+}: Props) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
   const [mode, setMode] = useState<Mode>('attending');
   const [range, setRange] = useState<Range>('3m');
-  const [view, setView] = useState<View>('total');
+  const [view, setView] = useState<View>('areaSplit');
 
   const filtered = useMemo(() => {
     const now = new Date();
@@ -56,7 +62,6 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
       '1m': new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()),
       '3m': new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()),
       '6m': new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()),
-      '1y': new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()),
       'all': new Date(0),
     };
     return sessionTrend
@@ -69,7 +74,18 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
   const absent = filtered.map((s) => totalYuvaks - s.count);
   const pcts = filtered.map((s) => s.percentage);
   const avgPct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
-  const skipN = labels.length > 60 ? 10 : labels.length > 40 ? 6 : labels.length > 25 ? 4 : labels.length > 12 ? 2 : 1;
+  const shouldShowEveryDateLabel = range === '3m' || range === '6m' || labels.length <= 16;
+  const skipN = shouldShowEveryDateLabel
+    ? 1
+    : labels.length > 60
+      ? 10
+      : labels.length > 40
+        ? 6
+        : labels.length > 25
+          ? 4
+          : labels.length > 12
+            ? 2
+            : 1;
   const isStacked = mode === 'all';
   const isAreaSplit = mode === 'attending' && view === 'areaSplit';
   const areaTotals = useMemo(() => {
@@ -124,12 +140,11 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
               return rows.find((x) => x.area === area)?.attended ?? 0;
             }),
             backgroundColor: areaColorMap.get(area) ?? 'rgba(148,163,184,0.72)',
-            stack: 'areas',
             borderRadius: 3,
             borderSkipped: false as const,
             borderWidth: 0,
-            barPercentage: 0.88,
-            categoryPercentage: 0.8,
+            barPercentage: 0.72,
+            categoryPercentage: 0.68,
           })),
         }
       : mode === 'nonAttending'
@@ -228,19 +243,12 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
             if (idx === undefined) return [];
 
             const session = filtered[idx];
-            const breakdown = session?.areaBreakdown?.filter((x) => x.attended > 0) ?? [];
-            if (breakdown.length === 0) return [];
+            const meta = sessionMetaByDate?.[session.date];
+            const vakta = meta?.vakta?.trim() || 'Not added yet';
+            const topic = meta?.topic?.trim() || 'Not added yet';
+            const lines: string[] = ['', `Vakta: ${vakta}`, `Topic: ${topic}`];
 
-            const topAreas = breakdown.slice(0, 3);
-
-            return [
-              '',
-              isAreaSplit ? 'Area ranking' : 'Top areas',
-              ...topAreas.map((x, i) => {
-                const areaPct = session.count > 0 ? Math.round((x.attended / session.count) * 100) : 0;
-                return `${i + 1}) ${x.area}: ${x.attended} (${areaPct}%)`;
-              }),
-            ];
+            return lines;
           },
           footer: (items: Array<{ dataIndex: number }>) => {
             const idx = items[0]?.dataIndex;
@@ -257,7 +265,7 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
     },
     scales: {
       x: {
-        stacked: isStacked || isAreaSplit,
+        stacked: isStacked,
         grid: { display: false },
         ticks: {
           color: textSecondary,
@@ -268,7 +276,7 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
         },
       },
       y: {
-        stacked: isStacked || isAreaSplit,
+        stacked: isStacked,
         grid: { color: gridColor },
         ticks: { color: textSecondary, font: { size: 11 } },
         beginAtZero: true,
@@ -286,7 +294,6 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
     { key: '1m', label: '1M' },
     { key: '3m', label: '3M' },
     { key: '6m', label: '6M' },
-    { key: '1y', label: '1Y' },
     { key: 'all', label: 'All' },
   ];
 
@@ -296,13 +303,13 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
   ];
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+    <div className="rounded-2xl border border-slate-700/80 bg-slate-800/85 p-5 shadow-[0_10px_30px_rgba(2,6,23,0.25)] backdrop-blur-sm">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <h3 className="text-slate-100 font-semibold">{sabhaLabel} - Attendance Trend</h3>
-          <p className="text-slate-500 text-xs mt-0.5">{filtered.length} sessions shown</p>
+          <h3 className="text-slate-100 text-xl font-bold tracking-tight">{sabhaLabel} - Attendance Trend</h3>
+          <p className="text-slate-400 text-sm mt-0.5">{filtered.length} sessions shown</p>
         </div>
-        <span className="text-orange-500 text-sm font-medium bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20 shrink-0">
+        <span className="text-orange-400 text-sm font-semibold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/30 shrink-0">
           Avg {avgPct}%
         </span>
       </div>
@@ -351,7 +358,7 @@ export default function AttendanceTrendChart({ sessionTrend, sabhaLabel, totalYu
         </div>
       </div>
 
-      <div className="h-56">
+      <div className="h-64 rounded-xl bg-slate-900/20 px-2 py-1">
         {filtered.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-sm">
             No sessions in this range.
