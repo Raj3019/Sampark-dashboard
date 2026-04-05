@@ -30,6 +30,27 @@ export function getAttendanceStatus(yuvak: Yuvak, sortedDates: string[]): Attend
   return 'yellow';
 }
 
+/**
+ * Directory risk status based on recent sabha attendance.
+ * Red    -> missed last 4 sabhas
+ * Yellow -> missed last 2 sabhas
+ * Green  -> otherwise
+ */
+export function getDirectoryRiskStatus(yuvak: Yuvak, sortedDates: string[]): AttendanceStatus {
+  const last1 = sortedDates.slice(-1);
+  const last2 = sortedDates.slice(-2);
+  const last4 = sortedDates.slice(-4);
+
+  const missedLast4 = last4.length === 4 && last4.every((date) => !yuvak.dateAttendance[date]);
+  if (missedLast4) return 'red';
+
+  const missedLast2 = last2.length === 2 && last2.every((date) => !yuvak.dateAttendance[date]);
+  if (missedLast2) return 'yellow';
+
+  void last1;
+  return 'green';
+}
+
 export function getStatusColor(status: AttendanceStatus) {
   switch (status) {
     case 'red': return { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30', dot: 'bg-red-500' };

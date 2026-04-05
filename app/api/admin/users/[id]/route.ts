@@ -13,17 +13,22 @@ export async function PATCH(
   if (response) return response;
 
   const { id } = await params;
-  const body = await request.json() as { role: string };
+  const body = await request.json() as { role: string; assignedKK?: string };
   const { role } = body;
+  const assignedKK = role === 'kk' ? body.assignedKK?.trim() : null;
 
   if (!['admin', 'leader', 'kk'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
   }
 
+  if (role === 'kk' && !assignedKK) {
+    return NextResponse.json({ error: 'Assigned KK is required for KK users' }, { status: 400 });
+  }
+
   const pool = getAuthPool();
   const result = await pool.query(
-    `UPDATE "user" SET "role" = $1 WHERE "id" = $2 RETURNING "id"`,
-    [role, id]
+    `UPDATE "user" SET "role" = $1, "assignedKK" = $2 WHERE "id" = $3 RETURNING "id"`,
+    [role, assignedKK, id]
   );
 
   if (result.rowCount === 0) {

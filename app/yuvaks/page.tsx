@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useSheetData } from '@/hooks/useSheetData';
 import YuvakTable from '@/components/YuvakTable';
 import StatsCard from '@/components/StatsCard';
-import { getAttendanceStatus, getPastDates } from '@/lib/analytics';
+import { getDirectoryRiskStatus, getPastDates } from '@/lib/analytics';
 
 export default function YuvaksPage() {
   const { data, loading, error, refresh } = useSheetData();
@@ -31,9 +31,9 @@ export default function YuvaksPage() {
   // Exclude dates where no yuvak attended (e.g. today's Sabha not recorded yet)
   const activePastDates = pastDates.filter((d) => yuvaks.some((y) => y.dateAttendance[d]));
 
-  const green = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'green').length;
-  const yellow = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'yellow').length;
-  // const red = yuvaks.filter((y) => getAttendanceStatus(y, pastDates) === 'red').length;
+  const lowRisk = yuvaks.filter((y) => getDirectoryRiskStatus(y, activePastDates) === 'green').length;
+  const moderateRisk = yuvaks.filter((y) => getDirectoryRiskStatus(y, activePastDates) === 'yellow').length;
+  const highRisk = yuvaks.filter((y) => getDirectoryRiskStatus(y, activePastDates) === 'red').length;
   const cnCount = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar').length;
   const kishorCount = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar(Kishor)').length;
   const balCount = yuvaks.filter((y) => y.sabhaType === 'Bal Sabha').length;
@@ -75,29 +75,30 @@ export default function YuvaksPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
         <StatsCard title="Total Yuvaks" value={yuvaks.length} icon="👥" accent="orange" />
         <StatsCard title="Chirag Nagar" value={cnCount} icon="🏛" accent="blue" />
         <StatsCard title="Kishor Sabha" value={kishorCount} icon="📚" accent="blue" />
         <StatsCard title="Bal Sabha" value={balCount} icon="BS" accent="orange" />
-        <StatsCard title="Active" value={green} icon="✅" accent="green" />
-        <StatsCard title="Need Attention" value={yellow} icon="⚠️" accent="yellow" />
+        <StatsCard title="Low Risk" value={lowRisk} icon="✅" accent="green" />
+        <StatsCard title="Moderate Risk" value={moderateRisk} icon="⚠️" accent="yellow" />
+        <StatsCard title="High Risk" value={highRisk} icon="⛔" accent="red" />
       </div>
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-slate-400">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
-          <span><strong className="text-green-400">Active (Green)</strong> — Super Active (last 4 Sabha Yes)</span>
+          <span><strong className="text-green-400">Low Risk (Green)</strong> — Attended the last sabha, or did not miss the last 2 sabhas</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block" />
-          <span><strong className="text-yellow-400">Attention (Yellow)</strong> — Not Super Active (last 4 Sabha No)</span>
+          <span><strong className="text-yellow-400">Moderate Risk (Yellow)</strong> — Missed the last 2 sabhas</span>
         </div>
-        {/* <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-          <span><strong className="text-red-400">Absent (Red)</strong> — Absent for 6+ consecutive sabhas</span>
-        </div> */}
+          <span><strong className="text-red-400">High Risk (Red)</strong> — Missed the last 4 sabhas</span>
+        </div>
       </div>
 
       {/* Full table */}

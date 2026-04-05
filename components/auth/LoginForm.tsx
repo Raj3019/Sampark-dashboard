@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth/client';
+import { toast } from 'sonner';
 
 function getErrorMessage(error: unknown) {
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
@@ -39,13 +40,16 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
 
       if (result.error) {
         setError(getErrorMessage(result.error));
+        toast.error(getErrorMessage(result.error));
         return;
       }
 
+      toast.success('Signed in successfully');
       router.replace(callbackUrl);
       router.refresh();
     } catch (err) {
       setError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

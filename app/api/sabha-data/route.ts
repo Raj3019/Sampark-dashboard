@@ -1,15 +1,42 @@
 import { NextResponse } from 'next/server';
 import { getSabhaData } from '@/lib/sabhaWorkbookService';
+import { getUserAccessContext, requireApiSession } from '@/lib/auth/session';
 
 export const maxDuration = 60; // seconds — allow time for Drive retries
 
-export async function GET() {
-  try {
-    const { data, cache } = await getSabhaData();
+function sameKkName(left: string | null | undefined, right: string | null | undefined) {
+  return (left ?? '').trim().toLowerCase() === (right ?? '').trim().toLowerCase();
+}
 
-    return NextResponse.json(data, {
+export async function GET(request: Request) {
+  try {
+    const { session, response } = await requireApiSession();
+    if (response) return response;
+
+    const access = await getUserAccessContext(session.user.id);
+    if (!access) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data, cache } = await getSabhaData();
+    const requestUrl = new URL(request.url);
+    const scope = requestUrl.searchParams.get('scope');
+    const allowFullForKk = scope === 'full';
+
+    const scopedData = access.role === 'kk'
+      ? (allowFullForKk
+          ? data
+          : {
+              ...data,
+              yuvaks: access.assignedKK
+                ? data.yuvaks.filter((y) => sameKkName(y.followUpKK, access.assignedKK))
+                : [],
+            })
+      : data;
+
+    return NextResponse.json(scopedData, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'Cache-Control': 'private, no-store',
         'X-Cache': cache,
       },
     });

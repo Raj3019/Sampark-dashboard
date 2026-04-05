@@ -3,6 +3,7 @@ import { convertToModelMessages, stepCountIs, streamText, tool, UIMessage } from
 import { groq } from '@ai-sdk/groq';
 import { z } from 'zod';
 import { getSabhaData } from '@/lib/server/sabhaDataService';
+import { getUserAccessContext, requireApiSession } from '@/lib/auth/session';
 import {
   attendingFilterSchema,
   chartSpecSchema,
@@ -87,6 +88,10 @@ const SYSTEM_PROMPT = [
   'When user asks for chart, call create_chart with validated labels and numeric series.',
 ].join(' ');
 
+function sameKkName(left: string | null | undefined, right: string | null | undefined) {
+  return (left ?? '').trim().toLowerCase() === (right ?? '').trim().toLowerCase();
+}
+
 export async function POST(request: Request) {
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json(
@@ -96,6 +101,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    const { session, response } = await requireApiSession();
+    if (response) return response;
+
+    const access = await getUserAccessContext(session.user.id);
+    if (!access) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const incomingMessages = (Array.isArray(body?.messages) ? body.messages : []) as UIMessage[];
     const modelMessages = await convertToModelMessages(
@@ -106,7 +119,15 @@ export async function POST(request: Request) {
       })
     );
 
-    const { data } = await getSabhaData();
+    const { data: rawData } = await getSabhaData();
+    const data = access.role === 'kk'
+      ? {
+          ...rawData,
+          yuvaks: access.assignedKK
+            ? rawData.yuvaks.filter((y) => sameKkName(y.followUpKK, access.assignedKK))
+            : [],
+        }
+      : rawData;
     const requestedModel = process.env.GROQ_MODEL || DEFAULT_MODEL;
     const modelId = TOOL_CAPABLE_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
 

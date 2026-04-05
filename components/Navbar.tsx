@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from './ThemeProvider';
 import { authClient } from '@/lib/auth/client';
+import { toast } from 'sonner';
 
 const navItems = [
   // { href: '/', label: 'Dashboard', icon: 'DB' },
@@ -15,6 +16,11 @@ const navItems = [
   { href: '/kk-analysis', label: 'KK Analysis', icon: 'KK' },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: 'YD' },
   // { href: '/ai', label: 'Ask Akshar', icon: 'AI' },
+];
+
+const kkNavItems = [
+  { href: '/kk-home', label: 'My Dashboard', icon: 'MD' },
+  { href: '/yuvaks', label: 'My Yuvaks', icon: 'MY' },
 ];
 
 const adminNavItems = [
@@ -76,14 +82,24 @@ export default function Navbar() {
   const { data: session } = authClient.useSession();
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? '';
   const isAdmin = userRole === 'admin';
+  const isKK = userRole === 'kk';
+
+  useEffect(() => {
+    if (isKK && pathname === '/sabha/kishor') {
+      router.replace('/kk-home');
+    }
+  }, [isKK, pathname, router]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
     try {
       await authClient.signOut();
+      toast.success('Signed out successfully');
       setMobileOpen(false);
       router.replace('/login');
       router.refresh();
+    } catch {
+      toast.error('Failed to sign out');
     } finally {
       setIsSigningOut(false);
     }
@@ -92,7 +108,7 @@ export default function Navbar() {
   const sidebarContent = (onLinkClick?: () => void) => (
     <>
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {(isKK ? kkNavItems : navItems).map((item) => (
           <NavLink key={item.href} {...item} active={pathname === item.href} onClick={onLinkClick} />
         ))}
 

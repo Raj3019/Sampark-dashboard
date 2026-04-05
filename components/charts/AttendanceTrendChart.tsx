@@ -74,7 +74,7 @@ export default function AttendanceTrendChart({
   const absent = filtered.map((s) => totalYuvaks - s.count);
   const pcts = filtered.map((s) => s.percentage);
   const avgPct = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
-  const shouldShowEveryDateLabel = range === '3m' || range === '6m' || labels.length <= 16;
+  const shouldShowEveryDateLabel = labels.length <= 10;
   const skipN = shouldShowEveryDateLabel
     ? 1
     : labels.length > 60
@@ -269,9 +269,10 @@ export default function AttendanceTrendChart({
         grid: { display: false },
         ticks: {
           color: textSecondary,
-          maxRotation: 45,
-          font: { size: 10 },
-          autoSkip: false,
+          maxRotation: 50,
+          font: { size: 9 },
+          autoSkip: true,
+          maxTicksLimit: 7,
           callback: (_value: number | string, i: number) => (i % skipN === 0 ? labels[i] : null),
         },
       },
@@ -303,18 +304,18 @@ export default function AttendanceTrendChart({
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-700/80 bg-slate-800/85 p-5 shadow-[0_10px_30px_rgba(2,6,23,0.25)] backdrop-blur-sm">
-      <div className="flex items-start justify-between mb-3">
+    <div className="rounded-2xl border border-slate-700/80 bg-slate-800/85 p-4 sm:p-5 shadow-[0_10px_30px_rgba(2,6,23,0.25)] backdrop-blur-sm">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-slate-100 text-xl font-bold tracking-tight">{sabhaLabel} - Attendance Trend</h3>
+          <h3 className="text-slate-100 text-2xl sm:text-xl font-bold tracking-tight">{sabhaLabel} - Attendance Trend</h3>
           <p className="text-slate-400 text-sm mt-0.5">{filtered.length} sessions shown</p>
         </div>
-        <span className="text-orange-400 text-sm font-semibold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/30 shrink-0">
+        <span className="text-orange-400 text-sm font-semibold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/30 shrink-0 self-start sm:self-auto">
           Avg {avgPct}%
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="flex bg-slate-900/60 rounded-lg p-0.5">
           {modeBtns.map((b) => (
             <button
@@ -328,9 +329,9 @@ export default function AttendanceTrendChart({
             </button>
           ))}
         </div>
-        <div className="flex bg-slate-900/60 rounded-lg p-0.5 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
           {mode === 'attending' && (
-            <div className="flex bg-slate-900/60 rounded-lg p-0.5 mr-2">
+            <div className="flex bg-slate-900/60 rounded-lg p-0.5">
               {viewBtns.map((b) => (
                 <button
                   key={b.key}
@@ -344,21 +345,23 @@ export default function AttendanceTrendChart({
               ))}
             </div>
           )}
-          {rangeBtns.map((b) => (
-            <button
-              key={b.key}
-              onClick={() => setRange(b.key)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                range === b.key ? 'bg-slate-600 text-slate-100' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              {b.label}
-            </button>
-          ))}
+          <div className="flex bg-slate-900/60 rounded-lg p-0.5">
+            {rangeBtns.map((b) => (
+              <button
+                key={b.key}
+                onClick={() => setRange(b.key)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  range === b.key ? 'bg-slate-600 text-slate-100' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="h-64 rounded-xl bg-slate-900/20 px-2 py-1">
+      <div className="h-56 sm:h-64 rounded-xl bg-slate-900/20 px-2 py-1">
         {filtered.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-500 text-sm">
             No sessions in this range.

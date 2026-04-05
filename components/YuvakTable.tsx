@@ -2,24 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Yuvak, AttendanceStatus } from '@/lib/types';
-
-function getRiskStatus(yuvak: Yuvak, sortedDates: string[]): AttendanceStatus {
-  const last1 = sortedDates.slice(-1);
-  const last2 = sortedDates.slice(-2);
-  const last4 = sortedDates.slice(-4);
-
-  const missedLast4 = last4.length === 4 && last4.every((d) => !yuvak.dateAttendance[d]);
-  if (missedLast4) return 'red';
-
-  const missedLast2 = last2.length === 2 && last2.every((d) => !yuvak.dateAttendance[d]);
-  if (missedLast2) return 'yellow';
-
-  const missedLast1 = last1.length === 1 && last1.every((d) => !yuvak.dateAttendance[d]);
-  if (missedLast1) return 'green';
-
-  // If attended last sabha, keep as low-risk bucket.
-  return 'green';
-}
+import { getDirectoryRiskStatus } from '@/lib/analytics';
 
 function InlineStatusBadge({ status }: { status: AttendanceStatus }) {
   const configs: Record<AttendanceStatus, { label: string; dot: string; bg: string; text: string }> = {
@@ -140,7 +123,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
   );
 
   const withStatus = useMemo(
-    () => yuvaks.map((y) => ({ ...y, status: getRiskStatus(y, effectiveDates) })),
+    () => yuvaks.map((y) => ({ ...y, status: getDirectoryRiskStatus(y, effectiveDates) })),
     [yuvaks, effectiveDates],
   );
 

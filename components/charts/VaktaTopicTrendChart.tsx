@@ -26,9 +26,15 @@ export interface VaktaTopicTrendPoint {
 interface Props {
   points: VaktaTopicTrendPoint[];
   totalYuvaks: number;
+  scopeNote?: string;
+  comparisonPoints?: VaktaTopicTrendPoint[];
+  comparisonTotalYuvaks?: number;
+  primaryLabel?: string;
+  comparisonLabel?: string;
 }
 
 type TrendRange = '1m' | '3m';
+type ScopeView = 'primary' | 'comparison';
 
 function truncateText(value: string, max: number): string {
   if (value.length <= max) return value;
@@ -40,24 +46,55 @@ function parseDate(d: string): Date {
   return new Date(normalized);
 }
 
-export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
+function getRangeCutoff(range: TrendRange): Date {
+  const now = new Date();
+
+  // Use rolling day windows.
+  // 1M: last 30 days from now.
+  // 3M: last 90 days from now.
+  if (range === '1m') {
+    const cutoff = new Date(now);
+    cutoff.setDate(cutoff.getDate() - 30);
+    return cutoff;
+  }
+
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - 90);
+  return cutoff;
+}
+
+export default function VaktaTopicTrendChart({
+  points,
+  totalYuvaks,
+  scopeNote,
+  comparisonPoints,
+  comparisonTotalYuvaks,
+  primaryLabel = 'Your Yuvak Performance',
+  comparisonLabel = 'Sabha Performance',
+}: Props) {
   const [range, setRange] = useState<TrendRange>('3m');
+  const [scopeView, setScopeView] = useState<ScopeView>('primary');
+
+  const activePoints = scopeView === 'comparison' && comparisonPoints ? comparisonPoints : points;
+  const activeTotalYuvaks = scopeView === 'comparison' && comparisonPoints
+    ? (comparisonTotalYuvaks ?? totalYuvaks)
+    : totalYuvaks;
 
   const filteredPoints = useMemo(() => {
-    const now = new Date();
-    const cutoff = new Date(now);
-    cutoff.setMonth(cutoff.getMonth() - (range === '1m' ? 1 : 3));
+    const cutoff = getRangeCutoff(range);
 
-    return points.filter((point) => parseDate(point.date) >= cutoff);
-  }, [points, range]);
+    return activePoints.filter((point) => parseDate(point.date) >= cutoff);
+  }, [activePoints, range]);
 
   const sorted = [...filteredPoints].sort((a, b) => a.attendancePct - b.attendancePct);
   const lowest = sorted[0];
   const highest = sorted[sorted.length - 1];
+  const hasSinglePoint = filteredPoints.length === 1;
 
   const labels = filteredPoints.map((p) => p.date);
   const values = filteredPoints.map((p) => p.attendancePct);
   const avgPct = values.length > 0 ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : 0;
+  const xLabelSkipN = labels.length > 14 ? 3 : labels.length > 8 ? 2 : 1;
 
   const chartData = {
     labels,
@@ -67,9 +104,12 @@ export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
         data: values,
         borderColor: 'rgba(168,85,247,0.95)',
         backgroundColor: 'rgba(168,85,247,0.18)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: values.map((value) => (value === highest?.attendancePct || value === lowest?.attendancePct ? 5 : 3)),
+        fill: !hasSinglePoint,
+        showLine: !hasSinglePoint,
+        tension: hasSinglePoint ? 0 : 0.3,
+        pointRadius: hasSinglePoint
+          ? 5
+          : values.map((value) => (value === highest?.attendancePct || value === lowest?.attendancePct ? 5 : 3)),
         pointHoverRadius: 6,
         pointBackgroundColor: values.map((value) => {
           if (value === highest?.attendancePct) return 'rgba(34,197,94,0.95)';
@@ -104,7 +144,7 @@ export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
           label: (ctx: { dataIndex: number }) => {
             const row = filteredPoints[ctx.dataIndex];
             if (!row) return '';
-            return `Attendance: ${row.attendanceCount}/${totalYuvaks} (${row.attendancePct}%)`;
+            return `Attendance: ${row.attendanceCount}/${activeTotalYuvaks} (${row.attendancePct}%)`;
           },
           afterBody: (items: Array<{ dataIndex: number }>) => {
             const idx = items[0]?.dataIndex;
@@ -124,10 +164,12 @@ export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
         grid: { display: false },
         ticks: {
           color: '#64748b',
-          maxRotation: 35,
+          maxRotation: 45,
           minRotation: 0,
-          autoSkip: false,
-          font: { size: 10 },
+          autoSkip: true,
+          maxTicksLimit: 7,
+          font: { size: 9 },
+          callback: (_value: number | string, index: number) => (index % xLabelSkipN === 0 ? labels[index] : ''),
         },
       },
       y: {
@@ -144,32 +186,53 @@ export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
   };
 
   return (
-    <div className="rounded-2xl border border-purple-500/20 bg-slate-800 p-5">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+    <div className="rounded-2xl border border-purple-500/20 bg-slate-800 p-4 sm:p-5">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 mb-4">
         <div>
           <h3 className="text-slate-100 font-semibold">Vakta & Topic Performance ({range === '1m' ? 'Last 1 Month' : 'Last 3 Months'})</h3>
           <p className="text-slate-500 text-xs mt-0.5">Attendance trend by each sabha session</p>
+          {scopeNote && <p className="text-[11px] text-slate-400 mt-1">{scopeNote}</p>}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-slate-700 bg-slate-900/60 p-0.5 text-xs font-medium">
-            {([
-              { key: '1m', label: '1M' },
-              { key: '3m', label: '3M' },
-            ] as const).map((btn) => (
-              <button
-                key={btn.key}
-                onClick={() => setRange(btn.key)}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
-                  range === btn.key ? 'bg-slate-600 text-slate-100' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {btn.label}
-              </button>
-            ))}
+        <div className="flex w-full flex-col gap-2 lg:w-auto lg:items-end">
+          {comparisonPoints && (
+            <div className="grid w-full grid-cols-2 rounded-lg border border-slate-700 bg-slate-900/60 p-0.5 text-xs font-medium lg:w-auto lg:flex">
+              {([
+                { key: 'primary', label: primaryLabel },
+                { key: 'comparison', label: comparisonLabel },
+              ] as const).map((btn) => (
+                <button
+                  key={btn.key}
+                  onClick={() => setScopeView(btn.key)}
+                  className={`px-2.5 py-1 rounded-md transition-colors text-center ${
+                    scopeView === btn.key ? 'bg-slate-600 text-slate-100' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex w-full items-center justify-between gap-2 lg:w-auto lg:justify-end">
+            <div className="flex rounded-lg border border-slate-700 bg-slate-900/60 p-0.5 text-xs font-medium">
+              {([
+                { key: '1m', label: '1M' },
+                { key: '3m', label: '3M' },
+              ] as const).map((btn) => (
+                <button
+                  key={btn.key}
+                  onClick={() => setRange(btn.key)}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${
+                    range === btn.key ? 'bg-slate-600 text-slate-100' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
+            <span className="inline-flex shrink-0 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300">
+              Avg {avgPct}%
+            </span>
           </div>
-          <span className="inline-flex rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-semibold text-purple-300">
-            Avg {avgPct}%
-          </span>
         </div>
       </div>
 
@@ -179,16 +242,16 @@ export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
         </div>
       ) : (
         <>
-          <div className="h-64 rounded-xl bg-slate-900/30 px-2 py-1">
+          <div className="h-56 sm:h-64 rounded-xl bg-slate-900/30 px-2 py-1">
             <Line data={chartData} options={options} />
           </div>
 
-          {highest && lowest && (
+          {highest && lowest && !hasSinglePoint && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-green-300">Highest Attendance</p>
                 <p className="mt-1 text-sm font-semibold text-slate-100">
-                  {highest.date} · {highest.attendanceCount}/{totalYuvaks} ({highest.attendancePct}%)
+                  {highest.date} · {highest.attendanceCount}/{activeTotalYuvaks} ({highest.attendancePct}%)
                 </p>
                 <p className="mt-1 text-xs text-slate-300">Vakta: {highest.vakta}</p>
                 <p className="text-xs text-slate-400">Topic: {highest.topic}</p>
@@ -196,11 +259,22 @@ export default function VaktaTopicTrendChart({ points, totalYuvaks }: Props) {
               <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4">
                 <p className="text-[11px] uppercase tracking-wide text-yellow-300">Lowest Attendance</p>
                 <p className="mt-1 text-sm font-semibold text-slate-100">
-                  {lowest.date} · {lowest.attendanceCount}/{totalYuvaks} ({lowest.attendancePct}%)
+                  {lowest.date} · {lowest.attendanceCount}/{activeTotalYuvaks} ({lowest.attendancePct}%)
                 </p>
                 <p className="mt-1 text-xs text-slate-300">Vakta: {lowest.vakta}</p>
                 <p className="text-xs text-slate-400">Topic: {lowest.topic}</p>
               </div>
+            </div>
+          )}
+
+          {highest && hasSinglePoint && (
+            <div className="mt-4 rounded-xl border border-sky-500/25 bg-sky-500/5 p-4">
+              <p className="text-[11px] uppercase tracking-wide text-sky-300">Only Session In Selected Range</p>
+              <p className="mt-1 text-sm font-semibold text-slate-100">
+                {highest.date} · {highest.attendanceCount}/{activeTotalYuvaks} ({highest.attendancePct}%)
+              </p>
+              <p className="mt-1 text-xs text-slate-300">Vakta: {highest.vakta}</p>
+              <p className="text-xs text-slate-400">Topic: {highest.topic}</p>
             </div>
           )}
         </>

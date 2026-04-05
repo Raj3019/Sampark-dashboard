@@ -2,6 +2,16 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { getAuthPool } from '@/lib/auth/db';
+
+export type AppRole = 'admin' | 'leader' | 'kk';
+
+export type UserAccessContext = {
+  userId: string;
+  role: AppRole;
+  assignedKK: string | null;
+  name: string;
+};
 
 export async function getServerSession() {
   return auth.api.getSession({
@@ -64,4 +74,31 @@ export async function requireAdminApiSession() {
   }
 
   return { session, response: null };
+}
+
+export async function getUserAccessContext(userId: string): Promise<UserAccessContext | null> {
+  const pool = getAuthPool();
+  const result = await pool.query<{
+    id: string;
+    role: string;
+    assignedKK: string | null;
+    name: string;
+  }>(
+    `SELECT "id", "role", "assignedKK", "name" FROM "user" WHERE "id" = $1 LIMIT 1`,
+    [userId]
+  );
+
+  const user = result.rows[0];
+  if (!user) return null;
+
+  const role: AppRole = user.role === 'admin' || user.role === 'leader' || user.role === 'kk'
+    ? user.role
+    : 'kk';
+
+  return {
+    userId: user.id,
+    role,
+    assignedKK: user.assignedKK?.trim() ? user.assignedKK.trim() : null,
+    name: user.name,
+  };
 }
