@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useSheetData } from '@/hooks/useSheetData';
-import { getKKStats, getPastDates, getSessionTrend } from '@/lib/analytics';
+import { getPastDates, getSessionTrend } from '@/lib/analytics';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import VaktaTopicTrendChart from '@/components/charts/VaktaTopicTrendChart';
 import StatsCard from '@/components/StatsCard';
@@ -17,10 +18,20 @@ function isKishorAlias(sabhaType: string) {
   return normalized === 'chirag nagar(kishor)' || normalized === 'chirag nagar';
 }
 
+function getSheetLabel(sabhaType: string) {
+  const normalized = sabhaType.trim().toLowerCase();
+  return normalized.includes('kishor') ? 'Kishor' : 'Yuva';
+}
+
 export default function KkHomeClient() {
   const { data, loading, error, refresh } = useSheetData();
   const { data: fullData } = useSheetData({ scope: 'full' });
   const { data: session } = authClient.useSession();
+  const [openStats, setOpenStats] = useState<{ total: boolean; active: boolean; deactive: boolean }>({
+    total: false,
+    active: false,
+    deactive: false,
+  });
 
   if (loading) {
     return (
@@ -111,24 +122,9 @@ export default function KkHomeClient() {
       };
     });
 
-  const kkStats = getKKStats(yuvaks, activePastDates);
-  const kkSummary = kkStats.map((kk) => {
-    const kkActive = kk.yuvaks.filter((y) => y.superActive).length;
-    const kkDeactive = kk.yuvaks.length - kkActive;
-    const kkActivePct = kk.yuvaks.length > 0 ? Math.round((kkActive / kk.yuvaks.length) * 100) : 0;
-    const kkEfficiency = Math.round((kkActivePct * 0.7) + (kk.avgAttendance * 0.3));
-
-    return {
-      name: kk.name,
-      total: kk.yuvaks.length,
-      active: kkActive,
-      deactive: kkDeactive,
-      avgAttendance: kk.avgAttendance,
-      efficiency: kkEfficiency,
-    };
-  });
-
   const kkDisplayName = (session?.user as { assignedKK?: string } | undefined)?.assignedKK || session?.user?.name || 'KK';
+  const activeYuvaks = yuvaks.filter((y) => y.superActive);
+  const deactiveYuvaks = yuvaks.filter((y) => !y.superActive);
   const areaCounts = yuvaks.reduce((map, y) => {
     const area = y.area?.trim();
     if (!area) return map;
@@ -143,7 +139,7 @@ export default function KkHomeClient() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-sky-400/15 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 -bottom-20 h-44 w-44 rounded-full bg-amber-300/10 blur-3xl" />
         <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-slate-100 sm:text-2xl">{kkDisplayName} Dashboard</h1>
+          <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-slate-100 sm:text-2xl">{kkDisplayName} Bhai's Dashboard</h1>
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/12 px-2.5 py-1 text-[11px] font-semibold text-amber-200 sm:px-3 sm:text-xs">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-200" />
             <span className="truncate">{primaryArea}</span>
@@ -154,9 +150,91 @@ export default function KkHomeClient() {
 
       <div className="space-y-5 sm:space-y-6">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-5">
-          <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="assigned to you" accent="blue" />
-          <StatsCard title="Active" value={activeCount} subtitle="super active" accent="green" />
-          <StatsCard title="Deactive" value={deactiveCount} subtitle="need follow-up" accent="red" />
+          {[
+            {
+              key: 'total' as const,
+              title: 'Total Yuvaks',
+              value: totalYuvaks,
+              subtitle: 'assigned to you',
+              tone: 'text-blue-400',
+              list: yuvaks,
+            },
+            {
+              key: 'active' as const,
+              title: 'Active',
+              value: activeCount,
+              subtitle: 'super active',
+              tone: 'text-green-400',
+              list: activeYuvaks,
+            },
+            {
+              key: 'deactive' as const,
+              title: 'Deactive',
+              value: deactiveCount,
+              subtitle: 'need follow-up',
+              tone: 'text-red-400',
+              list: deactiveYuvaks,
+            },
+          ].map((card) => (
+            <div key={card.key} className="rounded-xl border border-slate-700 bg-linear-to-b from-slate-800 to-slate-800/70 p-4">
+              <button
+                type="button"
+                aria-expanded={openStats[card.key]}
+                aria-controls={`kk-stat-panel-${card.key}`}
+                onClick={() => setOpenStats((current) => ({ ...current, [card.key]: !current[card.key] }))}
+                className="flex w-full items-start justify-between gap-3 text-left"
+              >
+                <div>
+                  <p className="text-slate-400 text-sm font-medium">{card.title}</p>
+                  <p className={`mt-2 text-4xl font-bold ${card.tone}`}>{card.value}</p>
+                  <p className="mt-2 text-slate-500 text-xs">{card.subtitle}</p>
+                </div>
+                <span
+                  className={`mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-600 bg-slate-900/80 text-slate-300 transition-all ${openStats[card.key] ? 'rotate-180 border-sky-500/50 text-sky-200' : 'hover:border-slate-500 hover:text-slate-100'}`}
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 7.5L10 12.5L15 7.5" />
+                  </svg>
+                </span>
+              </button>
+
+              {openStats[card.key] && (
+                <div id={`kk-stat-panel-${card.key}`} className="mt-3 max-h-52 space-y-2 overflow-y-auto border-t border-slate-700 pt-3">
+                  {card.list.length === 0 ? (
+                    <p className="rounded-lg border border-slate-700 bg-slate-900/50 px-2.5 py-2 text-xs text-slate-400">No yuvaks found.</p>
+                  ) : (
+                    card.list.map((yuvak) => {
+                      const sheetLabel = getSheetLabel(yuvak.sabhaType);
+                      const isKishor = sheetLabel === 'Kishor';
+
+                      return (
+                        <div key={`${card.key}-${yuvak.name}`} className="rounded-lg border border-slate-700 bg-slate-900/60 px-2.5 py-2 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-slate-100">{yuvak.name}</p>
+                            <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${isKishor ? 'border border-violet-500/35 bg-violet-500/10 text-violet-200' : 'border border-sky-500/35 bg-sky-500/10 text-sky-200'}`}>
+                              {sheetLabel}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-slate-400">
+                            {sheetLabel} - {yuvak.attendancePercent}% attendance
+                          </p>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
           <StatsCard title="Avg Attendance" value={`${avgAttendance}%`} subtitle="overall" accent="orange" />
           <StatsCard title="Efficiency Score" value={efficiencyScore} subtitle="70% active + 30% attendance" accent="blue" />
         </div>
@@ -203,46 +281,6 @@ export default function KkHomeClient() {
           );
         })()}
 
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-5">
-          <h3 className="text-slate-100 font-semibold mb-1">KK Data & Efficiency</h3>
-          <p className="text-slate-500 text-xs mb-4">Per KK performance from your scoped dataset.</p>
-          <div className="overflow-x-auto rounded-lg border border-slate-700">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-900/50 border-b border-slate-700">
-                <tr>
-                  <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">KK Name</th>
-                  <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Total</th>
-                  <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Active</th>
-                  <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Deactive</th>
-                  <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Avg Attendance</th>
-                  <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Efficiency</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {kkSummary.map((kk) => (
-                  <tr key={kk.name} className="hover:bg-slate-900/40">
-                    <td className="px-4 py-3 text-slate-100 font-medium">{kk.name}</td>
-                    <td className="px-4 py-3 text-slate-300">{kk.total}</td>
-                    <td className="px-4 py-3 text-green-400">{kk.active}</td>
-                    <td className="px-4 py-3 text-red-400">{kk.deactive}</td>
-                    <td className="px-4 py-3 text-sky-300">{kk.avgAttendance}%</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        kk.efficiency >= 70
-                          ? 'bg-green-500/15 text-green-300'
-                          : kk.efficiency >= 45
-                            ? 'bg-yellow-500/15 text-yellow-300'
-                            : 'bg-red-500/15 text-red-300'
-                      }`}>
-                        {kk.efficiency}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   );

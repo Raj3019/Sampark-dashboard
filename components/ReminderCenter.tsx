@@ -65,8 +65,11 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
   const role = (session?.user as { role?: string } | undefined)?.role ?? '';
   const isLeader = role === 'leader' || role === 'admin';
   const { reminders, loading, error } = useReminders();
-  const [expanded, setExpanded] = useState(variant === 'full');
   const [selectedKk, setSelectedKk] = useState('all');
+  const [openRisks, setOpenRisks] = useState<{ high: boolean; moderate: boolean }>({
+    high: false,
+    moderate: false,
+  });
 
   const kishorReminders = reminders.filter((item) => isKishorReminder(item.sabhaType));
   const kkOptions = Array.from(new Set(kishorReminders.map((item) => item.followUpKK))).sort((a, b) => a.localeCompare(b));
@@ -115,9 +118,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-4 shadow-sm">
         <div className="animate-pulse space-y-3">
           <div className="h-4 w-40 rounded bg-slate-800" />
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="h-16 rounded-xl bg-slate-800" />
-            <div className="h-16 rounded-xl bg-slate-800" />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <div className="h-16 rounded-xl bg-slate-800" />
             <div className="h-16 rounded-xl bg-slate-800" />
           </div>
@@ -136,6 +137,8 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
   }
 
   const reminderCountLabel = visibleSummary.total === 1 ? 'reminder' : 'reminders';
+  const highRiskReminders = visibleReminders.filter((item) => item.riskLevel === 'high');
+  const moderateRiskReminders = visibleReminders.filter((item) => item.riskLevel === 'moderate');
   const subtitle = isLeader
     ? 'Leaders see every moderate and high risk follow-up item.'
     : 'Your assigned follow-up reminders appear here first.';
@@ -168,33 +171,100 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
               ))}
             </select>
           )}
-          {variant === 'compact' && (
-            <button
-              type="button"
-              onClick={() => setExpanded((value) => !value)}
-              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800"
-            >
-              {expanded ? 'Collapse' : 'View all'}
-            </button>
-          )}
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {[
-          { label: 'High risk', value: visibleSummary.high, tone: 'text-red-300' },
-          { label: 'Moderate risk', value: visibleSummary.moderate, tone: 'text-amber-300' },
-          { label: 'Pending', value: visibleSummary.pending, tone: 'text-sky-300' },
-          { label: 'Resolved', value: visibleSummary.resolved, tone: 'text-emerald-300' },
+          {
+            key: 'high' as const,
+            label: 'High risk',
+            value: visibleSummary.high,
+            tone: 'text-red-300',
+            reminders: highRiskReminders,
+          },
+          {
+            key: 'moderate' as const,
+            label: 'Moderate risk',
+            value: visibleSummary.moderate,
+            tone: 'text-amber-300',
+            reminders: moderateRiskReminders,
+          },
         ].map((item) => (
-          <div key={item.label} className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
-            <p className={`mt-1 text-lg font-semibold ${item.tone}`}>{item.value}</p>
+          <div key={item.label} className="rounded-xl border border-slate-800 bg-linear-to-b from-slate-950/80 to-slate-950/50 p-2.5 shadow-inner">
+            <button
+              type="button"
+              aria-expanded={openRisks[item.key]}
+              aria-controls={`risk-panel-${item.key}`}
+              onClick={() => {
+                setOpenRisks((current) => ({ ...current, [item.key]: !current[item.key] }));
+              }}
+              className="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left outline-none transition hover:bg-slate-900/70 focus-visible:ring-2 focus-visible:ring-sky-500/60"
+            >
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                <p className={`mt-1 text-lg font-semibold ${item.tone}`}>{item.value}</p>
+              </div>
+              <div className="flex items-center">
+                <span
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-300 shadow-sm transition-all ${openRisks[item.key] ? 'rotate-180 border-sky-500/50 text-sky-200' : 'hover:border-slate-600 hover:text-slate-100'}`}
+                >
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 7.5L10 12.5L15 7.5" />
+                  </svg>
+                </span>
+              </div>
+            </button>
+
+            {openRisks[item.key] && (
+              <div id={`risk-panel-${item.key}`} className="mt-2 max-h-56 space-y-2 overflow-y-auto border-t border-slate-800/90 pt-2">
+                {item.reminders.length === 0 ? (
+                  <p className="rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-400">
+                    No {item.label.toLowerCase()} reminders.
+                  </p>
+                ) : (
+                  item.reminders.map((reminder) => {
+                    const phoneHref = normalizePhoneHref(reminder.phoneNumber);
+                    return (
+                      <div key={`${item.label}-${reminder.id}`} className="rounded-lg border border-slate-800/90 bg-slate-900/70 px-2.5 py-2.5 transition-colors hover:bg-slate-900">
+                        <p className="truncate text-sm font-semibold text-slate-100">{reminder.yuvakName}</p>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          KK: <span className="text-slate-300">{reminder.followUpKK}</span> - Missed {reminder.missedSabhaCount} sabhas
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+                          <span className="text-slate-400">
+                            Phone: <span className="text-slate-200">{reminder.phoneNumber || 'N/A'}</span>
+                          </span>
+                          {phoneHref && (
+                            <a
+                              href={phoneHref}
+                              aria-label={`Call ${reminder.yuvakName}`}
+                              className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2 py-0.5 font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/20"
+                            >
+                              Call
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {(variant === 'full' || expanded) && (
+      {variant === 'full' && (
         <div className="mt-4 space-y-3">
           {visibleReminders.length === 0 ? (
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-5 text-sm text-slate-400">

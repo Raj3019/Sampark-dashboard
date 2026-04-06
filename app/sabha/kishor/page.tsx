@@ -135,6 +135,8 @@ export default function KishorSabhaPage() {
       : <span className="text-slate-600"> ↕</span>;
 
   const kkByEfficiency = [...kkPerformance].sort((a, b) => b.efficiencyScore - a.efficiencyScore || a.name.localeCompare(b.name));
+  const mostActiveKk = [...kkPerformance].sort((a, b) => b.active - a.active || b.avgAttendance - a.avgAttendance || a.name.localeCompare(b.name))[0] ?? null;
+  const mostDeactiveKk = [...kkPerformance].sort((a, b) => b.deactive - a.deactive || b.deactivePct - a.deactivePct || a.name.localeCompare(b.name))[0] ?? null;
 
   // Use the same getAttendanceStatus logic that the table/badges use — keeps all counts consistent
   const activeCount   = stats.greenCount;
@@ -164,11 +166,12 @@ export default function KishorSabhaPage() {
     };
   });
 
-  const last20Trend  = stats.sessionTrend.slice(-20);
-  const trackedTrend = stats.sessionTrend.filter((s) => s.count > 0);
+  const trendLast52 = stats.sessionTrend.slice(-52);
+  const last20Trend  = trendLast52.slice(-20);
+  const trackedTrend = trendLast52.filter((s) => s.count > 0);
   const lowest       = getLowestSessions(trackedTrend, 5);
   const highest      = getHighestSessions(trackedTrend, 3);
-  const predicted    = predictNextAttendance(stats.sessionTrend);
+  const predicted    = predictNextAttendance(trendLast52);
 
   const threeMonthCutoff = new Date();
   threeMonthCutoff.setMonth(threeMonthCutoff.getMonth() - 3);
@@ -477,7 +480,7 @@ export default function KishorSabhaPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 lg:order-2">
               <h3 className="text-slate-100 font-semibold mb-1">Lowest Sessions</h3>
-              <p className="text-slate-500 text-xs mb-3">Check for exams, festivals, or other conflicts</p>
+              <p className="text-slate-500 text-xs mb-3">From last 52 sabhas · check for exams, festivals, or other conflicts</p>
               <div className="space-y-3">
                 {lowest.map((s) => (
                   <div key={s.date} className="flex items-start justify-between gap-3 text-sm">
@@ -502,7 +505,7 @@ export default function KishorSabhaPage() {
             </div>
             <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 lg:order-1">
               <h3 className="text-slate-100 font-semibold mb-1">Best Sessions</h3>
-              <p className="text-slate-500 text-xs mb-3">Highest attendance sessions</p>
+              <p className="text-slate-500 text-xs mb-3">From last 52 sabhas · highest attendance sessions</p>
               <div className="space-y-3">
                 {highest.map((s) => (
                   <div key={s.date} className="flex items-start justify-between gap-3 text-sm">
@@ -552,6 +555,32 @@ export default function KishorSabhaPage() {
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">KK Performance Ranking</h3>
           <p className="text-slate-500 text-xs mb-4">Click any column header to sort. Click again to reverse order.</p>
+
+          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-green-300">Most Active KK</p>
+              {mostActiveKk ? (
+                <>
+                  <p className="mt-2 text-sm font-semibold text-slate-100">{mostActiveKk.name}</p>
+                  <p className="mt-1 text-xs text-slate-300">Active: <span className="text-green-300">{mostActiveKk.active}</span> / {mostActiveKk.total}</p>
+                </>
+              ) : (
+                <p className="mt-2 text-xs text-slate-400">No KK data available.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-300">Most Deactive KK</p>
+              {mostDeactiveKk ? (
+                <>
+                  <p className="mt-2 text-sm font-semibold text-slate-100">{mostDeactiveKk.name}</p>
+                  <p className="mt-1 text-xs text-slate-300">Deactive: <span className="text-red-300">{mostDeactiveKk.deactive}</span> / {mostDeactiveKk.total} ({mostDeactiveKk.deactivePct}%)</p>
+                </>
+              ) : (
+                <p className="mt-2 text-xs text-slate-400">No KK data available.</p>
+              )}
+            </div>
+          </div>
 
           {kkPerformanceSorted.length === 0 ? (
             <div className="rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-6 text-center text-sm text-slate-500">
