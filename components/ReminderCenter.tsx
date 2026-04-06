@@ -165,7 +165,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
               onChange={(event) => setSelectedKk(event.target.value)}
               className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-200 outline-none ring-0 focus:border-sky-500"
             >
-              <option value="all">All KKs ({kishorReminders.length})</option>
+              <option value="all">All KKs ({kkOptions.length})</option>
               {kkOptions.map((kkName) => (
                 <option key={kkName} value={kkName}>{kkName}</option>
               ))}

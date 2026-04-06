@@ -8,6 +8,7 @@ import YuvakTable from '@/components/YuvakTable';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import VaktaTopicTrendChart from '@/components/charts/VaktaTopicTrendChart';
+import { authClient } from '@/lib/auth/client';
 
 type TabType = 'overview' | 'yuvaks' | 'kk-performance' | 'kk';
 type RecentSabhaSummary = {
@@ -27,16 +28,13 @@ function parseSabhaDate(value: string): Date {
   return new Date(normalized);
 }
 
-function isKishorAlias(sabhaType: string) {
-  const normalized = sabhaType.trim().toLowerCase();
-  return normalized === 'chirag nagar(kishor)' || normalized === 'chirag nagar';
-}
-
 export default function KishorSabhaPage() {
   const { data, loading, error, refresh } = useSheetData();
+  const { data: session } = authClient.useSession();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [attendingFilter, setAttendingFilter] = useState<'all' | 'yes' | 'no'>('yes');
   const [isRiskSectionCollapsed, setIsRiskSectionCollapsed] = useState(true);
+  const [openKkSummary, setOpenKkSummary] = useState<'active' | 'deactive' | null>(null);
   const [kkSortKey, setKkSortKey] = useState<'name' | 'total' | 'active' | 'deactive' | 'deactivePct' | 'avgAttendance' | 'efficiencyScore'>('deactivePct');
   const [kkSortAsc, setKkSortAsc] = useState(false);
 
@@ -60,7 +58,7 @@ export default function KishorSabhaPage() {
   const pastDates = getPastDates(dates);
 
   const sabhaType = 'Chirag Nagar(Kishor)' as const;
-  const allKishorYuvaks = yuvaks.filter((y) => isKishorAlias(y.sabhaType));
+  const allKishorYuvaks = yuvaks.filter((y) => y.sabhaType === sabhaType);
   const activePastDates = pastDates.filter((d) => allKishorYuvaks.some((y) => y.dateAttendance[d]));
 
   const filteredKishorYuvaks = allKishorYuvaks.filter((y) =>
@@ -114,7 +112,12 @@ export default function KishorSabhaPage() {
         break;
       case 'deactivePct':
       default:
-        cmp = a.deactivePct - b.deactivePct || b.avgAttendance - a.avgAttendance;
+        cmp =
+          a.deactivePct - b.deactivePct ||
+          a.deactive - b.deactive ||
+          b.avgAttendance - a.avgAttendance ||
+          b.efficiencyScore - a.efficiencyScore ||
+          a.name.localeCompare(b.name);
         break;
     }
     return kkSortAsc ? cmp : -cmp;
@@ -137,6 +140,18 @@ export default function KishorSabhaPage() {
   const kkByEfficiency = [...kkPerformance].sort((a, b) => b.efficiencyScore - a.efficiencyScore || a.name.localeCompare(b.name));
   const mostActiveKk = [...kkPerformance].sort((a, b) => b.active - a.active || b.avgAttendance - a.avgAttendance || a.name.localeCompare(b.name))[0] ?? null;
   const mostDeactiveKk = [...kkPerformance].sort((a, b) => b.deactive - a.deactive || b.deactivePct - a.deactivePct || a.name.localeCompare(b.name))[0] ?? null;
+  const mostActiveKkYuvaks = mostActiveKk
+    ? kkStats.find((kk) => kk.name === mostActiveKk.name)?.yuvaks
+        .map((y) => y.name)
+        .sort((a, b) => a.localeCompare(b))
+      ?? []
+    : [];
+  const mostDeactiveKkYuvaks = mostDeactiveKk
+    ? kkStats.find((kk) => kk.name === mostDeactiveKk.name)?.yuvaks
+        .map((y) => y.name)
+        .sort((a, b) => a.localeCompare(b))
+      ?? []
+    : [];
 
   // Use the same getAttendanceStatus logic that the table/badges use — keeps all counts consistent
   const activeCount   = stats.greenCount;
@@ -153,10 +168,7 @@ export default function KishorSabhaPage() {
   const recentSabhaSummaries: RecentSabhaSummary[] = recentDates.map((date) => {
     const attendanceCount = kishorYuvaks.filter((y) => y.dateAttendance[date]).length;
     const attendancePct = totalCount > 0 ? Math.round((attendanceCount / totalCount) * 100) : 0;
-    const vakta =
-      sabhaSessionMeta?.['Chirag Nagar(Kishor)']?.[date]?.vakta?.trim()
-      ?? sabhaSessionMeta?.['Chirag Nagar']?.[date]?.vakta?.trim()
-      ?? 'Not added yet';
+    const vakta = sabhaSessionMeta?.[sabhaType]?.[date]?.vakta?.trim() || 'Not added yet';
 
     return {
       date,
@@ -181,9 +193,7 @@ export default function KishorSabhaPage() {
     .map((date) => {
       const attendanceCount = kishorYuvaks.filter((y) => y.dateAttendance[date]).length;
       const attendancePct = totalCount > 0 ? Math.round((attendanceCount / totalCount) * 100) : 0;
-      const meta =
-        sabhaSessionMeta?.['Chirag Nagar(Kishor)']?.[date]
-        ?? sabhaSessionMeta?.['Chirag Nagar']?.[date];
+      const meta = sabhaSessionMeta?.[sabhaType]?.[date];
 
       return {
         date,
@@ -233,6 +243,10 @@ export default function KishorSabhaPage() {
   const stdMap = new Map<string, number>();
   kishorYuvaks.forEach((y) => { stdMap.set(y.std, (stdMap.get(y.std) ?? 0) + 1); });
   const stdBreakdown = Array.from(stdMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const rawLeaderName = session?.user?.name?.trim() || 'Leader';
+  const leaderDisplayName = rawLeaderName.includes(' ')
+    ? `${rawLeaderName.split(' ').slice(0, -1).join(' ')} Bhai ${rawLeaderName.split(' ').slice(-1)[0]}`
+    : `${rawLeaderName} Bhai`;
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -252,8 +266,9 @@ export default function KishorSabhaPage() {
           <div className="flex items-start gap-3">
             <div className="w-1 self-stretch rounded-full bg-purple-500" />
             <div>
+              <p className="text-sm font-semibold text-slate-400">{leaderDisplayName}</p>
               <h1 className="text-2xl font-bold text-purple-400">AYC Sabha</h1>
-              <p className="text-slate-500 text-sm mt-0.5">STD 9 to 12 · Chirag Nagar</p>
+              <p className="text-slate-500 text-sm mt-0.5">STD 9 to 12 · Kishor Sabha</p>
             </div>
           </div>
           {/* Actions — always a single line */}
@@ -477,6 +492,78 @@ export default function KishorSabhaPage() {
             totalYuvaks={totalCount}
           />
 
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setOpenKkSummary((current) => current === 'active' ? null : 'active')}
+              className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-left"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-green-300">Most Active KK</p>
+                  {mostActiveKk ? (
+                    <>
+                      <p className="mt-2 text-sm font-semibold text-slate-100">{mostActiveKk.name}</p>
+                      <p className="mt-1 text-xs text-slate-300">Active: <span className="text-green-300">{mostActiveKk.active}</span> / {mostActiveKk.total}</p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-400">No KK data available.</p>
+                  )}
+                </div>
+                <span className="rounded-full border border-green-500/30 px-2 py-1 text-[11px] font-medium text-green-300">
+                  {openKkSummary === 'active' ? 'Hide list' : 'Show list'}
+                </span>
+              </div>
+              {openKkSummary === 'active' && mostActiveKkYuvaks.length > 0 && (
+                <div className="mt-4 border-t border-green-500/20 pt-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-green-200">Yuvaks</p>
+                  <div className="flex flex-wrap gap-2">
+                    {mostActiveKkYuvaks.map((name) => (
+                      <span key={`active-${name}`} className="rounded-full border border-green-500/20 bg-slate-900/40 px-2.5 py-1 text-xs text-slate-200">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setOpenKkSummary((current) => current === 'deactive' ? null : 'deactive')}
+              className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-left"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-300">Most Deactive KK</p>
+                  {mostDeactiveKk ? (
+                    <>
+                      <p className="mt-2 text-sm font-semibold text-slate-100">{mostDeactiveKk.name}</p>
+                      <p className="mt-1 text-xs text-slate-300">Deactive: <span className="text-red-300">{mostDeactiveKk.deactive}</span> / {mostDeactiveKk.total} ({mostDeactiveKk.deactivePct}%)</p>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-xs text-slate-400">No KK data available.</p>
+                  )}
+                </div>
+                <span className="rounded-full border border-red-500/30 px-2 py-1 text-[11px] font-medium text-red-300">
+                  {openKkSummary === 'deactive' ? 'Hide list' : 'Show list'}
+                </span>
+              </div>
+              {openKkSummary === 'deactive' && mostDeactiveKkYuvaks.length > 0 && (
+                <div className="mt-4 border-t border-red-500/20 pt-3">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-red-200">Yuvaks</p>
+                  <div className="flex flex-wrap gap-2">
+                    {mostDeactiveKkYuvaks.map((name) => (
+                      <span key={`deactive-${name}`} className="rounded-full border border-red-500/20 bg-slate-900/40 px-2.5 py-1 text-xs text-slate-200">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 lg:order-2">
               <h3 className="text-slate-100 font-semibold mb-1">Lowest Sessions</h3>
@@ -555,32 +642,6 @@ export default function KishorSabhaPage() {
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
           <h3 className="text-slate-100 font-semibold mb-1">KK Performance Ranking</h3>
           <p className="text-slate-500 text-xs mb-4">Click any column header to sort. Click again to reverse order.</p>
-
-          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-green-300">Most Active KK</p>
-              {mostActiveKk ? (
-                <>
-                  <p className="mt-2 text-sm font-semibold text-slate-100">{mostActiveKk.name}</p>
-                  <p className="mt-1 text-xs text-slate-300">Active: <span className="text-green-300">{mostActiveKk.active}</span> / {mostActiveKk.total}</p>
-                </>
-              ) : (
-                <p className="mt-2 text-xs text-slate-400">No KK data available.</p>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-300">Most Deactive KK</p>
-              {mostDeactiveKk ? (
-                <>
-                  <p className="mt-2 text-sm font-semibold text-slate-100">{mostDeactiveKk.name}</p>
-                  <p className="mt-1 text-xs text-slate-300">Deactive: <span className="text-red-300">{mostDeactiveKk.deactive}</span> / {mostDeactiveKk.total} ({mostDeactiveKk.deactivePct}%)</p>
-                </>
-              ) : (
-                <p className="mt-2 text-xs text-slate-400">No KK data available.</p>
-              )}
-            </div>
-          </div>
 
           {kkPerformanceSorted.length === 0 ? (
             <div className="rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-6 text-center text-sm text-slate-500">
@@ -703,5 +764,7 @@ export default function KishorSabhaPage() {
     </div>
   );
 }
+
+
 
 

@@ -8,11 +8,15 @@ import { getAuthPool } from '@/lib/auth/db';
 
 const CACHE_TTL_MS = 60_000;
 const SHEETS_TIMEOUT_MS = 15_000;   // per-sheet Sheets API call
+const DRIVE_METADATA_TIMEOUT_MS = 8_000;
 const DRIVE_TIMEOUT_MS  = 35_000;   // full workbook download via Drive
 const DRIVE_MAX_RETRIES = 2;
+const DRIVE_RETRY_DELAY_MS = 1_500;
 
 let cachedData: ParsedSheetData | null = null;
 let cacheExpiresAt = 0;
+let cachedDriveFingerprint: string | null = null;
+let inflightRefresh: Promise<{ data: ParsedSheetData; cache: CacheStatus }> | null = null;
 
 export type CacheStatus = 'HIT' | 'MISS';
 
@@ -29,6 +33,10 @@ type SheetConfig = {
   sheetName: string;
 };
 
+type WorkbookFetchResult =
+  | { kind: 'rows'; rows: WorkbookRows[] }
+  | { kind: 'cached'; data: ParsedSheetData };
+
 export async function getSabhaData(options?: { forceFresh?: boolean }): Promise<{ data: ParsedSheetData; cache: CacheStatus }> {
   const forceFresh = options?.forceFresh ?? false;
 
@@ -36,22 +44,15 @@ export async function getSabhaData(options?: { forceFresh?: boolean }): Promise<
     return { data: cachedData, cache: 'HIT' };
   }
 
+  if (!forceFresh && inflightRefresh) {
+    return await inflightRefresh;
+  }
+
+  const refreshPromise = refreshSabhaData(forceFresh);
+  inflightRefresh = refreshPromise;
+
   try {
-    const previousData = cachedData;
-    const rows = await fetchWorkbookRows();
-    const data = parseWorkbookSheets(rows);
-
-    // Detect and log changes in the background (don't block the response)
-    if (previousData) {
-      detectAndLogChanges(previousData, data).catch((err) =>
-        console.error('Sheet change detection failed:', err)
-      );
-    }
-
-    cachedData = data;
-    cacheExpiresAt = Date.now() + CACHE_TTL_MS;
-
-    return { data, cache: 'MISS' };
+    return await refreshPromise;
   } catch (err) {
     // If a stale cache exists, return it rather than surfacing an error
     if (cachedData) {
@@ -59,7 +60,36 @@ export async function getSabhaData(options?: { forceFresh?: boolean }): Promise<
       return { data: cachedData, cache: 'HIT' };
     }
     throw err;
+  } finally {
+    if (inflightRefresh === refreshPromise) {
+      inflightRefresh = null;
+    }
   }
+}
+
+async function refreshSabhaData(forceFresh: boolean): Promise<{ data: ParsedSheetData; cache: CacheStatus }> {
+  const previousData = cachedData;
+  const workbookResult = await fetchWorkbookRows({ forceFresh });
+
+  if (workbookResult.kind === 'cached') {
+    cacheExpiresAt = Date.now() + CACHE_TTL_MS;
+    return { data: workbookResult.data, cache: 'HIT' };
+  }
+
+  const rows = workbookResult.rows;
+  const data = parseWorkbookSheets(rows);
+
+  // Detect and log changes in the background (don't block the response)
+  if (previousData) {
+    detectAndLogChanges(previousData, data).catch((err) =>
+      console.error('Sheet change detection failed:', err)
+    );
+  }
+
+  cachedData = data;
+  cacheExpiresAt = Date.now() + CACHE_TTL_MS;
+
+  return { data, cache: 'MISS' };
 }
 
 // ── Change detection ──────────────────────────────────────────────────────────
@@ -151,15 +181,27 @@ async function detectAndLogChanges(
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  return await Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
-    }),
-  ]);
+  let timeoutHandle: NodeJS.Timeout | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
 }
 
-async function fetchWorkbookRows(): Promise<WorkbookRows[]> {
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWorkbookRows(options?: { forceFresh?: boolean }): Promise<WorkbookFetchResult> {
   const sheetConfigs: SheetConfig[] = getSabhaSheetEnvConfig().map((config) => ({
     ...config,
     sheetName: process.env[config.envKey] || config.fallback,
@@ -173,7 +215,7 @@ async function fetchWorkbookRows(): Promise<WorkbookRows[]> {
   try {
     const sheets = getSheetsClient();
 
-    return await Promise.all(sheetConfigs.map(async (config) => {
+    const rows = await Promise.all(sheetConfigs.map(async (config) => {
       const range = `${config.sheetName.includes(' ') ? `'${config.sheetName}'` : config.sheetName}!A:ZZ`;
 
       try {
@@ -202,13 +244,15 @@ async function fetchWorkbookRows(): Promise<WorkbookRows[]> {
         };
       }
     }));
+
+    return { kind: 'rows', rows };
   } catch (error) {
     if (!isUnsupportedDocumentError(error)) {
       const message = error instanceof Error ? error.message : 'Unknown Sheets API error';
       throw new Error(`Failed to fetch sheet data: ${message}`);
     }
 
-    return await fetchWorkbookRowsFromDrive(fileId, sheetConfigs);
+    return await fetchWorkbookRowsFromDrive(fileId, sheetConfigs, { forceFresh: options?.forceFresh ?? false });
   }
 }
 
@@ -219,8 +263,9 @@ function isUnsupportedDocumentError(error: unknown): boolean {
 
 async function fetchWorkbookRowsFromDrive(
   fileId: string,
-  sheetConfigs: SheetConfig[]
-): Promise<WorkbookRows[]> {
+  sheetConfigs: SheetConfig[],
+  options?: { forceFresh?: boolean }
+): Promise<WorkbookFetchResult> {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const rawKey = process.env.GOOGLE_PRIVATE_KEY;
 
@@ -239,13 +284,24 @@ async function fetchWorkbookRowsFromDrive(
 
   const drive = google.drive({ version: 'v3', auth });
 
+  if (!options?.forceFresh && cachedData && cachedDriveFingerprint) {
+    const latestFingerprint = await getDriveFileFingerprint(drive, fileId).catch((err) => {
+      console.warn('Drive metadata check failed, falling back to workbook download:', err instanceof Error ? err.message : err);
+      return null;
+    });
+
+    if (latestFingerprint && latestFingerprint === cachedDriveFingerprint) {
+      return { kind: 'cached', data: cachedData };
+    }
+  }
+
   let lastErr: unknown;
   let buffer: Buffer | null = null;
 
   for (let attempt = 1; attempt <= DRIVE_MAX_RETRIES; attempt++) {
     try {
       const response = await withTimeout(
-        drive.files.get({ fileId, alt: 'media' }, { responseType: 'arraybuffer' }),
+        drive.files.get({ fileId, alt: 'media', supportsAllDrives: true }, { responseType: 'arraybuffer' }),
         DRIVE_TIMEOUT_MS,
         `Google Drive workbook download (attempt ${attempt})`
       );
@@ -254,14 +310,43 @@ async function fetchWorkbookRowsFromDrive(
     } catch (err) {
       lastErr = err;
       console.warn(`Drive download attempt ${attempt} failed:`, err instanceof Error ? err.message : err);
+      if (attempt < DRIVE_MAX_RETRIES) {
+        await sleep(DRIVE_RETRY_DELAY_MS);
+      }
     }
   }
 
   if (!buffer) {
     throw lastErr ?? new Error('Drive download failed after retries');
   }
+
+  cachedDriveFingerprint = await getDriveFileFingerprint(drive, fileId).catch(() => cachedDriveFingerprint);
   const workbook = XLSX.read(buffer!, { type: 'buffer', cellDates: true });
-  return extractConfiguredSheetsFromWorkbook(workbook, sheetConfigs);
+  return { kind: 'rows', rows: extractConfiguredSheetsFromWorkbook(workbook, sheetConfigs) };
+}
+
+async function getDriveFileFingerprint(
+  drive: ReturnType<typeof google.drive>,
+  fileId: string
+): Promise<string> {
+  const response = await withTimeout(
+    drive.files.get({
+      fileId,
+      fields: 'id,modifiedTime,md5Checksum,size,version',
+      supportsAllDrives: true,
+    }),
+    DRIVE_METADATA_TIMEOUT_MS,
+    'Google Drive workbook metadata lookup'
+  );
+
+  const meta = response.data;
+  return [
+    meta.id ?? fileId,
+    meta.modifiedTime ?? 'no-modified-time',
+    meta.md5Checksum ?? 'no-md5',
+    meta.size ?? 'no-size',
+    meta.version ?? 'no-version',
+  ].join(':');
 }
 
 function extractConfiguredSheetsFromWorkbook(

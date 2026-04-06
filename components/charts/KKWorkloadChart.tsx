@@ -34,12 +34,26 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
   }, [kkStats]);
 
   const filtered = useMemo(
-    () => kkStats.filter((kk) => {
-      if (search && !kk.name.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterArea !== 'all' && !kk.yuvaks.some((y) => y.area === filterArea)) return false;
-      return true;
-    }),
-    [kkStats, search, filterArea],
+    () => kkStats
+      .filter((kk) => {
+        if (search && !kk.name.toLowerCase().includes(search.toLowerCase())) return false;
+        if (filterArea !== 'all' && !kk.yuvaks.some((y) => y.area === filterArea)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const riskA = getRiskSummary(a, last2Dates, last4Dates, lastDate);
+        const riskB = getRiskSummary(b, last2Dates, last4Dates, lastDate);
+
+        return (
+          riskB.atRisk - riskA.atRisk ||
+          riskB.moderateRisk - riskA.moderateRisk ||
+          riskB.absentLast - riskA.absentLast ||
+          riskA.activePct - riskB.activePct ||
+          b.yuvaks.length - a.yuvaks.length ||
+          a.name.localeCompare(b.name)
+        );
+      }),
+    [kkStats, search, filterArea, last2Dates, last4Dates, lastDate],
   );
 
   return (
@@ -90,19 +104,8 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
             <tbody>
               {filtered.map((kk, idx) => {
                 const total = kk.yuvaks.length;
-                const absentLast = lastDate ? kk.yuvaks.filter((y) => !y.dateAttendance[lastDate]).length : 0;
-                const activePct = total > 0 ? Math.round((kk.greenCount / total) * 100) : 0;
+                const { moderateRisk, atRisk, absentLast, activePct } = getRiskSummary(kk, last2Dates, last4Dates, lastDate);
                 const areas = Array.from(new Set(kk.yuvaks.map((y) => y.area).filter(Boolean))).sort();
-                const riskCounts = kk.yuvaks.reduce(
-                  (acc, yuvak) => {
-                    const missedLast2 = last2Dates.length === 2 && last2Dates.every((date) => !yuvak.dateAttendance[date]);
-                    const missedLast4 = last4Dates.length === 4 && last4Dates.every((date) => !yuvak.dateAttendance[date]);
-                    if (missedLast4) acc.atRisk++;
-                    else if (missedLast2) acc.moderateRisk++;
-                    return acc;
-                  },
-                  { moderateRisk: 0, atRisk: 0 }
-                );
 
                 return (
                   <tr key={kk.name} className={idx % 2 === 0 ? 'bg-slate-800/20' : 'bg-slate-800/5'}>
@@ -110,8 +113,8 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
                     <td className="px-4 py-3 text-sm text-slate-400">{areas.length > 0 ? areas.join(', ') : '—'}</td>
                     <td className="px-4 py-3 text-sm text-right text-slate-300">{total}</td>
                     <td className="px-4 py-3 text-sm text-right font-semibold text-green-400">{kk.greenCount}</td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-amber-400">{riskCounts.moderateRisk}</td>
-                    <td className="px-4 py-3 text-sm text-right font-semibold text-red-400">{riskCounts.atRisk}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-amber-400">{moderateRisk}</td>
+                    <td className="px-4 py-3 text-sm text-right font-semibold text-red-400">{atRisk}</td>
                     <td className="px-4 py-3 text-sm text-right text-slate-300">{activePct}%</td>
                     <td className="px-4 py-3 text-sm text-right text-slate-300">{absentLast} / {total}</td>
                   </tr>
@@ -126,4 +129,32 @@ export default function KKWorkloadChart({ kkStats, dates }: Props) {
       </div>
     </div>
   );
+}
+
+function getRiskSummary(
+  kk: KKStats,
+  last2Dates: string[],
+  last4Dates: string[],
+  lastDate: string | undefined
+) {
+  const total = kk.yuvaks.length;
+  const absentLast = lastDate ? kk.yuvaks.filter((y) => !y.dateAttendance[lastDate]).length : 0;
+  const activePct = total > 0 ? Math.round((kk.greenCount / total) * 100) : 0;
+  const riskCounts = kk.yuvaks.reduce(
+    (acc, yuvak) => {
+      const missedLast2 = last2Dates.length === 2 && last2Dates.every((date) => !yuvak.dateAttendance[date]);
+      const missedLast4 = last4Dates.length === 4 && last4Dates.every((date) => !yuvak.dateAttendance[date]);
+      if (missedLast4) acc.atRisk++;
+      else if (missedLast2) acc.moderateRisk++;
+      return acc;
+    },
+    { moderateRisk: 0, atRisk: 0 }
+  );
+
+  return {
+    moderateRisk: riskCounts.moderateRisk,
+    atRisk: riskCounts.atRisk,
+    absentLast,
+    activePct,
+  };
 }
