@@ -9,13 +9,19 @@ import { authClient } from '@/lib/auth/client';
 import { toast } from 'sonner';
 
 const navItems = [
-  // { href: '/', label: 'Dashboard', icon: 'DB' },
-  // { href: '/sabha/chirag-nagar', label: 'Yuva Sabha', icon: 'CN' },
   { href: '/sabha/kishor', label: 'AYC Sabha', icon: 'KS' },
-  // { href: '/sabha/bal', label: 'Bal Sabha', icon: 'BS' },
   { href: '/kk-analysis', label: 'KK Analysis', icon: 'KK' },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: 'YD' },
-  // { href: '/ai', label: 'Ask Akshar', icon: 'AI' },
+];
+
+const adminVisibleNavItems = [
+  { href: '/', label: 'Dashboard', icon: 'DB' },
+  { href: '/sabha/chirag-nagar', label: 'Yuva Sabha', icon: 'CN' },
+  { href: '/sabha/kishor', label: 'AYC Sabha', icon: 'KS' },
+  { href: '/sabha/bal', label: 'Bal Sabha', icon: 'BS' },
+  { href: '/kk-analysis', label: 'KK Analysis', icon: 'KK' },
+  { href: '/yuvaks', label: 'Yuvak Directory', icon: 'YD' },
+  { href: '/ai', label: 'Ask Akshar', icon: 'AI' },
 ];
 
 const kkNavItems = [
@@ -108,7 +114,7 @@ export default function Navbar() {
   const sidebarContent = (onLinkClick?: () => void) => (
     <>
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {(isKK ? kkNavItems : navItems).map((item) => (
+        {(isKK ? kkNavItems : isAdmin ? adminVisibleNavItems : navItems).map((item) => (
           <NavLink key={item.href} {...item} active={pathname === item.href} onClick={onLinkClick} />
         ))}
 

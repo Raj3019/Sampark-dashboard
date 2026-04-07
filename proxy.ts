@@ -36,10 +36,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/sabha/kishor', request.url));
-  }
-
   return NextResponse.next();
 }
 
