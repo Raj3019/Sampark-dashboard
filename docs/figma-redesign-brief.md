@@ -35,12 +35,17 @@ recent work already present in the codebase.
 
 - Role-based navigation already exists.
 - KK users are redirected away from leader views into their personal dashboard.
+- The current navigation is no longer one-size-fits-all:
+  - admins see `Dashboard`, `Yuva Sabha`, `AYC Sabha`, `Bal Sabha`, `KK Analysis`, `Yuvak Directory`, `Ask Akshar`, plus the admin section links
+  - leaders currently see `AYC Sabha`, `KK Analysis`, and `Yuvak Directory`
+  - KK users see `My Dashboard` and `My Yuvaks`
 - The shell currently includes:
   - left sidebar on desktop
   - mobile drawer/header
   - compact reminder center at the top of the page
   - upcoming birthdays widget at the top of the page
 - Theme toggle already exists with dark and light modes.
+- The root `/` route now opens the real dashboard for signed-in users; it is no longer proxy-redirected to AYC.
 
 Relevant files:
 
@@ -176,13 +181,17 @@ Relevant files:
 
 Admin flows already implemented:
 
-- user management with create user modal, role editing, assigned KK editing, delete user, search, and role filters
+- user management with create user modal, role editing, assigned KK editing, delete user, search, role filters, and password reset
+- admins cannot demote their own account from admin inside user management
+- the current admin row is rendered as a non-editable role badge instead of a role select
+- password reset is handled from user management through an admin-only modal and API route
 - login activity table
 - sheet change history with filter chips and audit rows by change type
 
 Relevant files:
 
 - `app/admin/users/UsersClient.tsx`
+- `app/api/admin/users/[id]/password/route.ts`
 - `app/admin/logs/LogsClient.tsx`
 - `app/admin/sheet-changes/SheetChangesClient.tsx`
 
@@ -213,7 +222,7 @@ Relevant files:
 
 ## Page-By-Page Current Content Inventory
 
-This section lists what each current route actually shows today, including routes that exist in the codebase but are hidden from the current sidebar.
+This section lists what each current route actually shows today, including routes that are role-gated or only visible for specific roles.
 
 ### Visible In Current Navigation
 
@@ -387,11 +396,11 @@ Current structure:
   - Description
   - Detected
 
-### Implemented But Hidden From Current Sidebar
+### Implemented Routes With Role-Specific Visibility
 
 #### `/` - Main Dashboard
 
-This route exists and is fully implemented even though `Dashboard` is commented out in the sidebar.
+This route is fully implemented and is currently visible in the sidebar for admins.
 
 Current structure:
 
@@ -428,7 +437,7 @@ Current structure:
 
 #### `/sabha/chirag-nagar` - Yuva Sabha
 
-This route exists and is implemented, but the Yuva Sabha sidebar item is currently commented out.
+This route is implemented and is currently visible in the sidebar for admins.
 
 Current structure:
 
@@ -463,7 +472,7 @@ Current structure:
 
 #### `/sabha/bal` - Bal Sabha
 
-This route exists and is implemented, but the Bal Sabha sidebar item is currently commented out.
+This route is implemented and is currently visible in the sidebar for admins.
 
 Current structure:
 
@@ -499,7 +508,8 @@ Current structure:
 
 Current state:
 
-- visible implementation is a coming-soon hero card only
+- the visible implementation is currently a coming-soon hero card only
+- this route is currently visible in the sidebar for admins
 - there is also a larger chat assistant implementation commented out in the file
 - the hidden commented implementation includes:
   - starter prompts
@@ -1238,7 +1248,7 @@ Current page blocks:
 
 #### `/`
 
-This route is implemented but hidden from the current sidebar.
+This route is implemented and is currently visible in the sidebar for admins.
 
 Current page header:
 
@@ -1356,7 +1366,7 @@ States:
 
 #### `/sabha/chirag-nagar`
 
-This route is implemented but hidden from the current sidebar.
+This route is implemented and is currently visible in the sidebar for admins.
 
 Header:
 
@@ -1500,7 +1510,7 @@ Behavior notes:
 
 #### `/sabha/bal`
 
-This route is implemented but hidden from the current sidebar.
+This route is implemented and is currently visible in the sidebar for admins.
 
 Header:
 
@@ -1745,10 +1755,14 @@ Table columns:
 
 Per-row behavior:
 
-- role can be changed via select
+- all non-current users can have role changed via select
+- the current logged-in admin row renders a role badge instead of an editable select
 - assigned KK can be edited for KK users
 - assigned KK has Save button
+- `Reset Password` action exists
 - Delete action exists
+- current admin cannot change their own role away from admin
+- if the current admin resets their own password, they are signed out and must log in again
 
 Create user modal fields:
 
@@ -1760,6 +1774,16 @@ Create user modal fields:
 - Assigned KK when role is KK
 - Cancel button
 - Create User button
+
+Reset password modal fields and behavior:
+
+- title `Reset Password`
+- selected user context line with name and username/email
+- `New Password`
+- `Confirm Password`
+- inline validation error text
+- Cancel button
+- Update Password button
 
 #### `/admin/logs`
 
@@ -1821,7 +1845,7 @@ Row content:
 
 #### `/ai`
 
-This route is implemented but hidden from the current sidebar.
+This route is implemented and is currently visible in the sidebar for admins.
 
 Visible live UI:
 
@@ -1829,6 +1853,7 @@ Visible live UI:
 - badge `Coming Soon`
 - title `Ask Akshar is coming soon.`
 - short description about future release
+- current live route is a placeholder, not the active chat experience yet
 
 Commented hidden implementation inside the file includes:
 
@@ -2861,3 +2886,875 @@ Modules inside:
 - chart cards
 - loading state
 - composer
+## Access Control Matrix
+
+This section documents the current access model as implemented in routing, layout guards,
+sidebar visibility, and API helpers.
+
+### Roles
+
+- `admin`
+  - full sidebar access
+  - can access admin routes
+  - can access dashboard, Yuva, AYC, Bal, KK Analysis, Yuvak Directory, and Ask Akshar placeholder
+- `leader`
+  - no admin routes
+  - current sidebar shows `AYC Sabha`, `KK Analysis`, and `Yuvak Directory`
+  - can still open other authenticated routes if linked directly only where no explicit page-level guard blocks them; current product intent is narrower sidebar access, not full route parity with admin
+- `kk`
+  - current sidebar shows `My Dashboard` and `My Yuvaks`
+  - redirected away from `/sabha/*` leader pages into `/kk-home`
+  - server/API data is scoped to assigned KK by default
+
+### Route-Level Access Rules
+
+#### `/login`
+
+- public route
+- no app shell
+- used for username/password sign-in
+
+#### `/`
+
+- authenticated route
+- opens the main dashboard
+- visible in sidebar for admin only
+- no longer auto-redirects to `/sabha/kishor`
+
+#### `/sabha/chirag-nagar`
+
+- authenticated route
+- visible in sidebar for admin only
+- KK users are redirected away by `app/sabha/layout.tsx`
+
+#### `/sabha/kishor`
+
+- authenticated route
+- visible in sidebar for admin and leader
+- KK users are redirected away by `app/sabha/layout.tsx`
+
+#### `/sabha/bal`
+
+- authenticated route
+- visible in sidebar for admin only
+- KK users are redirected away by `app/sabha/layout.tsx`
+
+#### `/kk-analysis`
+
+- authenticated route
+- visible in sidebar for admin and leader
+- KK users do not see it in sidebar
+
+#### `/yuvaks`
+
+- authenticated route
+- visible in sidebar for admin and leader
+- KK users do not see it in sidebar
+
+#### `/kk-home`
+
+- authenticated route
+- hard-gated to KK users in `app/kk-home/page.tsx`
+- non-KK users are redirected to `/`
+
+#### `/ai`
+
+- authenticated route
+- visible in sidebar for admin only
+- current live UI is a coming-soon placeholder
+- backend AI route exists separately, but the visible page is not the live chat experience today
+
+#### `/admin/users`
+
+- admin only
+- enforced by admin session guard
+- visible in sidebar for admin only
+
+#### `/admin/logs`
+
+- admin only
+- enforced by admin session guard
+- visible in sidebar for admin only
+
+#### `/admin/sheet-changes`
+
+- admin only
+- enforced by admin session guard
+- visible in sidebar for admin only
+
+### Data Access Rules
+
+- `useSheetData()` defaults to `/api/sabha-data` with KK scoping applied on the server.
+- `useSheetData({ scope: 'full' })` requests `/api/sabha-data?scope=full`.
+- for admin and leader, scoped vs full currently returns the same dataset
+- for KK, default scope returns only yuvaks whose `followUpKK` matches the assigned KK name
+- for KK, `scope=full` currently bypasses the yuvak filter and returns the full workbook payload; this is important to document because the KK dashboard intentionally uses both scoped and full data in parallel
+- reminders are filtered server-side by role and assigned KK before the client renders them
+
+## API Route Inventory And Payload Contracts
+
+This section lists the current app-facing API routes and the payload shapes that the redesign and any prototype data layer should assume.
+
+### `GET /api/sabha-data`
+
+Purpose:
+
+- main dashboard dataset for most pages
+
+Auth:
+
+- authenticated users only
+
+Query params:
+
+- optional `scope=full`
+
+Response shape:
+
+- object with workbook-parsed dataset, including:
+  - `yuvaks`
+  - `dates`
+  - `lastUpdated`
+  - `sabhaMeta`
+  - `sabhaSessionMeta`
+
+Headers:
+
+- `Cache-Control: private, no-store`
+- `X-Cache: HIT | MISS`
+
+Errors:
+
+- `401` unauthorized
+- `500` failed to fetch sheet data
+
+Notes:
+
+- KK users are scoped to assigned KK unless `scope=full` is supplied
+
+### `GET /api/reminders`
+
+Purpose:
+
+- fetch moderate/high risk follow-up reminders, with DB-backed hydration when available
+
+Auth:
+
+- authenticated users only
+
+Response shape:
+
+- `{ reminders, summary, scope }`
+- `scope` currently includes:
+  - `role`
+  - `assignedKK`
+
+Reminder item fields used by UI:
+
+- `id`
+- `reminderKey`
+- `yuvakName`
+- `followUpKK`
+- `sabhaType`
+- `riskLevel`
+- `missedSabhaCount`
+- `missedSabhaDates`
+- `phoneNumber`
+- `status`
+- `requiresLeaderReview`
+- escalation/takeover audit fields when present
+
+Errors:
+
+- `401` unauthorized
+- `500` failed to fetch reminders
+
+Notes:
+
+- if DB sync/hydration fails, the route falls back to generated reminder items instead of failing the UI
+
+### `PATCH /api/reminders/[id]`
+
+Purpose:
+
+- mutate reminder state
+
+Auth:
+
+- authenticated users only
+
+Request body:
+
+```json
+{
+  "action": "acknowledge | takeover | resolve | escalate",
+  "reminderKey": "optional-string"
+}
+```
+
+Response shape:
+
+```json
+{
+  "reminder": {
+    "id": "...",
+    "status": "acknowledged | escalated | resolved",
+    "yuvakName": "..."
+  }
+}
+```
+
+Permission rules:
+
+- admin: all actions allowed
+- leader: all actions except `acknowledge`
+- kk: only `acknowledge` and `escalate`, and only for reminders belonging to the assigned KK
+
+Errors:
+
+- `400` invalid action
+- `401` unauthorized
+- `403` forbidden
+- `404` reminder not found
+- `500` failed to persist reminder update
+
+Important current UI note:
+
+- reminder action buttons are currently commented out in the visible UI, but the API is live
+
+### `GET /api/calendar/ekadashi`
+
+Purpose:
+
+- fetch upcoming Ekadashi info for the dashboard card
+
+Auth:
+
+- no auth guard in the route
+
+Response shape:
+
+- ekadashi payload from `lib/ekadashi.ts`, used by the card for date, tithi, paksha, and days-until labels
+
+Headers:
+
+- `Cache-Control: public, s-maxage=21600, stale-while-revalidate=43200`
+
+Errors:
+
+- `500` failed to fetch upcoming Ekadashi
+
+### `POST /api/ai/chat`
+
+Purpose:
+
+- stream AI responses for the dormant Akshar chat implementation
+
+Auth:
+
+- authenticated users only
+
+Request body:
+
+- AI SDK `messages` array
+
+Response shape:
+
+- streamed UI message response
+
+Important current behavior:
+
+- route is implemented
+- visible `/ai` page is still a coming-soon placeholder
+- route uses legacy `lib/server/sabhaDataService.ts`, not the workbook service used by the main app pages
+- KK users are server-scoped to assigned KK inside this route
+
+Configured tools:
+
+- `get_chirag_summary`
+- `get_attendance_trend`
+- `get_status_breakdown`
+- `get_yuvaks_by_kk`
+- `get_yuvak_directory`
+- `create_chart`
+
+Errors:
+
+- `401` unauthorized
+- `500` missing `GROQ_API_KEY` or processing failure
+
+### `GET /api/admin/users`
+
+Purpose:
+
+- fetch all users for user management
+
+Auth:
+
+- admin only
+
+Response shape:
+
+```json
+[
+  {
+    "id": "...",
+    "name": "...",
+    "email": "...",
+    "username": "...",
+    "role": "admin | leader | kk",
+    "assignedKK": "optional",
+    "createdAt": "..."
+  }
+]
+```
+
+Errors:
+
+- `401` unauthorized
+- `403` forbidden
+
+### `POST /api/admin/users`
+
+Purpose:
+
+- create a new user while preserving the current admin session
+
+Auth:
+
+- admin only
+
+Request body:
+
+```json
+{
+  "name": "...",
+  "email": "...",
+  "username": "...",
+  "password": "...",
+  "role": "admin | leader | kk",
+  "assignedKK": "required when role is kk"
+}
+```
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "userId": "..."
+}
+```
+
+Validation/errors:
+
+- `400` all fields required
+- `400` invalid role
+- `400` assigned KK required for KK users
+- `500` failed to create user
+
+Important behavior:
+
+- new-user session created by Better Auth is deleted immediately
+- admin session cookie is restored on the response
+- created user role is overwritten after signup because Better Auth default role is `kk`
+
+### `PATCH /api/admin/users/[id]`
+
+Purpose:
+
+- change role and assigned KK for a user
+
+Auth:
+
+- admin only
+
+Request body:
+
+```json
+{
+  "role": "admin | leader | kk",
+  "assignedKK": "required when role is kk"
+}
+```
+
+Response shape:
+
+```json
+{
+  "success": true
+}
+```
+
+Validation/errors:
+
+- `400` invalid role
+- `400` assigned KK required for KK users
+- `400` self-admin demotion blocked
+- `404` user not found
+
+Important behavior:
+
+- current admin cannot change their own role from admin to leader or KK from this page
+
+### `DELETE /api/admin/users/[id]`
+
+Purpose:
+
+- delete a user
+
+Auth:
+
+- admin only
+
+Response shape:
+
+```json
+{
+  "success": true
+}
+```
+
+Validation/errors:
+
+- `400` cannot delete your own account
+- `404` user not found
+
+### `PATCH /api/admin/users/[id]/password`
+
+Purpose:
+
+- admin-triggered password reset from user management
+
+Auth:
+
+- admin only
+
+Request body:
+
+```json
+{
+  "newPassword": "..."
+}
+```
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "message": "...",
+  "requiresReauth": true
+}
+```
+
+Validation/errors:
+
+- `400` new password required
+- `400` password shorter than Better Auth minimum
+- `400` password longer than Better Auth maximum
+- `404` user not found
+
+Important behavior:
+
+- uses Better Auth hashing/password adapter flow
+- creates a credential account if the target user does not already have one
+- deletes existing sessions for the target user
+- if admin resets their own password, the response asks for re-auth
+
+### `GET /api/admin/logs`
+
+Purpose:
+
+- paginated activity log feed
+
+Auth:
+
+- admin only
+
+Query params:
+
+- `limit` default `100`, max `500`
+- `offset` default `0`
+
+Response shape:
+
+```json
+{
+  "logs": [],
+  "total": 0
+}
+```
+
+Log fields returned:
+
+- `id`
+- `userId`
+- `userName`
+- `userEmail`
+- `userRole`
+- `action`
+- `ipAddress`
+- `userAgent`
+- `createdAt`
+
+### `GET /api/admin/sheet-changes`
+
+Purpose:
+
+- paginated sheet change history
+
+Auth:
+
+- admin only
+
+Query params:
+
+- `limit` default `200`, max `500`
+- `offset` default `0`
+
+Response shape:
+
+```json
+{
+  "changes": [],
+  "total": 0
+}
+```
+
+Change fields returned:
+
+- `id`
+- `sabhaType`
+- `changeType`
+- `description`
+- `detectedAt`
+
+### `GET /api/admin/kk-names`
+
+Purpose:
+
+- populate assigned-KK options from current sheet data
+
+Auth:
+
+- admin only
+
+Response shape:
+
+```json
+{
+  "kkNames": ["..."]
+}
+```
+
+## Page States, Filters, Empty States, And Error States
+
+This section is specifically intended for Figma coverage. Every redesign flow should include these operational states, not only the ideal filled state.
+
+### Shared App Shell States
+
+- unauthenticated server navigation redirects to `/login`
+- authenticated shell shows sidebar, reminder center, and birthdays widget on non-login pages
+- pending auth session shows a full-screen loader in the shell
+- compact reminder center can be loading, error, populated, or empty
+- birthdays widget can silently disappear when sheet data is loading, errors, or contains no upcoming Kishor birthdays
+
+### Dashboard `/`
+
+Loading state:
+
+- centered spinner with `Loading Sabha data...`
+
+Error state:
+
+- centered error card with message and `Retry`
+
+Empty state:
+
+- `No data found. Check your Google Sheets tab names in the environment config.`
+
+Interactive states:
+
+- refresh button triggers both sheet refresh and Ekadashi refresh
+- Ekadashi card has loading, success, and unavailable/error sub-states
+- lowest/highest session panels show `Not enough data.` when trends are empty
+- KK performance cards show `No KK data available.` when no KK stats exist
+
+### Yuva Sabha `/sabha/chirag-nagar`
+
+Loading state:
+
+- centered spinner
+
+Error state:
+
+- centered retry card
+
+Tabs:
+
+- `Overview`
+- `All Yuvaks`
+- `KK Workload`
+
+Overview interactive states:
+
+- two most recent sabha cards or a `No recent sabha attendance data is available yet.` fallback
+- donut chart risk breakdown
+- collapsible `Follow-Up Risk Buckets` section
+- each risk bucket can show a populated list or `No yuvaks in this bucket`
+- lowest/best session lists are shown from tracked sessions only
+- CTA cards switch the user into the `All Yuvaks` tab
+
+Filtering behavior:
+
+- page code currently forces attending-only mode with fallback to full sabha data if no attending-flagged rows exist
+
+### AYC Sabha `/sabha/kishor`
+
+Loading state:
+
+- centered spinner
+
+Error state:
+
+- centered retry card
+
+Tabs:
+
+- `Overview`
+- `All Yuvaks`
+- `KK Performance`
+- `KK Workload`
+
+Overview interactive states:
+
+- collapsible risk bucket section
+- two recent sabha cards or fallback empty card
+- STD breakdown chips
+- expected next sabha attendance chip with info tooltip
+- most active and most deactive KK cards each expand to reveal yuvak chips
+- lowest/best session lists include vakta and topic fallback text when metadata is missing
+
+Filtering behavior:
+
+- visible page-level attending filter currently exposes only the `yes` option
+- if attending-only filter yields zero rows, the page falls back to all Kishor rows instead of rendering empty KPIs
+
+KK Performance tab states:
+
+- sortable table by name, totals, active, deactive, deactive percentage, average attendance, and efficiency
+- explicit empty state: `No KK data available for this filter.`
+- efficiency summary cards rendered per KK
+
+### Bal Sabha `/sabha/bal`
+
+Loading state:
+
+- centered spinner
+
+Error state:
+
+- centered retry card
+
+Tabs:
+
+- `Overview`
+- `All Yuvaks`
+- `KK Workload`
+
+Overview interactive states:
+
+- expected next sabha attendance chip
+- risk donut
+- collapsible risk bucket section with bucket-level empty states
+- recent sabha summary fallback when there are no recent sessions
+- lowest/best session cards with missing metadata fallback text
+
+Filtering behavior:
+
+- visible page-level attending filter currently exposes only the `yes` option
+- if attending-only filter yields zero rows, the page falls back to all Bal rows
+
+### Yuvak Directory `/yuvaks`
+
+Loading state:
+
+- centered spinner
+
+Error state:
+
+- centered retry card
+
+Page-level controls:
+
+- current top-level attending filter only exposes `yes`
+- refresh button
+
+`YuvakTable` controls:
+
+- search by yuvak name
+- status filter: all, low risk, moderate risk, high risk
+- sabha filter when `showSabhaType=true`
+- KK filter from distinct follow-up names
+- date window: last 6, last 1 month, last 3 months, custom range
+- custom from/to pickers
+- sortable columns: status, name, area logic key, attendance, KK
+- pagination with 20 rows per page
+
+Table states:
+
+- normal date-driven state shows attendance dots, last-3 badge, and last-sabha badge
+- fallback state without usable dates shows attendance progress bars instead
+- empty state: `No yuvaks found matching the current filters.`
+
+Important implementation note:
+
+- search currently matches `name` and `followUpKK`
+- the table code has a sortable `area` key but the visible column set does not currently render an area column
+
+### KK Analysis `/kk-analysis`
+
+Loading state:
+
+- centered spinner
+
+Error state:
+
+- centered retry card
+
+Top-level controls:
+
+- sabha switcher: `CN`, `Kishor`, `Bal`
+- attending filter currently exposes only `yes`
+- refresh button
+
+Per-sabha section states:
+
+- KPI cards
+- overloaded KK warning strip appears only when at least one KK has more than 6 yuvaks
+- `KKWorkloadChart`
+- detailed KK report cards
+- each KK card can show a `Needs follow-up` list and `+N more` overflow text
+
+### KK Home `/kk-home`
+
+Access state:
+
+- non-KK users are redirected to `/`
+
+Loading state:
+
+- centered spinner
+
+Error state:
+
+- centered retry card
+
+Interactive states:
+
+- total, active, and deactive cards are expandable/collapsible
+- each expanded card shows either yuvak chips/rows or `No yuvaks found.`
+- attendance trend uses a shared full-sabha comparison dataset when available
+- vakta/topic comparison chart supports personal vs sabha comparison
+
+Important implementation note:
+
+- this page intentionally fetches both scoped data and `scope=full` data in parallel
+- scoped data powers the KK-specific cards
+- full data powers comparison charts and shared attendance context
+
+### Reminder Center
+
+Compact variant states:
+
+- loading skeleton
+- red error panel
+- risk summary cards for high and moderate risk
+- expandable lists inside each risk card
+- per-list empty state: `No high risk reminders.` or `No moderate risk reminders.`
+
+Full variant states:
+
+- populated reminder article cards
+- empty state for leaders filtered to a KK: `No reminders for this KK right now.`
+- general empty state: `No moderate or high risk reminders right now.`
+
+Role behavior:
+
+- leaders and admins can filter reminders by KK
+- KK users only see their own assigned reminder items
+- reminder action buttons are currently commented out in the UI even though server mutations exist
+
+### Upcoming Birthdays Widget
+
+States:
+
+- returns `null` during sheet loading
+- returns `null` on error
+- returns `null` when there are no relevant upcoming birthdays
+- otherwise shows the upcoming Kishor birthday list with call CTA where phone exists
+
+### Admin Users `/admin/users`
+
+Loading states:
+
+- initial page loading skeleton/text state while users and KK options load
+- modal button loading states: `Creating...`, `Saving...`
+
+Filters and controls:
+
+- search by name, email, username, assigned KK, or role text
+- role filter: all, admin, leader, KK
+- create-user modal
+- inline role select for editable rows
+- inline assigned-KK select and save for KK rows
+- reset password modal
+- delete action
+
+Important role/permission states:
+
+- current signed-in admin row renders role as a badge, not a select
+- self-role change from admin to leader or KK is blocked both in UI and API
+- deleting own account is blocked by API
+
+Empty/error states:
+
+- table empty state: `No users match your search or role filter.`
+- page error text when user load fails
+- create/reset/update/delete actions surface toast errors and successes
+- assigned-KK selector can show `No KK names found` when current sheet data yields no KK options
+
+### Admin Logs `/admin/logs`
+
+States:
+
+- loading text/skeleton state
+- error text state
+- populated table
+- empty row: `No activity logs yet.`
+
+### Admin Sheet Changes `/admin/sheet-changes`
+
+States:
+
+- loading text/skeleton state
+- error text state
+- filter chips by change type
+- populated change cards/rows
+- empty state: `No changes recorded yet.`
+
+### Ask Akshar `/ai`
+
+Live current state:
+
+- single coming-soon hero card
+
+Dormant commented implementation states still present in code:
+
+- starter prompt chips
+- chat thread empty intro state
+- streaming/loading indicator
+- chat error banner
+- send button disabled/loading state
+- inline chart card rendering for AI responses
