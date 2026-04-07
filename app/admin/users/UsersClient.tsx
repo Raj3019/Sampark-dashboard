@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
+import { authClient } from '@/lib/auth/client';
 
 type User = {
   id: string;
@@ -159,7 +160,119 @@ function CreateUserModal({
   );
 }
 
-export default function UsersClient() {
+function ResetPasswordModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: User;
+  onClose: () => void;
+  onSaved: (requiresReauth: boolean) => Promise<void> | void;
+}) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: password }),
+      });
+
+      const data = await res.json() as { error?: string; message?: string; requiresReauth?: boolean };
+      if (!res.ok) throw new Error(data.error ?? 'Failed to update password');
+
+      toast.success(data.message ?? 'Password updated successfully');
+      await onSaved(Boolean(data.requiresReauth));
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update password';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md mx-4">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-slate-100 font-semibold text-lg">Reset Password</h2>
+            <p className="mt-1 text-xs text-slate-500">{user.name} ({user.username ?? user.email})</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-xl leading-none">x</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-slate-400 text-xs font-medium mb-1">New Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 8 characters"
+              required
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-400 text-xs font-medium mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter password"
+              required
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 text-sm placeholder-slate-600 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 rounded-lg border border-slate-700 text-slate-400 text-sm hover:bg-slate-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+            >
+              {loading ? 'Saving...' : 'Update Password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default function UsersClient({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -171,6 +284,7 @@ export default function UsersClient() {
   const [savedAssignedById, setSavedAssignedById] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | User['role']>('all');
+  const [passwordUser, setPasswordUser] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -238,6 +352,11 @@ export default function UsersClient() {
   const initialLoading = loading || kkOptionsLoading;
 
   const handleRoleChange = async (user: User, newRole: string) => {
+    if (user.id === currentUserId) {
+      toast.error('You cannot change your own admin role.');
+      return;
+    }
+
     const nextAssignedKK = newRole === 'kk'
       ? (user.assignedKK?.trim() || kkOptions[0] || '')
       : '';
@@ -257,7 +376,8 @@ export default function UsersClient() {
           assignedKK: newRole === 'kk' ? nextAssignedKK : null,
         }),
       });
-      if (!res.ok) throw new Error('Failed to update role');
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Failed to update role');
       setUsers((prev) => prev.map((u) => u.id === userId
         ? { ...u, role: newRole as User['role'], assignedKK: newRole === 'kk' ? nextAssignedKK : null }
         : u
@@ -289,7 +409,8 @@ export default function UsersClient() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: user.role, assignedKK }),
       });
-      if (!res.ok) throw new Error('Failed to update assigned KK');
+      const data = await res.json() as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? 'Failed to update assigned KK');
       setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, assignedKK } : u)));
       setSavedAssignedById((prev) => ({ ...prev, [user.id]: assignedKK }));
       toast.success('Assigned KK saved successfully');
@@ -319,6 +440,13 @@ export default function UsersClient() {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handlePasswordSaved = async (requiresReauth: boolean) => {
+    if (!requiresReauth) return;
+
+    await authClient.signOut();
+    window.location.href = '/login';
   };
 
   return (
@@ -407,17 +535,23 @@ export default function UsersClient() {
                     <td className="px-5 py-4 text-slate-400">@{user.username ?? '—'}</td>
                     <td className="px-5 py-4 text-slate-400">{user.email}</td>
                     <td className="px-5 py-4">
-                      <select
-                        value={user.role}
-                        disabled={updatingId === user.id}
-                        onChange={(e) => handleRoleChange(user, e.target.value)}
-                        style={{ colorScheme: 'dark' }}
-                        className={`rounded-full border px-2.5 py-1 text-xs font-medium focus:outline-none ${ROLE_COLORS[user.role]} bg-slate-900/90 text-slate-100 disabled:opacity-60`}
-                      >
-                        <option value="kk">KK</option>
-                        <option value="leader">Leader</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      {user.id === currentUserId ? (
+                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${ROLE_COLORS[user.role]}`}>
+                          {ROLE_LABELS[user.role]}
+                        </span>
+                      ) : (
+                        <select
+                          value={user.role}
+                          disabled={updatingId === user.id}
+                          onChange={(e) => handleRoleChange(user, e.target.value)}
+                          style={{ colorScheme: 'dark' }}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium focus:outline-none ${ROLE_COLORS[user.role]} bg-slate-900/90 text-slate-100 disabled:opacity-60`}
+                        >
+                          <option value="kk">KK</option>
+                          <option value="leader">Leader</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       {user.role === 'kk' ? (
@@ -459,13 +593,21 @@ export default function UsersClient() {
                       {new Date(user.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => handleDelete(user.id, user.name)}
-                        disabled={deletingId === user.id}
-                        className="inline-flex items-center rounded-md px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
-                      >
-                        {deletingId === user.id ? '...' : 'Delete'}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setPasswordUser(user)}
+                          className="inline-flex items-center rounded-md px-2 py-1 text-xs text-amber-300 transition-colors hover:bg-amber-500/10 hover:text-amber-200"
+                        >
+                          Reset Password
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id, user.name)}
+                          disabled={deletingId === user.id}
+                          className="inline-flex items-center rounded-md px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+                        >
+                          {deletingId === user.id ? '...' : 'Delete'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -487,6 +629,14 @@ export default function UsersClient() {
           onClose={() => setShowCreate(false)}
           onCreated={fetchUsers}
           kkOptions={kkOptions}
+        />
+      )}
+
+      {passwordUser && (
+        <ResetPasswordModal
+          user={passwordUser}
+          onClose={() => setPasswordUser(null)}
+          onSaved={handlePasswordSaved}
         />
       )}
     </div>

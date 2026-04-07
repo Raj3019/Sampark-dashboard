@@ -9,7 +9,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { response } = await requireAdminApiSession();
+  const { session, response } = await requireAdminApiSession();
   if (response) return response;
 
   const { id } = await params;
@@ -23,6 +23,13 @@ export async function PATCH(
 
   if (role === 'kk' && !assignedKK) {
     return NextResponse.json({ error: 'Assigned KK is required for KK users' }, { status: 400 });
+  }
+
+  if (session.user.id === id && role !== 'admin') {
+    return NextResponse.json(
+      { error: 'You cannot change your own admin role from this page' },
+      { status: 400 }
+    );
   }
 
   const pool = getAuthPool();
