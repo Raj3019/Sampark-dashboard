@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 type Theme = 'dark' | 'light';
 
@@ -9,7 +9,7 @@ interface ThemeContextType {
   toggle: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType>({ theme: 'dark', toggle: () => {} });
+const ThemeContext = createContext<ThemeContextType>({ theme: 'light', toggle: () => {} });
 
 export function useTheme() {
   return useContext(ThemeContext);
@@ -22,13 +22,10 @@ function applyTheme(t: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
-
-  useEffect(() => {
-    // Read whatever the inline script already applied, so state matches DOM
-    const current = document.documentElement.classList.contains('light') ? 'light' : 'dark';
-    setTheme(current);
-  }, []);
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof document === 'undefined') return 'light';
+    return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  });
 
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';

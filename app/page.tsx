@@ -14,7 +14,6 @@ import { SABHA_DISPLAY, SABHA_TYPES } from '@/lib/sabha';
 import { SabhaType } from '@/lib/types';
 import SabhaMetaPanel from '@/components/SabhaMetaPanel';
 import StatsCard from '@/components/StatsCard';
-import { useUpcomingEkadashi } from '@/hooks/useUpcomingEkadashi';
 
 function LoadingSpinner() {
   return (
@@ -90,18 +89,6 @@ function getKkYuvakRowKey(prefix: string, kkName: string | undefined, yuvak: {
 
 export default function DashboardPage() {
   const { data, loading, error, refresh } = useSheetData();
-  const {
-    data: ekadashi,
-    loading: ekadashiLoading,
-    error: ekadashiError,
-    refresh: refreshEkadashi,
-  } = useUpcomingEkadashi();
-
-  const ekadashiHint = ekadashiError?.toLowerCase().includes('test-mode credentials')
-    ? 'Prokerala is in test mode (Jan 1 only). Add Live credentials to enable upcoming Ekadashi.'
-    : ekadashiError?.toLowerCase().includes('rate limit')
-      ? 'Upcoming Ekadashi is temporarily unavailable. Please refresh in a minute.'
-    : ekadashiError;
   const sessionNotesByDate = useMemo(() => {
     const notes: Record<string, string> = {};
     const sabhaSessionMeta = data?.sabhaSessionMeta ?? {};
@@ -301,36 +288,12 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-slate-100">Sabha Dashboard</h1>
           <p className="text-slate-500 text-sm mt-1">Overview of Yuva, AYC, and Bal sabha attendance</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-          <div className="w-52 rounded-xl border border-slate-700 bg-slate-900/90 shadow-lg">
-            <div className="h-0.5 bg-sky-400/70" />
-            <div className="px-3 py-2">
-              <p className="min-w-0 truncate text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-300">Upcoming Ekadashi</p>
-              {ekadashiLoading ? (
-                <p className="text-xs text-slate-400 mt-2">Loading...</p>
-              ) : ekadashi ? (
-                <>
-                  <p className="text-base font-semibold text-white mt-1 tracking-tight leading-tight">{ekadashi.displayDate}</p>
-                  <p className="text-[10.5px] text-slate-300 mt-1 leading-snug">
-                    {ekadashi.tithiName}
-                    {ekadashi.paksha ? ` • ${ekadashi.paksha}` : ''}
-                    {` • ${ekadashi.daysUntil === 0 ? 'Today' : `In ${ekadashi.daysUntil} day${ekadashi.daysUntil > 1 ? 's' : ''}`}`}
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-red-300 mt-2">{ekadashiHint ?? 'Unavailable right now'}</p>
-              )}
-            </div>
-          </div>
-          <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end">          <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
           <button
-            onClick={() => {
-              refresh();
-              refreshEkadashi();
-            }}
+            onClick={refresh}
             className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
           >
-            ↻ Refresh
+            Refresh
           </button>
         </div>
       </div>
@@ -705,3 +668,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

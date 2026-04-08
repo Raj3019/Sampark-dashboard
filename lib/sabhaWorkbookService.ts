@@ -214,6 +214,7 @@ async function fetchWorkbookRows(options?: { forceFresh?: boolean }): Promise<Wo
 
   try {
     const sheets = getSheetsClient();
+    let shouldFallbackToDrive = false;
 
     const rows = await Promise.all(sheetConfigs.map(async (config) => {
       const range = `${config.sheetName.includes(' ') ? `'${config.sheetName}'` : config.sheetName}!A:ZZ`;
@@ -236,6 +237,9 @@ async function fetchWorkbookRows(options?: { forceFresh?: boolean }): Promise<Wo
         };
       } catch (sheetErr) {
         if (isUnsupportedDocumentError(sheetErr)) throw sheetErr;
+        if (isTimeoutError(sheetErr)) {
+          shouldFallbackToDrive = true;
+        }
         console.error(`Sheet "${config.sheetName}" could not be fetched: ${sheetErr instanceof Error ? sheetErr.message : sheetErr}`);
         return {
           sabhaType: config.sabhaType,
@@ -244,6 +248,11 @@ async function fetchWorkbookRows(options?: { forceFresh?: boolean }): Promise<Wo
         };
       }
     }));
+
+    if (shouldFallbackToDrive) {
+      console.warn('One or more Google Sheets tab reads timed out. Falling back to Google Drive workbook download.');
+      return await fetchWorkbookRowsFromDrive(fileId, sheetConfigs, { forceFresh: options?.forceFresh ?? false });
+    }
 
     return { kind: 'rows', rows };
   } catch (error) {
@@ -259,6 +268,11 @@ async function fetchWorkbookRows(options?: { forceFresh?: boolean }): Promise<Wo
 function isUnsupportedDocumentError(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
   return message.includes('not supported for this document');
+}
+
+function isTimeoutError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return message.includes('timed out');
 }
 
 async function fetchWorkbookRowsFromDrive(
