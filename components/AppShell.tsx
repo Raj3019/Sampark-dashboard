@@ -42,7 +42,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Navbar />
       <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(252,227,190,0.24),_transparent_28%),linear-gradient(180deg,_#fffdf9_0%,_#fff8ef_100%)] md:ml-[16.5rem] md:pt-[5.25rem] pt-[4.75rem] dark:bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.10),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#111827_100%)]">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+          <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.85fr)_minmax(19rem,0.9fr)] xl:items-start">
             <div id="shell-reminders">
               <ReminderCenter variant="compact" />
             </div>

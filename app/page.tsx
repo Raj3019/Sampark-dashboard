@@ -288,13 +288,8 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-slate-100">Sabha Dashboard</h1>
           <p className="text-slate-500 text-sm mt-1">Overview of Yuva, AYC, and Bal sabha attendance</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 sm:justify-end">          <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
-          <button
-            onClick={refresh}
-            className="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-          >
-            Refresh
-          </button>
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+          <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
         </div>
       </div>
 

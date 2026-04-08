@@ -21,6 +21,21 @@ function normalizePhoneHref(value: string | null | undefined) {
   return `tel:${normalized}`;
 }
 
+function normalizeWhatsappHref(value: string | null | undefined, name: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const digitsOnly = trimmed.replace(/\D/g, '');
+  if (!digitsOnly) return null;
+
+  const phoneNumber = digitsOnly.length === 10 ? `91${digitsOnly}` : digitsOnly;
+  const message = encodeURIComponent(
+    `Jay Swaminarayan ${name}! Wishing you a very happy birthday. May Maharaj and Swami bless you with joy, good health, and a wonderful year ahead.`
+  );
+
+  return `https://wa.me/${phoneNumber}?text=${message}`;
+}
+
 function parseIsoDate(value: string) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return null;
@@ -80,21 +95,16 @@ export default function UpcomingBirthdays() {
 
   if (loading || error || !data) return null;
 
-  const kishorYuvaks = data.yuvaks.filter((yuvak) => yuvak.sabhaType.toLowerCase().includes('kishor'));
-
-  // Temporarily limiting birthdays to Kishor only.
-  // Restore `data.yuvaks` here when we want birthdays from every sabha again.
-  // const birthdays = getUpcomingBirthdays(data.yuvaks);
-  const birthdays = getUpcomingBirthdays(kishorYuvaks);
+  const birthdays = getUpcomingBirthdays(data.yuvaks);
   if (birthdays.length === 0) return null;
 
   const visibleBirthdays = expanded ? birthdays : birthdays.slice(0, 2);
   const hiddenCount = Math.max(0, birthdays.length - 2);
 
   return (
-    <aside className="w-full rounded-2xl border border-amber-400/20 bg-linear-to-br from-amber-500/10 via-slate-900/95 to-slate-950 px-4 py-4 shadow-[0_16px_45px_rgba(2,6,23,0.28)] lg:max-w-sm">
+    <aside className="w-full rounded-3xl border border-[#e7e0d6] bg-white/92 px-5 py-5 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none xl:max-h-[28rem] xl:overflow-hidden">
       <div className="flex items-center gap-2">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-amber-300/30 bg-amber-300/12 text-amber-200">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-300/40 bg-amber-50 text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -112,25 +122,26 @@ export default function UpcomingBirthdays() {
           </svg>
         </span>
         <div>
-          <p className="text-sm font-semibold text-slate-100">Upcoming birthdays</p>
-          <p className="text-xs text-slate-400">Next 30 days</p>
+          <p className="text-lg font-semibold text-[#1f2937] dark:text-slate-100">Upcoming birthdays</p>
+          <p className="text-sm text-[#64748b] dark:text-slate-400">Next 30 days</p>
         </div>
       </div>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-4 space-y-2.5 xl:max-h-[22rem] xl:overflow-y-auto xl:pr-1">
         {visibleBirthdays.map((birthday) => {
           const phoneHref = normalizePhoneHref(birthday.phoneNumber);
+          const whatsappHref = normalizeWhatsappHref(birthday.phoneNumber, birthday.name);
           return (
-          <div key={`${birthday.name}-${birthday.displayDate}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+          <div key={`${birthday.name}-${birthday.displayDate}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[#ece4d7] bg-[#fffdfa] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="truncate text-sm font-semibold text-slate-100">{birthday.name}</p>
+                <p className="truncate text-sm font-semibold text-[#1f2937] dark:text-slate-100">{birthday.name}</p>
                 {phoneHref && (
                   <a
                     href={phoneHref}
                     aria-label={`Call ${birthday.name}`}
                     title={`Call ${birthday.name}`}
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/10 text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/10 text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-200"
                   >
                     <svg
                       aria-hidden="true"
@@ -146,13 +157,32 @@ export default function UpcomingBirthdays() {
                     </svg>
                   </a>
                 )}
+                {whatsappHref && (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Send WhatsApp birthday wish to ${birthday.name}`}
+                    title={`Send WhatsApp birthday wish to ${birthday.name}`}
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/10 text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-200"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="h-3.5 w-3.5"
+                      fill="currentColor"
+                    >
+                      <path d="M19.05 4.94A9.94 9.94 0 0 0 12.03 2C6.55 2 2.08 6.46 2.08 11.95c0 1.76.46 3.47 1.33 4.98L2 22l5.23-1.37a9.9 9.9 0 0 0 4.79 1.22h.01c5.48 0 9.95-4.46 9.95-9.95a9.9 9.9 0 0 0-2.93-6.96ZM12.03 20.17h-.01a8.2 8.2 0 0 1-4.18-1.14l-.3-.18-3.1.81.83-3.02-.2-.31a8.22 8.22 0 0 1-1.27-4.38c0-4.53 3.69-8.22 8.23-8.22 2.2 0 4.28.85 5.83 2.41a8.18 8.18 0 0 1 2.39 5.82c0 4.54-3.69 8.23-8.22 8.23Zm4.51-6.16c-.25-.13-1.47-.73-1.7-.81-.23-.09-.39-.13-.56.12-.17.26-.64.81-.79.98-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.99-1.22-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.42.09-.17.05-.31-.02-.43-.07-.13-.56-1.35-.77-1.84-.2-.48-.4-.41-.56-.42h-.48c-.17 0-.43.06-.65.31-.22.26-.85.83-.85 2.02 0 1.19.87 2.35.99 2.51.12.17 1.7 2.59 4.12 3.63.57.25 1.02.4 1.37.52.58.18 1.11.16 1.53.1.47-.07 1.47-.6 1.68-1.17.21-.57.21-1.06.15-1.17-.06-.11-.22-.17-.47-.29Z" />
+                    </svg>
+                  </a>
+                )}
               </div>
-              <p className="truncate text-xs text-slate-400">
+              <p className="truncate text-xs text-[#64748b] dark:text-slate-400">
                 {birthday.displayDate}
                 {birthday.followUpKK ? ` | ${birthday.followUpKK}` : ''}
               </p>
             </div>
-            <span className="shrink-0 rounded-full border border-amber-300/30 bg-amber-300/12 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-200">
+            <span className="shrink-0 rounded-full border border-amber-300/50 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
               {getBadgeLabel(birthday.daysUntil)}
             </span>
           </div>
@@ -163,7 +193,7 @@ export default function UpcomingBirthdays() {
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300/25 bg-amber-300/8 px-3 py-2 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-300/14"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[#e7dccb] bg-[#f7efe3] px-3 py-2.5 text-xs font-semibold text-[#8b5e13] transition-colors hover:bg-[#efe2ce] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             aria-expanded={expanded}
           >
             <span>{expanded ? 'Show less' : `Show ${hiddenCount} more`}</span>

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { type ComponentType, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Bell,
   BookOpen,
   CalendarDays,
   ChartColumn,
@@ -12,6 +11,7 @@ import {
   LogOut,
   Menu,
   Moon,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -142,11 +142,17 @@ export default function Navbar() {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [relativeNow, setRelativeNow] = useState(() => Date.now());
   const { theme, toggle } = useTheme();
   const { data: session } = authClient.useSession();
-  const { data: sheetData } = useSheetData();
-  const { data: ekadashi, loading: ekadashiLoading, error: ekadashiError } = useUpcomingEkadashi();
+  const { data: sheetData, refresh: refreshSheetData } = useSheetData();
+  const {
+    data: ekadashi,
+    loading: ekadashiLoading,
+    error: ekadashiError,
+    refresh: refreshEkadashi,
+  } = useUpcomingEkadashi();
 
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? '';
   const isAdmin = userRole === 'admin';
@@ -189,8 +195,16 @@ export default function Navbar() {
     }
   };
 
-  const handleReminderShortcut = () => {
-    document.getElementById('shell-reminders')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshSheetData(), refreshEkadashi()]);
+      toast.success('Dashboard refreshed');
+    } catch {
+      toast.error('Refresh failed');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const sidebarContent = (onLinkClick?: () => void) => (
@@ -271,12 +285,12 @@ export default function Navbar() {
             </div>
 
             <button
-              onClick={handleReminderShortcut}
+              onClick={handleRefresh}
               className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#e6d8c5] bg-white text-[#52647f] shadow-[0_8px_24px_rgba(148,116,75,0.07)] transition hover:bg-[#faf5ee] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:shadow-none dark:hover:bg-slate-800"
-              aria-label="Open reminders"
+              aria-label="Refresh dashboard"
+              disabled={isRefreshing}
             >
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#ef4444]" />
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
 
             <div className="h-8 w-px bg-[#e7ddce] dark:bg-slate-800" />

@@ -27,10 +27,6 @@ function formatDates(dates: string[]) {
   return dates.join(', ');
 }
 
-function isKishorReminder(sabhaType: string) {
-  return sabhaType.toLowerCase().includes('kishor');
-}
-
 function normalizePhoneHref(value: string | null | undefined) {
   const trimmed = value?.trim();
   if (!trimmed) return null;
@@ -39,6 +35,13 @@ function normalizePhoneHref(value: string | null | undefined) {
   if (!normalized) return null;
 
   return `tel:${normalized}`;
+}
+
+function hasUsablePhoneNumber(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+  if (trimmed.toLowerCase().includes('nan') || trimmed.toLowerCase().includes('undefined')) return false;
+  return /\d{7,}/.test(trimmed.replace(/[^\d]/g, ''));
 }
 
 function formatTimestamp(value: string | null) {
@@ -71,11 +74,17 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
     moderate: false,
   });
 
-  const kishorReminders = reminders.filter((item) => isKishorReminder(item.sabhaType));
-  const kkOptions = Array.from(new Set(kishorReminders.map((item) => item.followUpKK))).sort((a, b) => a.localeCompare(b));
+  const normalizedReminders = reminders
+    .filter((item) => item.yuvakName.trim())
+    .map((item) => ({
+      ...item,
+      phoneNumber: hasUsablePhoneNumber(item.phoneNumber) ? item.phoneNumber.trim() : '',
+    }));
+
+  const kkOptions = Array.from(new Set(normalizedReminders.map((item) => item.followUpKK))).sort((a, b) => a.localeCompare(b));
   const visibleReminders = isLeader && selectedKk !== 'all'
-    ? kishorReminders.filter((item) => item.followUpKK === selectedKk)
-    : kishorReminders;
+    ? normalizedReminders.filter((item) => item.followUpKK === selectedKk)
+    : normalizedReminders;
 
   const visibleSummary = visibleReminders.reduce((acc, item) => {
     acc.total += 1;
@@ -115,12 +124,12 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-4 shadow-sm">
+      <div className="rounded-3xl border border-[#e7e0d6] bg-white/92 px-5 py-5 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none">
         <div className="animate-pulse space-y-3">
-          <div className="h-4 w-40 rounded bg-slate-800" />
+          <div className="h-4 w-40 rounded bg-[#ece4d7] dark:bg-slate-800" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="h-16 rounded-xl bg-slate-800" />
-            <div className="h-16 rounded-xl bg-slate-800" />
+            <div className="h-16 rounded-2xl bg-[#ece4d7] dark:bg-slate-800" />
+            <div className="h-16 rounded-2xl bg-[#ece4d7] dark:bg-slate-800" />
           </div>
         </div>
       </div>
@@ -129,9 +138,9 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-950/30 px-4 py-4 text-sm text-red-200">
+      <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-5 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-950/30 dark:text-red-200">
         <p className="font-semibold">Reminder feed unavailable</p>
-        <p className="mt-1 text-red-100/80">{error}</p>
+        <p className="mt-1 text-red-700/90 dark:text-red-100/80">{error}</p>
       </div>
     );
   }
@@ -144,18 +153,18 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
     : 'Your assigned follow-up reminders appear here first.';
 
   return (
-    <section className={`rounded-2xl border border-slate-800 bg-slate-900/80 shadow-[0_16px_45px_rgba(2,6,23,0.28)] ${variant === 'full' ? 'p-4 sm:p-5' : 'p-4'}`}>
+    <section className={`rounded-3xl border border-[#e7e0d6] bg-white/92 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none ${variant === 'full' ? 'p-5 sm:p-6' : 'max-h-[28rem] overflow-hidden p-5'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-slate-100">Follow-up reminders</h2>
-            <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+            <h2 className="text-lg font-semibold text-[#1f2937] dark:text-slate-100">Follow-up reminders</h2>
+            <span className="rounded-full border border-[#eadfce] bg-[#fff7ed] px-2.5 py-1 text-[11px] font-semibold text-[#a16207] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
               {visibleSummary.total} {reminderCountLabel}
             </span>
           </div>
-          <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
+          <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">{subtitle}</p>
           {isLeader && selectedKk !== 'all' && (
-            <p className="mt-1 text-[11px] text-sky-300">Filtered by KK: {selectedKk}</p>
+            <p className="mt-1 text-[11px] text-sky-600 dark:text-sky-300">Filtered by KK: {selectedKk}</p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -163,7 +172,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
             <select
               value={selectedKk}
               onChange={(event) => setSelectedKk(event.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-200 outline-none ring-0 focus:border-sky-500"
+              className="rounded-xl border border-[#e7e0d6] bg-[#fffdfa] px-3 py-2 text-xs font-semibold text-[#334155] outline-none ring-0 focus:border-sky-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
             >
               <option value="all">All KKs ({kkOptions.length})</option>
               {kkOptions.map((kkName) => (
@@ -174,7 +183,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {[
           {
             key: 'high' as const,
@@ -191,7 +200,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
             reminders: moderateRiskReminders,
           },
         ].map((item) => (
-          <div key={item.label} className="rounded-xl border border-slate-800 bg-linear-to-b from-slate-950/80 to-slate-950/50 p-2.5 shadow-inner">
+          <div key={item.label} className="rounded-2xl border border-[#ece4d7] bg-[#fffdfa] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] dark:border-slate-800 dark:bg-slate-950/50 dark:shadow-none">
             <button
               type="button"
               aria-expanded={openRisks[item.key]}
@@ -199,15 +208,15 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
               onClick={() => {
                 setOpenRisks((current) => ({ ...current, [item.key]: !current[item.key] }));
               }}
-              className="flex w-full items-center justify-between rounded-lg px-1 py-1 text-left outline-none transition hover:bg-slate-900/70 focus-visible:ring-2 focus-visible:ring-sky-500/60"
+              className="flex w-full items-center justify-between rounded-xl px-1 py-1 text-left outline-none transition hover:bg-[#f8f3eb] focus-visible:ring-2 focus-visible:ring-sky-500/60 dark:hover:bg-slate-900/70"
             >
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[#8b6f47] dark:text-slate-500">{item.label}</p>
                 <p className={`mt-1 text-lg font-semibold ${item.tone}`}>{item.value}</p>
               </div>
               <div className="flex items-center">
                 <span
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 bg-slate-900/90 text-slate-300 shadow-sm transition-all ${openRisks[item.key] ? 'rotate-180 border-sky-500/50 text-sky-200' : 'hover:border-slate-600 hover:text-slate-100'}`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#eadfce] bg-white text-[#64748b] shadow-sm transition-all dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300 ${openRisks[item.key] ? 'rotate-180 border-sky-500/50 text-sky-600 dark:text-sky-200' : 'hover:border-[#d4c4ae] hover:text-[#334155] dark:hover:border-slate-600 dark:hover:text-slate-100'}`}
                 >
                   <svg
                     aria-hidden="true"
@@ -226,34 +235,38 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
             </button>
 
             {openRisks[item.key] && (
-              <div id={`risk-panel-${item.key}`} className="mt-2 max-h-56 space-y-2 overflow-y-auto border-t border-slate-800/90 pt-2">
+              <div id={`risk-panel-${item.key}`} className="mt-2 max-h-56 space-y-2 overflow-y-auto border-t border-[#f0e8dc] pt-2 dark:border-slate-800/90">
                 {item.reminders.length === 0 ? (
-                  <p className="rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2 text-xs text-slate-400">
+                  <p className="rounded-xl border border-[#ece4d7] bg-[#fff9f1] px-2.5 py-2 text-xs text-[#64748b] dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
                     No {item.label.toLowerCase()} reminders.
                   </p>
                 ) : (
                   item.reminders.map((reminder) => {
                     const phoneHref = normalizePhoneHref(reminder.phoneNumber);
                     return (
-                      <div key={`${item.label}-${reminder.id}`} className="rounded-lg border border-slate-800/90 bg-slate-900/70 px-2.5 py-2.5 transition-colors hover:bg-slate-900">
-                        <p className="truncate text-sm font-semibold text-slate-100">{reminder.yuvakName}</p>
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          KK: <span className="text-slate-300">{reminder.followUpKK}</span> - Missed {reminder.missedSabhaCount} sabhas
+                      <div key={`${item.label}-${reminder.id}`} className="rounded-xl border border-[#ece4d7] bg-[#fffdfa] px-3 py-3 transition-colors hover:bg-[#f8f3eb] dark:border-slate-800/90 dark:bg-slate-900/70 dark:hover:bg-slate-900">
+                        <p className="truncate text-sm font-semibold text-[#1f2937] dark:text-slate-100">{reminder.yuvakName}</p>
+                        <p className="mt-1 text-[11px] text-[#64748b] dark:text-slate-400">
+                          KK: <span className="text-[#334155] dark:text-slate-300">{reminder.followUpKK}</span> - Missed {reminder.missedSabhaCount} sabhas
                         </p>
-                        <div className="mt-1.5 flex items-center gap-2 text-[11px]">
-                          <span className="text-slate-400">
-                            Phone: <span className="text-slate-200">{reminder.phoneNumber || 'N/A'}</span>
-                          </span>
-                          {phoneHref && (
+                        {phoneHref ? (
+                          <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+                            <span className="text-[#64748b] dark:text-slate-400">
+                              Phone: <span className="text-[#334155] dark:text-slate-200">{reminder.phoneNumber}</span>
+                            </span>
                             <a
                               href={phoneHref}
                               aria-label={`Call ${reminder.yuvakName}`}
-                              className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2 py-0.5 font-semibold uppercase tracking-[0.12em] text-emerald-200 hover:bg-emerald-500/20"
+                              className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2 py-0.5 font-semibold uppercase tracking-[0.12em] text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-200"
                             >
                               Call
                             </a>
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <p className="mt-1.5 text-[11px] text-[#94a3b8] dark:text-slate-500">
+                            Phone number not available
+                          </p>
+                        )}
                       </div>
                     );
                   })
@@ -287,12 +300,8 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
                           {styles.label}
                         </span>
                         <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
-                          Kishor
-                        </span>
-                        {/* Temporarily hiding raw sabha labels like Chirag Nagar(Kishor) and Bal Sabha. */}
-                        {/* <span className="rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
                           {reminder.sabhaType}
-                        </span> */}
+                        </span>
                       </div>
                       <p className="mt-1 text-xs text-slate-300">
                         Follow-up KK: <span className="font-semibold text-slate-100">{reminder.followUpKK}</span>
