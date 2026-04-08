@@ -5,6 +5,7 @@ import { authClient } from '@/lib/auth/client';
 import Navbar from '@/components/Navbar';
 import ReminderCenter from '@/components/ReminderCenter';
 import UpcomingBirthdays from '@/components/UpcomingBirthdays';
+import { ScopedSheetDataProvider } from '@/hooks/ScopedSheetDataProvider';
 
 function FullScreenLoader() {
   return (
@@ -40,13 +41,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <Navbar />
       <main className="md:ml-60 pt-14 md:pt-0 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <div className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-            <ReminderCenter variant="compact" />
-            <UpcomingBirthdays />
+        <ScopedSheetDataProvider>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            <div className="mb-5 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+              <ReminderCenter variant="compact" />
+              <UpcomingBirthdays />
+            </div>
+            {children}
           </div>
-          {children}
-        </div>
+        </ScopedSheetDataProvider>
       </main>
     </>
   );
