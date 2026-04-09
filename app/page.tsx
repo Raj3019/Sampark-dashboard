@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useMemo } from 'react';
+import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { useSheetData } from '@/hooks/useSheetData';
 import {
   getHighestSessions,
@@ -86,6 +87,108 @@ function getKkYuvakRowKey(prefix: string, kkName: string | undefined, yuvak: {
     index,
   ].join('-');
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function getAttendanceSessionLabel(meta?: {
+  sabhaLabel: string;
+  vakta: string;
+  topic: string;
+}) {
+  const topic = meta?.topic?.trim();
+  const vakta = meta?.vakta?.trim();
+  const sabhaLabel = meta?.sabhaLabel?.trim();
+
+  return {
+    title: topic || vakta || 'Vakta/Topic not available',
+    subtitle: [vakta, sabhaLabel].filter(Boolean).join(' • ') || 'Session details unavailable',
+  };
+}
+
+function formatAttendanceCardDate(dateString: string) {
+  const parsed = new Date(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    const [day = '', month = ''] = dateString.split(/[-/\s]/);
+    return {
+      month: month.slice(0, 3).toUpperCase(),
+      day: day.padStart(2, '0'),
+    };
+  }
+
+  return {
+    month: parsed.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase(),
+    day: parsed.toLocaleDateString('en-IN', { day: '2-digit' }),
+  };
+}
+
+function getAttendanceSabhaCopy(note?: string) {
+  if (!note) {
+    return {
+      title: 'Sabha',
+      subtitle: 'Vakta/Topic not available',
+    };
+  }
+
+  const normalized = note.replace(/Ã¢â‚¬Â¢/g, '•');
+  const parts = normalized.split('•').map((part) => part.trim()).filter(Boolean);
+  const sabhaLabel = parts[0] ?? 'Sabha';
+  const vakta = parts.find((part) => part.startsWith('Vakta:'))?.replace('Vakta:', '').trim();
+  const topic = parts.find((part) => part.startsWith('Topic:'))?.replace('Topic:', '').trim();
+
+  return {
+    title: topic || 'Sabha',
+    subtitle: [vakta, sabhaLabel].filter(Boolean).join(' • ') || 'Vakta/Topic not available',
+  };
+}
+
+function AttendanceSabhaCard({
+  title,
+  subtitle,
+  sessions,
+  sessionNotesByDate,
+  barClassName,
+  valueClassName,
+}: {
+  title: string;
+  subtitle: string;
+  sessions: { date: string; count: number; percentage: number }[];
+  sessionNotesByDate: Record<string, string>;
+  barClassName: string;
+  valueClassName: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
+      <h3 className="mb-1 text-base font-semibold tracking-tight text-slate-100">{title}</h3>
+      <p className="mb-4 text-xs text-slate-400">{subtitle}</p>
+      {sessions.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
+        <div className="space-y-4">
+          {sessions.map((s) => {
+            const dateParts = formatAttendanceCardDate(s.date);
+            const content = getAttendanceSabhaCopy(sessionNotesByDate[s.date]);
+
+            return (
+              <div key={s.date} className="flex items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[18px] border border-slate-600/35 bg-slate-700/75">
+                  <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">{dateParts.month}</span>
+                  <span className="mt-0.5 text-[0.95rem] font-semibold leading-none text-slate-100">{dateParts.day}</span>
+                </div>
+
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <p className="truncate text-sm font-semibold leading-snug text-slate-100">{content.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-400">{content.subtitle}</p>
+                  <div className="mt-2.5 flex items-center gap-3">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                      <div className={`h-full rounded-full ${barClassName}`} style={{ width: `${s.percentage}%` }} />
+                    </div>
+                    <span className={`w-10 text-right text-sm font-medium ${valueClassName}`}>{s.percentage}%</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const { data, loading, error, refresh } = useSheetData();
@@ -106,7 +209,7 @@ export default function DashboardPage() {
         const parts: string[] = [];
         if (vakta) parts.push(`Vakta: ${vakta}`);
         if (topic) parts.push(`Topic: ${topic}`);
-        notes[date] = `${label} • ${parts.join(' • ')}`;
+        notes[date] = `${label} â€¢ ${parts.join(' â€¢ ')}`;
       });
     });
 
@@ -182,6 +285,8 @@ export default function DashboardPage() {
   const highestOverall = getHighestSessions(overallTrend, 3);
   const kkStats = getKKStats(yuvaks, activePastDates);
   const updatedTime = new Date(lastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const activePercent = totalYuvaks > 0 ? Math.round((totalGreen / totalYuvaks) * 100) : 0;
+  const attentionPercent = totalYuvaks > 0 ? Math.round((needsAttentionFromSheet / totalYuvaks) * 100) : 0;
 
   const sabhaColumns = [
     { key: 'Chirag Nagar', label: 'Yuva Sabha' },
@@ -283,45 +388,79 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex flex-col gap-4 rounded-[30px] border border-[#e7e0d6] bg-white/90 px-6 py-6 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Sabha Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Overview of Yuva, AYC, and Bal sabha attendance</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-          <span className="text-slate-500 text-xs">Updated: {updatedTime}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="All three sabhas combined" icon="👥" accent="orange" />
-        <StatsCard title="Active" value={totalGreen} subtitle={`${totalYuvaks > 0 ? Math.round((totalGreen / totalYuvaks) * 100) : 0}% of total`} icon="✅" accent="green" />
-        <StatsCard title="Needs Attention" value={needsAttentionFromSheet} subtitle="Absent last 4 sabhas" icon="⚠️" accent="yellow" />
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p className="text-slate-400 text-sm font-medium">Overall Yuvaks</p>
-            <span className="text-lg w-8 h-8 flex items-center justify-center rounded-lg border text-blue-400 bg-blue-500/10 border-blue-500/20">👥</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#eadfce] bg-[#fff7ed] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a16207] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+            <Sparkles className="h-3.5 w-3.5" />
+            Dashboard Snapshot
           </div>
-          <p className="text-3xl font-bold text-blue-400">{totalYuvaks}</p>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">Attending: {attendingCount}</span>
-            <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">Non-attending: {nonAttendingCount}</span>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#1f2937] dark:text-slate-100">Sabha Dashboard</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[#64748b] dark:text-slate-400">Overview of Yuva, AYC, and Bal sabha attendance with quick health signals and last-4 session momentum.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:min-w-[22rem]">
+          <div className="rounded-2xl border border-[#ece4d7] bg-[#fcfaf6] px-4 py-3 dark:border-slate-800 dark:bg-slate-950/70">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Last Updated</p>
+            <p className="mt-1 text-lg font-semibold text-[#1f2937] dark:text-slate-100">{updatedTime}</p>
+          </div>
+          <div className="rounded-2xl border border-[#ece4d7] bg-[#fcfaf6] px-4 py-3 dark:border-slate-800 dark:bg-slate-950/70">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Coverage</p>
+            <p className="mt-1 text-lg font-semibold text-[#1f2937] dark:text-slate-100">{attendingCount} attending</p>
+            <p className="mt-1 text-xs text-[#7c8798] dark:text-slate-500">{nonAttendingCount} not attending</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-        <div className="mb-4">
-          <h3 className="text-slate-100 font-semibold">Last 4 Sabha Average Attendance</h3>
-          <p className="text-slate-500 text-xs mt-0.5">Hover on a card for latest session, sessions used, and yuvak coverage.</p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="All three sabhas combined" icon="S" accent="orange" eyebrow="Network" />
+        <StatsCard title="Active" value={totalGreen} subtitle={`${activePercent}% of total marked super active`} icon="A" accent="green" eyebrow="Healthy" />
+        <StatsCard title="Needs Attention" value={needsAttentionFromSheet} subtitle={`${attentionPercent}% need follow-up attention`} icon="!" accent="yellow" eyebrow="Follow-up" />
+        <div className="relative overflow-hidden rounded-[22px] border border-[#e7e0d6] bg-white/92 p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-700/80 dark:bg-slate-800/90 dark:shadow-none">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-br from-sky-500/10 via-sky-500/0 to-transparent" />
+          <div className="relative flex h-full flex-col gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Attendance Split</p>
+                <p className="mt-1 text-[15px] font-medium text-[#64748b] dark:text-slate-400">Overall Yuvaks</p>
+              </div>
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-sky-500/20 bg-sky-500/10 text-xs font-semibold text-sky-600 dark:text-sky-300">OV</span>
+            </div>
+            <div className="flex items-end justify-between gap-2">
+              <p className="text-[2.1rem] font-bold tracking-tight text-sky-600 dark:text-sky-400">{totalYuvaks}</p>
+              <div className="rounded-xl border border-[#ece4d7] bg-[#fcfaf6] px-2.5 py-1.5 text-right dark:border-slate-800 dark:bg-slate-950/70">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[#94a3b8] dark:text-slate-500">Attending Rate</p>
+                <p className="mt-1 text-sm font-semibold text-[#1f2937] dark:text-slate-100">{totalYuvaks > 0 ? Math.round((attendingCount / totalYuvaks) * 100) : 0}%</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 text-[11px]">
+              <span className="rounded-full bg-emerald-500/12 px-2.5 py-0.5 font-medium text-emerald-600 dark:text-emerald-300">Attending: {attendingCount}</span>
+              <span className="rounded-full bg-rose-500/12 px-2.5 py-0.5 font-medium text-rose-600 dark:text-rose-300">Non-attending: {nonAttendingCount}</span>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          <div className="group relative rounded-lg border border-slate-700 bg-slate-900/50 p-4">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400">Overall</p>
-            <p className="text-3xl font-bold text-blue-300 mt-1">{overallLast4AvgAttendance}%</p>
-            <p className="text-xs text-slate-500 mt-1">Based on last {Math.min(4, overallTrend.length)} recorded sessions</p>
+      </div>
+
+      <div className="rounded-[24px] border border-[#e7e0d6] bg-white/92 p-5 shadow-[0_16px_34px_rgba(31,41,55,0.07)] dark:border-slate-800 dark:bg-slate-800/90 dark:shadow-none">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Momentum</p>
+            <h3 className="mt-1 text-lg font-semibold text-[#1f2937] dark:text-slate-100">Last 4 Sabha Average Attendance</h3>
+            <p className="mt-1 text-[13px] text-[#64748b] dark:text-slate-400">A cleaner view of short-term attendance strength across the overall network and each sabha.</p>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#eadfce] bg-[#fcfaf6] px-3 py-1 text-[11px] text-[#64748b] dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-400">
+            <ArrowUpRight className="h-3.5 w-3.5" />
+            Hover a tile for latest session details
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="group relative overflow-hidden rounded-[20px] border border-[#ece4d7] bg-[#fcfaf6] p-4 transition-transform duration-200 hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/70">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-br from-sky-500/10 via-sky-500/0 to-transparent" />
+            <div className="relative">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[#6488c7] dark:text-sky-300">Overall</p>
+              <p className="mt-2 text-[2.05rem] font-bold tracking-tight text-sky-600 dark:text-sky-300">{overallLast4AvgAttendance}%</p>
+              <p className="mt-1.5 text-[13px] text-[#7c8798] dark:text-slate-500">Based on last {Math.min(4, overallTrend.length)} recorded sessions</p>
+            </div>
             <div className="pointer-events-none absolute left-3 right-3 bottom-[calc(100%+8px)] z-20 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-              <div className="rounded-xl border border-slate-600 bg-slate-900/98 p-3 shadow-2xl text-xs text-slate-200">
+              <div className="rounded-2xl border border-slate-600 bg-slate-900/98 p-3 shadow-2xl text-xs text-slate-200">
                 <p className="text-slate-100 font-semibold">Overall Last-4 Snapshot</p>
                 <p className="mt-2 text-slate-300">
                   Latest session: <span className="text-slate-100">{overallLast4Dates[overallLast4Dates.length - 1] ?? 'N/A'}</span>
@@ -335,12 +474,15 @@ export default function DashboardPage() {
           {sabhaCards.map((card) => {
             const last4Dates = card.dates.slice(-4);
             return (
-              <div key={`${card.sabhaType}-last4avg`} className="group relative rounded-lg border border-slate-700 bg-slate-900/50 p-4">
-                <p className={`text-[11px] uppercase tracking-wide ${card.accent.title}`}>{card.ui.shortLabel}</p>
-                <p className="text-3xl font-bold text-slate-100 mt-1">{card.avgAttendanceLast4}%</p>
-                <p className="text-xs text-slate-500 mt-1">Based on last {Math.min(4, card.dates.length)} recorded sessions</p>
+              <div key={`${card.sabhaType}-last4avg`} className="group relative overflow-hidden rounded-[20px] border border-[#ece4d7] bg-[#fcfaf6] p-4 transition-transform duration-200 hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/70">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-br from-white to-transparent dark:from-slate-800/10" />
+                <div className="relative">
+                  <p className={`text-[11px] uppercase tracking-[0.18em] ${card.accent.title}`}>{card.ui.shortLabel}</p>
+                  <p className="mt-2 text-[2.05rem] font-bold tracking-tight text-[#1f2937] dark:text-slate-100">{card.avgAttendanceLast4}%</p>
+                  <p className="mt-1.5 text-[13px] text-[#7c8798] dark:text-slate-500">Based on last {Math.min(4, card.dates.length)} recorded sessions</p>
+                </div>
                 <div className="pointer-events-none absolute left-3 right-3 bottom-[calc(100%+8px)] z-20 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-                  <div className="rounded-xl border border-slate-600 bg-slate-900/98 p-3 shadow-2xl text-xs text-slate-200">
+                  <div className="rounded-2xl border border-slate-600 bg-slate-900/98 p-3 shadow-2xl text-xs text-slate-200">
                     <p className={`font-semibold ${card.accent.title}`}>{card.ui.shortLabel} Last-4 Snapshot</p>
                     <p className="mt-2 text-slate-300">
                       Latest session: <span className="text-slate-100">{last4Dates[last4Dates.length - 1] ?? 'N/A'}</span>
@@ -358,29 +500,38 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-3">
         {sabhaCards.map((card) => (
-          <div key={card.sabhaType} className={`bg-slate-800 border rounded-xl p-5 ${card.accent.border}`}>
-            <div className="flex items-center justify-between mb-3">
+          <div key={card.sabhaType} className={`rounded-[18px] border border-[#e7e0d6] bg-white/92 p-3.5 shadow-[0_10px_20px_rgba(31,41,55,0.045)] dark:bg-slate-800/90 dark:shadow-none ${card.accent.border}`}>
+            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
-                <h3 className={`font-semibold ${card.accent.title}`}>{card.ui.fullLabel}</h3>
-                <p className="text-slate-500 text-xs">{card.ui.subtitle}</p>
+                <h3 className={`text-[1.25rem] font-semibold leading-tight ${card.accent.title}`}>{card.ui.fullLabel}</h3>
+                <p className="mt-0.5 text-[12px] text-[#7c8798] dark:text-slate-500">{card.ui.subtitle}</p>
               </div>
-              <span className={`px-2 py-1 rounded-full text-[11px] font-medium ${card.accent.chip}`}>{card.ui.shortLabel}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${card.accent.chip}`}>{card.ui.shortLabel}</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div><p className="text-2xl font-bold text-slate-100">{card.stats.totalYuvaks}</p><p className="text-xs text-slate-500">Total</p></div>
-              <div><p className="text-2xl font-bold text-green-400">{card.avgAttendanceLast4}%</p><p className="text-xs text-slate-500">Avg Att. (Last 4)</p></div>
-              <div><p className={`text-2xl font-bold ${card.accent.expected}`}>{card.predicted}%</p><p className="text-xs text-slate-500">Expected</p></div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="min-w-0">
+                <p className="text-[1.7rem] font-bold leading-none tracking-tight text-[#1f2937] dark:text-slate-100">{card.stats.totalYuvaks}</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#94a3b8] dark:text-slate-500">Total</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[1.7rem] font-bold leading-none tracking-tight text-emerald-600 dark:text-green-400">{card.avgAttendanceLast4}%</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#94a3b8] dark:text-slate-500">Avg Att.</p>
+              </div>
+              <div className="min-w-0">
+                <p className={`text-[1.7rem] font-bold leading-none tracking-tight ${card.accent.expected}`}>{card.predicted}%</p>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#94a3b8] dark:text-slate-500">Expected</p>
+              </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{card.activeFromSheet} active</span>
-              <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{card.attentionFromSheet} attention</span>
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+              <span className="rounded-full bg-emerald-500/12 px-2 py-0.5 font-medium text-emerald-600 dark:text-emerald-300">{card.activeFromSheet} active</span>
+              <span className="rounded-full bg-amber-500/12 px-2 py-0.5 font-medium text-amber-600 dark:text-amber-300">{card.attentionFromSheet} attention</span>
             </div>
 
-            <div className="mt-4 border-t border-slate-700 pt-4">
+            <div className="mt-2 border-t border-[#ece4d7] pt-2 dark:border-slate-700">
               <SabhaMetaPanel
                 {...card.meta}
                 compact={true}
@@ -392,59 +543,59 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <div className="rounded-[22px] border border-[#e7e0d6] bg-white/92 p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-800 dark:bg-slate-800/90 dark:shadow-none">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="text-slate-100 font-semibold">Area Segregation</h3>
-            <p className="text-slate-500 text-xs mt-0.5">Attending and non-attending counts by area and sabha type</p>
+            <h3 className="text-lg font-semibold text-[#1f2937] dark:text-slate-100">Area Segregation</h3>
+            <p className="mt-0.5 text-[13px] text-[#7c8798] dark:text-slate-500">Attending and non-attending counts by area and sabha type</p>
           </div>
-          <span className="inline-flex items-center rounded-full border border-slate-600 bg-slate-900/70 px-2.5 py-1 text-[10px] uppercase tracking-wide text-slate-300">
+          <span className="inline-flex items-center rounded-full border border-[#e7e0d6] bg-[#fcfaf6] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#64748b] dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
             Auto updates from sheet
           </span>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-700/70 bg-slate-900/40 shadow-inner">
+        <div className="overflow-x-auto rounded-[18px] border border-[#ece4d7] bg-[#fcfaf6] dark:border-slate-700 dark:bg-slate-900/60">
           <table className="min-w-full text-sm border-collapse">
             <thead>
-              <tr className="bg-slate-900/70">
-                <th className="sticky left-0 z-10 bg-slate-900/95 px-4 py-3 text-left text-slate-200 border-b border-slate-700 w-56">Area</th>
+              <tr className="bg-[#f5efe6] dark:bg-slate-900/80">
+                <th className="sticky left-0 z-10 w-56 border-b border-[#ece4d7] bg-[#f5efe6] px-4 py-3 text-left text-[15px] font-semibold text-[#1f2937] dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-200">Area</th>
                 {sabhaColumns.map((col) => (
-                  <th key={col.key} className="px-3 py-3 text-center text-slate-100 border-b border-slate-700" colSpan={2}>
+                  <th key={col.key} className="border-b border-[#ece4d7] px-3 py-3 text-center text-[15px] font-semibold text-[#1f2937] dark:border-slate-700 dark:text-slate-100" colSpan={2}>
                     {col.label}
                   </th>
                 ))}
               </tr>
-              <tr className="bg-slate-900/40">
-                <th className="sticky left-0 z-10 bg-slate-900/90 px-4 py-2 text-left text-slate-500 border-b border-slate-700 text-xs">&nbsp;</th>
+              <tr className="bg-[#fcfaf6] dark:bg-slate-900/50">
+                <th className="sticky left-0 z-10 border-b border-[#ece4d7] bg-[#fcfaf6] px-4 py-2 text-left text-[11px] text-[#94a3b8] dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-500">&nbsp;</th>
                 {sabhaColumns.map((col) => (
                   <Fragment key={`header-${col.key}`}>
-                    <th key={`${col.key}-yes`} className="px-3 py-2 text-center text-emerald-300 border-b border-slate-700 text-xs uppercase tracking-wide">Yes</th>
-                    <th key={`${col.key}-no`} className="px-3 py-2 text-center text-rose-300 border-b border-slate-700 text-xs uppercase tracking-wide">No</th>
+                    <th key={`${col.key}-yes`} className="border-b border-[#ece4d7] px-3 py-2 text-center text-[11px] uppercase tracking-[0.18em] text-emerald-600 dark:border-slate-700 dark:text-emerald-300">Yes</th>
+                    <th key={`${col.key}-no`} className="border-b border-[#ece4d7] px-3 py-2 text-center text-[11px] uppercase tracking-[0.18em] text-rose-500 dark:border-slate-700 dark:text-rose-300">No</th>
                   </Fragment>
                 ))}
               </tr>
             </thead>
             <tbody>
               {areaRows.map((row, idx) => (
-                <tr key={row.area} className={`${idx % 2 === 0 ? 'bg-slate-800/35' : 'bg-slate-800/10'} hover:bg-sky-500/5 transition-colors`}>
-                  <td className="sticky left-0 z-10 bg-slate-800 px-4 py-3 text-slate-100 border-b border-slate-700/70 font-medium">{row.area}</td>
+                <tr key={row.area} className={`${idx % 2 === 0 ? 'bg-white/70 dark:bg-slate-800/35' : 'bg-[#fcfaf6] dark:bg-slate-800/10'} transition-colors hover:bg-sky-500/5`}>
+                  <td className="sticky left-0 z-10 border-b border-[#ece4d7] bg-inherit px-4 py-3 text-[15px] font-medium text-[#1f2937] dark:border-slate-700/70 dark:text-slate-100">{row.area}</td>
                   {sabhaColumns.map((col) => (
                     <Fragment key={`${row.area}-${col.key}`}>
-                      <td key={`${row.area}-${col.key}-yes`} className="px-3 py-3 text-center text-emerald-300 border-b border-slate-700/70 font-semibold tabular-nums">{row.values[col.key].yes}</td>
-                      <td key={`${row.area}-${col.key}-no`} className="px-3 py-3 text-center border-b border-slate-700/70 font-semibold tabular-nums">
-                        <span className={row.values[col.key].no === 0 ? 'text-slate-500' : 'text-rose-300'}>{row.values[col.key].no}</span>
+                      <td key={`${row.area}-${col.key}-yes`} className="border-b border-[#ece4d7] px-3 py-3 text-center font-semibold tabular-nums text-emerald-600 dark:border-slate-700/70 dark:text-emerald-300">{row.values[col.key].yes}</td>
+                      <td key={`${row.area}-${col.key}-no`} className="border-b border-[#ece4d7] px-3 py-3 text-center font-semibold tabular-nums dark:border-slate-700/70">
+                        <span className={row.values[col.key].no === 0 ? 'text-[#94a3b8] dark:text-slate-500' : 'text-rose-500 dark:text-rose-300'}>{row.values[col.key].no}</span>
                       </td>
                     </Fragment>
                   ))}
                 </tr>
               ))}
-              <tr className="bg-slate-900/70">
-                <td className="sticky left-0 z-10 bg-slate-900/95 px-4 py-3 font-semibold text-white border-t border-slate-600">Total</td>
+              <tr className="bg-[#f5efe6] dark:bg-slate-900/80">
+                <td className="sticky left-0 z-10 border-t border-[#d8cdbd] bg-[#f5efe6] px-4 py-3 font-semibold text-[#1f2937] dark:border-slate-600 dark:bg-slate-900/95 dark:text-white">Total</td>
                 {sabhaColumns.map((col) => (
                   <Fragment key={`total-${col.key}`}>
-                    <td key={`total-${col.key}-yes`} className="px-3 py-3 text-center font-bold text-emerald-300 border-t border-slate-600 tabular-nums">{totalBySabha[col.key].yes}</td>
-                    <td key={`total-${col.key}-no`} className="px-3 py-3 text-center font-bold border-t border-slate-600 tabular-nums">
-                      <span className={totalBySabha[col.key].no === 0 ? 'text-slate-500' : 'text-rose-300'}>{totalBySabha[col.key].no}</span>
+                    <td key={`total-${col.key}-yes`} className="border-t border-[#d8cdbd] px-3 py-3 text-center font-bold tabular-nums text-emerald-600 dark:border-slate-600 dark:text-emerald-300">{totalBySabha[col.key].yes}</td>
+                    <td key={`total-${col.key}-no`} className="border-t border-[#d8cdbd] px-3 py-3 text-center font-bold tabular-nums dark:border-slate-600">
+                      <span className={totalBySabha[col.key].no === 0 ? 'text-[#94a3b8] dark:text-slate-500' : 'text-rose-500 dark:text-rose-300'}>{totalBySabha[col.key].no}</span>
                     </td>
                   </Fragment>
                 ))}
@@ -490,50 +641,26 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="order-2 lg:order-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-slate-100 font-semibold mb-1">Lowest Attendance Sessions</h3>
-          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, AYC, and Bal</p>
-          {lowestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
-            <div className="space-y-3">
-              {lowestOverall.map((s) => (
-                <div key={s.date} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-300 text-sm">{s.date}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">
-                      {sessionNotesByDate[s.date] ?? 'Vakta/Topic not available for this session date'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-slate-700 rounded-full h-1.5"><div className="h-full bg-yellow-500 rounded-full" style={{ width: `${s.percentage}%` }} /></div>
-                    <span className="text-yellow-400 text-sm font-medium w-16 text-right">{s.count} ({s.percentage}%)</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="order-2 lg:order-2">
+          <AttendanceSabhaCard
+            title="Lowest Attendance Sabhas"
+            subtitle="Overall across Yuva, AYC, and Bal"
+            sessions={lowestOverall}
+            sessionNotesByDate={sessionNotesByDate}
+            barClassName="bg-yellow-500"
+            valueClassName="text-yellow-400"
+          />
         </div>
 
-        <div className="order-1 lg:order-1 bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-slate-100 font-semibold mb-1">Highest Attendance Sessions</h3>
-          <p className="text-slate-500 text-xs mb-4">Overall across Yuva, AYC, and Bal</p>
-          {highestOverall.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
-            <div className="space-y-3">
-              {highestOverall.map((s) => (
-                <div key={s.date} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-300 text-sm">{s.date}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">
-                      {sessionNotesByDate[s.date] ?? 'Vakta/Topic not available for this session date'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-slate-700 rounded-full h-1.5"><div className="h-full bg-green-500 rounded-full" style={{ width: `${s.percentage}%` }} /></div>
-                    <span className="text-green-400 text-sm font-medium w-16 text-right">{s.count} ({s.percentage}%)</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="order-1 lg:order-1">
+          <AttendanceSabhaCard
+            title="Highest Attendance Sabhas"
+            subtitle="Overall across Yuva, AYC, and Bal"
+            sessions={highestOverall}
+            sessionNotesByDate={sessionNotesByDate}
+            barClassName="bg-green-500"
+            valueClassName="text-green-400"
+          />
         </div>
       </div>
 

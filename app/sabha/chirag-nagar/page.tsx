@@ -1,16 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
 import { useSheetData } from '@/hooks/useSheetData';
 import { getSabhaStats, getKKStats, getPastDates, getLowestSessions, getHighestSessions } from '@/lib/analytics';
 import StatsCard from '@/components/StatsCard';
 import YuvakTable from '@/components/YuvakTable';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
 
 type TabType = 'overview' | 'yuvaks' | 'kk';
 type RecentSabhaSummary = {
@@ -24,6 +20,81 @@ type RiskFollowUpItem = {
   name: string;
   followUpKK: string;
 };
+
+function parseSabhaDate(value: string): Date {
+  const normalized = value.replace(/^([0-9]{1,2})-([A-Za-z]{3})-([0-9]{2})$/, (_m, day, mon, yy) => `${mon} ${day} 20${yy}`);
+  return new Date(normalized);
+}
+
+function formatAttendanceCardDate(dateString: string) {
+  const parsed = parseSabhaDate(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    const [day = '', month = ''] = dateString.split(/[-/\s]/);
+    return {
+      month: month.slice(0, 3).toUpperCase(),
+      day: day.padStart(2, '0'),
+    };
+  }
+
+  return {
+    month: parsed.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase(),
+    day: parsed.toLocaleDateString('en-IN', { day: '2-digit' }),
+  };
+}
+
+function AttendanceSabhaCard({
+  title,
+  subtitle,
+  sessions,
+  sabhaType,
+  sabhaSessionMeta,
+  barClassName,
+  valueClassName,
+}: {
+  title: string;
+  subtitle: string;
+  sessions: Array<{ date: string; count: number; percentage: number }>;
+  sabhaType: string;
+  sabhaSessionMeta: Record<string, Record<string, { vakta: string; topic: string }>> | undefined;
+  barClassName: string;
+  valueClassName: string;
+}) {
+  return (
+    <div className="h-full rounded-xl border border-slate-700 bg-slate-800 p-4">
+      <h3 className="mb-1 text-base font-semibold tracking-tight text-slate-100">{title}</h3>
+      <p className="mb-4 text-xs text-slate-400">{subtitle}</p>
+      <div className="space-y-4">
+        {sessions.map((s) => {
+          const dateParts = formatAttendanceCardDate(s.date);
+          const vakta = sabhaSessionMeta?.[sabhaType]?.[s.date]?.vakta?.trim() || '';
+          const topic = sabhaSessionMeta?.[sabhaType]?.[s.date]?.topic?.trim() || '';
+          const rowTitle = topic || 'Vakta/Topic not available';
+          const rowSubtitle = vakta ? `${vakta} • Yuva` : 'Vakta not available • Yuva';
+
+          return (
+            <div key={s.date} className="flex items-start gap-3">
+              <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[18px] border border-slate-600/35 bg-slate-700/75">
+                <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">{dateParts.month}</span>
+                <span className="mt-0.5 text-[0.95rem] font-semibold leading-none text-slate-100">{dateParts.day}</span>
+              </div>
+
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="truncate text-sm font-semibold leading-snug text-slate-100">{rowTitle}</p>
+                <p className="mt-0.5 truncate text-xs text-slate-400">{rowSubtitle}</p>
+                <div className="mt-2.5 flex items-center gap-3">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                    <div className={`h-full rounded-full ${barClassName}`} style={{ width: `${Math.min(s.percentage, 100)}%` }} />
+                  </div>
+                  <span className={`w-10 text-right text-sm font-medium ${valueClassName}`}>{s.percentage}%</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function ChiragNagarPage() {
   const { data, loading, error, refresh } = useSheetData();
@@ -122,55 +193,18 @@ export default function ChiragNagarPage() {
     moderateRisk: [],
     atRisk: [],
   });
-  const lowRiskCount = riskBuckets.lowRisk.length;
-  const moderateRiskCount = riskBuckets.moderateRisk.length;
-  const highRiskCount = riskBuckets.atRisk.length;
-
   // Last 20 active sessions for chart
   const last20Trend = stats.sessionTrend.slice(-20);
 
   // Exclude 0-attendance sessions (un-tracked historical dates) from lowest/highest
   const trackedTrend = stats.sessionTrend.filter((s) => s.count > 0);
   const lowest  = getLowestSessions(trackedTrend, 5);
-  const highest = getHighestSessions(trackedTrend, 3);
+  const highest = getHighestSessions(trackedTrend, 5);
 
   // Follow-up list (inactive based on active past dates)
   // const followUpYuvaks = filteredYuvaks
   //   .filter((y) => last6.filter((d) => y.dateAttendance[d]).length === 0)
   //   .sort((a, b) => a.name.localeCompare(b.name));
-
-  // Donut chart
-  const donutData = {
-    labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
-    datasets: [{
-      data: [lowRiskCount, moderateRiskCount, highRiskCount],
-      backgroundColor: ['rgba(34,197,94,0.85)', 'rgba(234,179,8,0.85)', 'rgba(239,68,68,0.85)'],
-      borderColor: ['rgb(34,197,94)', 'rgb(234,179,8)', 'rgb(239,68,68)'],
-      borderWidth: 2,
-      hoverOffset: 6,
-    }],
-  };
-  const donutOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    cutout: '68%',
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1e293b',
-        titleColor: '#f1f5f9',
-        bodyColor: '#94a3b8',
-        borderColor: '#334155',
-        borderWidth: 1,
-        callbacks: {
-          label: (ctx: { parsed: number }) => {
-            const pct = totalCount > 0 ? ((ctx.parsed / totalCount) * 100).toFixed(0) : '0';
-            return ` ${ctx.parsed} yuvaks (${pct}%)`;
-          },
-        },
-      },
-    },
-  };
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -281,42 +315,12 @@ export default function ChiragNagarPage() {
               <StatsCard title="Last Sabha ✅" value={`${lastSabhaCount}/${totalCount}`} subtitle={lastDate ? `${lastDate} · ${lastSabhaPct}% showed up` : '—'} accent="orange" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-4">Sabha Breakdown</p>
-                <div className="h-44 relative">
-                  <Doughnut data={donutData} options={donutOptions} />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-slate-100">{totalCount}</p>
-                      <p className="text-slate-500 text-xs">Total</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {[
-                    { label: 'Low Risk', count: lowRiskCount, color: 'bg-green-500', text: 'text-green-400' },
-                    { label: 'Moderate Risk', count: moderateRiskCount, color: 'bg-yellow-400', text: 'text-yellow-400' },
-                    { label: 'High Risk', count: highRiskCount, color: 'bg-red-500', text: 'text-red-400' },
-                  ].map(({ label, count, color, text }) => (
-                    <div key={label} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-                        <span className="text-slate-300">{label}</span>
-                      </div>
-                      <span className={text}>{count} ({totalCount > 0 ? Math.round((count / totalCount) * 100) : 0}%)</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="lg:col-span-2">
-                <AttendanceTrendChart
-                  sessionTrend={last20Trend}
-                  sabhaLabel="Chirag Nagar"
-                  totalYuvaks={stats.totalYuvaks}
-                />
-              </div>
+            <div>
+              <AttendanceTrendChart
+                sessionTrend={last20Trend}
+                sabhaLabel="Chirag Nagar"
+                totalYuvaks={stats.totalYuvaks}
+              />
             </div>
 
             <div className="space-y-3">
@@ -405,6 +409,31 @@ export default function ChiragNagarPage() {
 
             {/* Lowest / Best sessions */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="lg:order-2">
+                <AttendanceSabhaCard
+                  title="Lowest Attendance Sabhas"
+                  subtitle="From last 52 sabhas"
+                  sessions={lowest}
+                  sabhaType={sabhaType}
+                  sabhaSessionMeta={sabhaSessionMeta}
+                  barClassName="bg-yellow-500"
+                  valueClassName="text-yellow-400"
+                />
+              </div>
+              <div className="lg:order-1">
+                <AttendanceSabhaCard
+                  title="Highest Attendance Sabhas"
+                  subtitle="From last 52 sabhas"
+                  sessions={highest}
+                  sabhaType={sabhaType}
+                  sabhaSessionMeta={sabhaSessionMeta}
+                  barClassName="bg-green-500"
+                  valueClassName="text-green-400"
+                />
+              </div>
+            </div>
+
+            <div className="hidden grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 lg:order-2">
                 <h3 className="text-slate-100 font-semibold mb-1">Lowest Sessions</h3>
                 <p className="text-slate-500 text-xs mb-3">Check for exams, festivals, or other conflicts</p>

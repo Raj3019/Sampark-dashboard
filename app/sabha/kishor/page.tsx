@@ -28,6 +28,78 @@ function parseSabhaDate(value: string): Date {
   return new Date(normalized);
 }
 
+function formatAttendanceCardDate(dateString: string) {
+  const parsed = parseSabhaDate(dateString);
+  if (Number.isNaN(parsed.getTime())) {
+    const [day = '', month = ''] = dateString.split(/[-/\s]/);
+    return {
+      month: month.slice(0, 3).toUpperCase(),
+      day: day.padStart(2, '0'),
+    };
+  }
+
+  return {
+    month: parsed.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase(),
+    day: parsed.toLocaleDateString('en-IN', { day: '2-digit' }),
+  };
+}
+
+function AttendanceSabhaCard({
+  title,
+  subtitle,
+  sessions,
+  sabhaType,
+  sabhaSessionMeta,
+  barClassName,
+  valueClassName,
+}: {
+  title: string;
+  subtitle: string;
+  sessions: Array<{ date: string; count: number; percentage: number }>;
+  sabhaType: string;
+  sabhaSessionMeta: Record<string, Record<string, { vakta: string; topic: string }>> | undefined;
+  barClassName: string;
+  valueClassName: string;
+}) {
+  return (
+    <div className="h-full rounded-xl border border-slate-700 bg-slate-800 p-4">
+      <h3 className="mb-1 text-base font-semibold tracking-tight text-slate-100">{title}</h3>
+      <p className="mb-4 text-xs text-slate-400">{subtitle}</p>
+      <div className="space-y-4">
+        {sessions.map((s) => {
+          const dateParts = formatAttendanceCardDate(s.date);
+          const vakta = sabhaSessionMeta?.[sabhaType]?.[s.date]?.vakta?.trim() || '';
+          const topic = sabhaSessionMeta?.[sabhaType]?.[s.date]?.topic?.trim() || '';
+          const rowTitle = topic || 'Vakta/Topic not available';
+          const displaySubtitle = vakta ? `${vakta} • AYC` : 'Vakta not available • AYC';
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const rowSubtitle = [vakta, 'AYC'].filter(Boolean).join(' • ') || 'Vakta/Topic not available';
+
+          return (
+            <div key={s.date} className="flex items-start gap-3">
+              <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[18px] border border-slate-600/35 bg-slate-700/75">
+                <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">{dateParts.month}</span>
+                <span className="mt-0.5 text-[0.95rem] font-semibold leading-none text-slate-100">{dateParts.day}</span>
+              </div>
+
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="truncate text-sm font-semibold leading-snug text-slate-100">{rowTitle}</p>
+                <p className="mt-0.5 truncate text-xs text-slate-400">{displaySubtitle}</p>
+                <div className="mt-2.5 flex items-center gap-3">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                    <div className={`h-full rounded-full ${barClassName}`} style={{ width: `${Math.min(s.percentage, 100)}%` }} />
+                  </div>
+                  <span className={`w-10 text-right text-sm font-medium ${valueClassName}`}>{s.percentage}%</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function KishorSabhaPage() {
   const { data, loading, error, refresh } = useSheetData();
   const { data: session } = authClient.useSession();
@@ -182,7 +254,7 @@ export default function KishorSabhaPage() {
   const last20Trend  = trendLast52.slice(-20);
   const trackedTrend = trendLast52.filter((s) => s.count > 0);
   const lowest       = getLowestSessions(trackedTrend, 5);
-  const highest      = getHighestSessions(trackedTrend, 3);
+  const highest      = getHighestSessions(trackedTrend, 5);
   const predicted    = predictNextAttendance(trendLast52);
 
   const threeMonthCutoff = new Date();
@@ -565,6 +637,31 @@ export default function KishorSabhaPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="lg:order-2">
+              <AttendanceSabhaCard
+                title="Lowest Attendance Sabhas"
+                subtitle="From last 52 sabhas"
+                sessions={lowest}
+                sabhaType={sabhaType}
+                sabhaSessionMeta={sabhaSessionMeta}
+                barClassName="bg-yellow-500"
+                valueClassName="text-yellow-400"
+              />
+            </div>
+            <div className="lg:order-1">
+              <AttendanceSabhaCard
+                title="Highest Attendance Sabhas"
+                subtitle="From last 52 sabhas"
+                sessions={highest}
+                sabhaType={sabhaType}
+                sabhaSessionMeta={sabhaSessionMeta}
+                barClassName="bg-green-500"
+                valueClassName="text-green-400"
+              />
+            </div>
+          </div>
+
+          <div className="hidden grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 lg:order-2">
               <h3 className="text-slate-100 font-semibold mb-1">Lowest Sessions</h3>
               <p className="text-slate-500 text-xs mb-3">From last 52 sabhas · check for exams, festivals, or other conflicts</p>
