@@ -274,7 +274,7 @@ export default function Navbar() {
               type="text"
               aria-label="Search"
               placeholder="Search yuvaks, KKs, or areas..."
-              className="w-full border-0 bg-transparent text-[15px] text-[#1f3552] placeholder:text-[#97a4bb] focus:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="w-full border-0 bg-transparent! text-[15px] text-[#1f3552] placeholder:text-[#97a4bb] focus:outline-none dark:bg-transparent! dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </div>
 

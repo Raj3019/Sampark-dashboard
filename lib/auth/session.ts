@@ -13,6 +13,12 @@ export type UserAccessContext = {
   name: string;
 };
 
+export function getRoleHomePath(role: string | undefined) {
+  if (role === 'kk') return '/kk-home';
+  if (role === 'leader') return '/sabha/kishor';
+  return '/';
+}
+
 export async function getServerSession() {
   return auth.api.getSession({
     headers: await headers(),

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
-import { getServerSession } from '@/lib/auth/session';
+import { getRoleHomePath, getServerSession } from '@/lib/auth/session';
 
 export default async function LoginPage({
   searchParams,
@@ -10,18 +10,18 @@ export default async function LoginPage({
   const session = await getServerSession();
 
   if (session) {
-    redirect('/');
+    redirect(getRoleHomePath((session.user as { role?: string }).role));
   }
 
   const resolvedSearchParams = await searchParams;
-  const callbackUrl = resolvedSearchParams?.next?.startsWith('/') ? resolvedSearchParams.next : '/';
+  const callbackUrl = resolvedSearchParams?.next?.startsWith('/') ? resolvedSearchParams.next : '/post-login';
 
   return (
     <div className="min-h-screen bg-[#0f172a]">
-      <div className="min-h-screen bg-[linear-gradient(90deg,#da7b00_0%,#f29a06_44%,#0f172a_44%,#111c33_100%)]">
-        <div className="mx-auto flex min-h-screen max-w-7xl items-center px-3 py-5 sm:px-5 lg:px-7">
-          <div className="grid w-full items-center gap-6 lg:grid-cols-[1fr_0.88fr]">
-            <div className="space-y-5 text-white">
+      <div className="min-h-screen bg-[linear-gradient(180deg,#0f172a_0%,#101a2f_100%)] lg:bg-[linear-gradient(90deg,#da7b00_0%,#f29a06_44%,#0f172a_44%,#111c33_100%)]">
+        <div className="mx-auto flex min-h-screen max-w-7xl items-center px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
+          <div className="grid w-full items-center gap-5 lg:grid-cols-[1fr_0.88fr] lg:gap-6">
+            <div className="hidden space-y-5 rounded-2xl bg-[linear-gradient(180deg,#d98503_0%,#ee9809_100%)] p-5 text-white sm:p-6 lg:block lg:rounded-none lg:bg-none lg:p-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-[#d77a07] shadow-[0_8px_18px_rgba(0,0,0,0.14)]">
                   S
@@ -30,7 +30,7 @@ export default async function LoginPage({
               </div>
 
               <div className="max-w-md space-y-4">
-                <h1 className="max-w-96 text-4xl font-bold leading-[1.02] tracking-tight text-white lg:text-[3rem]">
+                <h1 className="max-w-96 text-[2.75rem] font-bold leading-[1.02] tracking-tight text-white sm:text-5xl lg:text-[3rem]">
                   Secure access for your Sabha dashboard.
                 </h1>
 
