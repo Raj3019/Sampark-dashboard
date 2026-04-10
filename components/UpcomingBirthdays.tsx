@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSheetData } from '@/hooks/useSheetData';
+import { Yuvak } from '@/lib/types';
 
 type BirthdayEntry = {
   name: string;
@@ -89,13 +91,31 @@ function getBadgeLabel(daysUntil: number) {
   return `${daysUntil}d`;
 }
 
+function getScopedBirthdayYuvaks(pathname: string, yuvaks: Yuvak[]) {
+  if (pathname === '/sabha/kishor') {
+    return yuvaks.filter((yuvak) => yuvak.sabhaType === 'Chirag Nagar(Kishor)');
+  }
+
+  if (pathname === '/sabha/chirag-nagar') {
+    return yuvaks.filter((yuvak) => yuvak.sabhaType === 'Chirag Nagar');
+  }
+
+  if (pathname === '/sabha/bal') {
+    return yuvaks.filter((yuvak) => yuvak.sabhaType === 'Bal Sabha');
+  }
+
+  return yuvaks;
+}
+
 export default function UpcomingBirthdays() {
+  const pathname = usePathname();
   const { data, loading, error } = useSheetData();
   const [expanded, setExpanded] = useState(false);
 
   if (loading || error || !data) return null;
 
-  const birthdays = getUpcomingBirthdays(data.yuvaks);
+  const scopedYuvaks = getScopedBirthdayYuvaks(pathname, data.yuvaks);
+  const birthdays = getUpcomingBirthdays(scopedYuvaks);
   if (birthdays.length === 0) return null;
 
   const visibleBirthdays = expanded ? birthdays : birthdays.slice(0, 2);

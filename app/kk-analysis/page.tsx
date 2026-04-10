@@ -10,6 +10,10 @@ import { KKStats } from '@/lib/types';
 
 type SabhaFilter = 'cn' | 'kishor' | 'bal';
 
+function normalizePersonName(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function KKSection({
   kkStats,
   dates,
@@ -17,6 +21,9 @@ function KKSection({
   label,
   borderClass,
   badgeClass,
+  sabhaLabel,
+  enableWhatsappActions = false,
+  kkWhatsappNumbers = {},
 }: {
   kkStats: KKStats[];
   dates: string[];
@@ -24,34 +31,37 @@ function KKSection({
   label: string;
   borderClass: string;
   badgeClass: string;
+  sabhaLabel: string;
+  enableWhatsappActions?: boolean;
+  kkWhatsappNumbers?: Record<string, string>;
 }) {
-  const overloaded = kkStats.filter((k) => k.yuvaks.length > 6);
-  const total = kkStats.reduce((s, k) => s + k.yuvaks.length, 0);
+  const overloaded = kkStats.filter((kk) => kk.yuvaks.length > 6);
+  const total = kkStats.reduce((sum, kk) => sum + kk.yuvaks.length, 0);
   const avgPerKK = kkStats.length > 0 ? Math.round(total / kkStats.length) : 0;
 
   return (
     <div className="space-y-5">
-      <div className={`flex items-center gap-3 pb-3 border-b ${borderClass}`}>
-        <span className={`w-1 h-6 rounded-full ${accentColor}`} />
-        <h2 className="text-slate-100 font-bold text-lg">{label}</h2>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${badgeClass}`}>{kkStats.length} KKs · {total} yuvaks</span>
+      <div className={`flex items-center gap-3 border-b pb-3 ${borderClass}`}>
+        <span className={`h-6 w-1 rounded-full ${accentColor}`} />
+        <h2 className="text-lg font-bold text-slate-100">{label}</h2>
+        <span className={`rounded-full px-2 py-0.5 text-xs ${badgeClass}`}>{kkStats.length} KKs · {total} yuvaks</span>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatsCard title="Total KKs" value={kkStats.length} subtitle="in this sabha" accent="orange" />
         <StatsCard title="Avg Yuvaks/KK" value={avgPerKK} subtitle="per KK on average" accent="blue" />
         <StatsCard title="Overloaded KKs" value={overloaded.length} subtitle="more than 6 yuvaks" accent="yellow" />
       </div>
 
       {overloaded.length > 0 && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-          <div className="flex gap-2 mb-2">
-            <span className="text-yellow-400">⚠️</span>
-            <p className="text-yellow-300 font-medium text-sm">KKs with Heavy Follow-Up Load</p>
+        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+          <div className="mb-2 flex gap-2">
+            <span className="text-yellow-400">!</span>
+            <p className="text-sm font-medium text-yellow-300">KKs with Heavy Follow-Up Load</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {overloaded.map((kk) => (
-              <span key={kk.name} className="px-3 py-1 bg-yellow-500/15 border border-yellow-500/20 text-yellow-300 rounded-full text-xs">
+              <span key={kk.name} className="rounded-full border border-yellow-500/20 bg-yellow-500/15 px-3 py-1 text-xs text-yellow-300">
                 {kk.name} ({kk.yuvaks.length} yuvaks)
               </span>
             ))}
@@ -59,41 +69,50 @@ function KKSection({
         </div>
       )}
 
-      <div className={`bg-slate-800 border rounded-xl p-5 ${borderClass}`}>
-        <KKWorkloadChart kkStats={kkStats} dates={dates} />
+      <div className={`rounded-xl border bg-slate-800 p-5 ${borderClass}`}>
+        <KKWorkloadChart
+          kkStats={kkStats}
+          dates={dates}
+          sabhaLabel={sabhaLabel}
+          enableWhatsappActions={enableWhatsappActions}
+          kkWhatsappNumbers={kkWhatsappNumbers}
+        />
       </div>
 
       <div className="flex items-center gap-3">
-        <h3 className="text-slate-100 font-semibold text-sm">Detailed KK Report</h3>
-        <div className="flex-1 h-px bg-slate-700" />
-        <span className="text-slate-500 text-xs">{kkStats.length} KKs · {total} yuvaks</span>
+        <h3 className="text-sm font-semibold text-slate-100">Detailed KK Report</h3>
+        <div className="h-px flex-1 bg-slate-700" />
+        <span className="text-xs text-slate-500">{kkStats.length} KKs · {total} yuvaks</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {kkStats.map((kk) => {
           const urgentYuvaks = kk.yuvaks
-            .filter((y) => getAttendanceStatus(y, dates) === 'red' || getAttendanceStatus(y, dates) === 'yellow')
-            .sort((a, b) => a.attendancePercent - b.attendancePercent);
+            .filter((yuvak) => {
+              const status = getAttendanceStatus(yuvak, dates);
+              return status === 'red' || status === 'yellow';
+            })
+            .sort((left, right) => left.attendancePercent - right.attendancePercent);
           const totalForKK = kk.yuvaks.length;
 
           return (
-            <div key={kk.name} className={`bg-slate-800 border rounded-xl p-5 ${kk.yellowCount > 0 ? 'border-yellow-500/20' : 'border-slate-700'}`}>
-              <div className="flex items-start justify-between mb-3">
+            <div key={kk.name} className={`rounded-xl border bg-slate-800 p-5 ${kk.yellowCount > 0 ? 'border-yellow-500/20' : 'border-slate-700'}`}>
+              <div className="mb-3 flex items-start justify-between">
                 <div>
-                  <p className="text-slate-100 font-semibold">{kk.name}</p>
+                  <p className="font-semibold text-slate-100">{kk.name}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-slate-100">{totalForKK}</p>
-                  <p className="text-slate-500 text-xs">yuvaks</p>
+                  <p className="text-xs text-slate-500">yuvaks</p>
                 </div>
               </div>
 
-              <div className="flex gap-0 h-2 rounded-full overflow-hidden mb-3">
+              <div className="mb-3 flex h-2 gap-0 overflow-hidden rounded-full">
                 {kk.greenCount > 0 && <div className="bg-green-500" style={{ width: `${(kk.greenCount / totalForKK) * 100}%` }} />}
                 {kk.yellowCount > 0 && <div className="bg-yellow-400" style={{ width: `${(kk.yellowCount / totalForKK) * 100}%` }} />}
               </div>
 
-              <div className="flex gap-3 text-xs mb-3">
+              <div className="mb-3 flex gap-3 text-xs">
                 <span className="text-green-400">{kk.greenCount} active</span>
                 <span className="text-yellow-400">{kk.yellowCount} attention</span>
                 <span className="ml-auto text-slate-400">avg {kk.avgAttendance}%</span>
@@ -101,19 +120,19 @@ function KKSection({
 
               {urgentYuvaks.length > 0 && (
                 <div className="border-t border-slate-700 pt-3">
-                  <p className="text-slate-400 text-xs mb-2">Needs follow-up ({urgentYuvaks.length}):</p>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                    {urgentYuvaks.slice(0, 6).map((y, i) => (
-                      <div key={`${y.name}-${i}`} className="flex items-center justify-between">
-                        <span className="text-slate-300 text-xs">{y.name}</span>
+                  <p className="mb-2 text-xs text-slate-400">Needs follow-up ({urgentYuvaks.length}):</p>
+                  <div className="max-h-32 space-y-1.5 overflow-y-auto">
+                    {urgentYuvaks.slice(0, 6).map((yuvak, index) => (
+                      <div key={`${yuvak.name}-${index}`} className="flex items-center justify-between">
+                        <span className="text-xs text-slate-300">{yuvak.name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-slate-500 text-xs">{y.attendancePercent.toFixed(0)}%</span>
-                          <StatusBadge status={getAttendanceStatus(y, dates)} size="sm" />
+                          <span className="text-xs text-slate-500">{yuvak.attendancePercent.toFixed(0)}%</span>
+                          <StatusBadge status={getAttendanceStatus(yuvak, dates)} size="sm" />
                         </div>
                       </div>
                     ))}
                     {urgentYuvaks.length > 6 && (
-                      <p className="text-slate-600 text-xs">+{urgentYuvaks.length - 6} more</p>
+                      <p className="text-xs text-slate-600">+{urgentYuvaks.length - 6} more</p>
                     )}
                   </div>
                 </div>
@@ -131,36 +150,48 @@ export default function KKAnalysisPage() {
   const [attendingFilter, setAttendingFilter] = useState<'all' | 'yes' | 'no'>('yes');
   const [sabhaFilter, setSabhaFilter] = useState<SabhaFilter>('cn');
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  if (error) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center">
-        <p className="text-red-400 mb-3">{error}</p>
-        <button onClick={refresh} className="px-4 py-2 bg-slate-700 text-slate-200 rounded-lg text-sm">Retry</button>
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-center">
+          <p className="mb-3 text-red-400">{error}</p>
+          <button onClick={refresh} className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-200">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return null;
 
   const { yuvaks, dates } = data;
   const pastDates = getPastDates(dates);
-  const allCN = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar');
-  const allKishor = yuvaks.filter((y) => y.sabhaType === 'Chirag Nagar(Kishor)');
-  const allBal = yuvaks.filter((y) => y.sabhaType === 'Bal Sabha');
+  const allCN = yuvaks.filter((yuvak) => yuvak.sabhaType === 'Chirag Nagar');
+  const allKishor = yuvaks.filter((yuvak) => yuvak.sabhaType === 'Chirag Nagar(Kishor)');
+  const allBal = yuvaks.filter((yuvak) => yuvak.sabhaType === 'Bal Sabha');
+  const kkWhatsappNumbers = allCN.reduce<Record<string, string>>((acc, yuvak) => {
+    const nameKey = normalizePersonName(yuvak.name);
+    const phoneNumber = yuvak.phoneNumber?.trim();
 
-  const cnActiveDates = pastDates.filter((d) => allCN.some((y) => y.dateAttendance[d]));
-  const kishorActiveDates = pastDates.filter((d) => allKishor.some((y) => y.dateAttendance[d]));
-  const balActiveDates = pastDates.filter((d) => allBal.some((y) => y.dateAttendance[d]));
+    if (!nameKey || !phoneNumber || acc[nameKey]) return acc;
+    acc[nameKey] = phoneNumber;
+    return acc;
+  }, {});
 
-  const applyAttending = <T extends { attendingSabha: boolean }>(arr: T[]) =>
-    arr.filter((y) =>
-      attendingFilter === 'all' ? true : attendingFilter === 'yes' ? y.attendingSabha : !y.attendingSabha
+  const cnActiveDates = pastDates.filter((date) => allCN.some((yuvak) => yuvak.dateAttendance[date]));
+  const kishorActiveDates = pastDates.filter((date) => allKishor.some((yuvak) => yuvak.dateAttendance[date]));
+  const balActiveDates = pastDates.filter((date) => allBal.some((yuvak) => yuvak.dateAttendance[date]));
+
+  const applyAttending = <T extends { attendingSabha: boolean }>(values: T[]) =>
+    values.filter((item) =>
+      attendingFilter === 'all' ? true : attendingFilter === 'yes' ? item.attendingSabha : !item.attendingSabha
     );
 
   const cnYuvaks = applyAttending(allCN);
@@ -171,15 +202,19 @@ export default function KKAnalysisPage() {
   const kishorKKStats = getKKStats(kishorYuvaks, kishorActiveDates);
   const balKKStats = getKKStats(balYuvaks, balActiveDates);
 
-  const totalKKs = new Set([...cnKKStats.map((k) => k.name), ...kishorKKStats.map((k) => k.name), ...balKKStats.map((k) => k.name)]).size;
+  const totalKKs = new Set([
+    ...cnKKStats.map((kk) => kk.name),
+    ...kishorKKStats.map((kk) => kk.name),
+    ...balKKStats.map((kk) => kk.name),
+  ]).size;
   const totalYuvaks = cnYuvaks.length + kishorYuvaks.length + balYuvaks.length;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">KK Analysis</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="mt-1 text-sm text-slate-500">
             Follow-up KK workload across all sabhas ·{' '}
             <span className="text-blue-400">{cnKKStats.length} CN KKs</span>
             {' · '}
@@ -190,13 +225,13 @@ export default function KKAnalysisPage() {
             <span className="text-slate-400">{totalKKs} unique KKs · {totalYuvaks} yuvaks</span>
           </p>
         </div>
-        <button onClick={refresh} className="px-2.5 py-1 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg self-start transition-colors">
-          ↻ Refresh
+        <button onClick={refresh} className="self-start rounded-lg bg-slate-700 px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-600">
+          Refresh
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
-        <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex w-full overflow-hidden rounded-lg border border-slate-700 text-xs font-medium sm:w-auto">
           <button
             onClick={() => setSabhaFilter('cn')}
             className={`px-3 py-1.5 transition-colors ${sabhaFilter === 'cn' ? 'bg-blue-700/60 text-blue-100' : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'}`}
@@ -217,18 +252,18 @@ export default function KKAnalysisPage() {
           </button>
         </div>
 
-        <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs font-medium w-full sm:w-auto">
-          {(['yes'] as const).map((v) => (
+        <div className="flex w-full overflow-hidden rounded-lg border border-slate-700 text-xs font-medium sm:w-auto">
+          {(['yes'] as const).map((value) => (
             <button
-              key={v}
-              onClick={() => setAttendingFilter(v)}
+              key={value}
+              onClick={() => setAttendingFilter(value)}
               className={`px-3 py-1.5 transition-colors ${
-                attendingFilter === v
+                attendingFilter === value
                   ? 'bg-green-700/60 text-green-200'
                   : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
               }`}
             >
-              ✓ Attending
+              Attending
             </button>
           ))}
         </div>
@@ -239,9 +274,12 @@ export default function KKAnalysisPage() {
           kkStats={cnKKStats}
           dates={cnActiveDates}
           accentColor="bg-blue-500"
-          label="Chirag Nagar Sabha — KK Workload"
+          label="Chirag Nagar Sabha - KK Workload"
           borderClass="border-blue-500/20"
-          badgeClass="bg-blue-500/10 text-blue-400 border border-blue-500/20"
+          badgeClass="border border-blue-500/20 bg-blue-500/10 text-blue-400"
+          sabhaLabel="Chirag Nagar"
+          enableWhatsappActions
+          kkWhatsappNumbers={kkWhatsappNumbers}
         />
       )}
 
@@ -250,9 +288,10 @@ export default function KKAnalysisPage() {
           kkStats={kishorKKStats}
           dates={kishorActiveDates}
           accentColor="bg-purple-500"
-          label="Kishor Sabha — KK Workload"
+          label="Kishor Sabha - KK Workload"
           borderClass="border-purple-500/20"
-          badgeClass="bg-purple-500/10 text-purple-400 border border-purple-500/20"
+          badgeClass="border border-purple-500/20 bg-purple-500/10 text-purple-400"
+          sabhaLabel="Kishor"
         />
       )}
 
@@ -261,9 +300,10 @@ export default function KKAnalysisPage() {
           kkStats={balKKStats}
           dates={balActiveDates}
           accentColor="bg-orange-500"
-          label="Bal Sabha — KK Workload"
+          label="Bal Sabha - KK Workload"
           borderClass="border-orange-500/20"
-          badgeClass="bg-orange-500/10 text-orange-400 border border-orange-500/20"
+          badgeClass="border border-orange-500/20 bg-orange-500/10 text-orange-400"
+          sabhaLabel="Bal"
         />
       )}
     </div>
