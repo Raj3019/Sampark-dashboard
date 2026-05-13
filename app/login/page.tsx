@@ -14,7 +14,8 @@ export default async function LoginPage({
   }
 
   const resolvedSearchParams = await searchParams;
-  const callbackUrl = resolvedSearchParams?.next?.startsWith('/') ? resolvedSearchParams.next : '/post-login';
+  const nextPath = resolvedSearchParams?.next;
+  const callbackUrl = nextPath?.startsWith('/') && nextPath !== '/' ? nextPath : '/post-login';
 
   return (
     <div className="min-h-screen bg-[#0f172a]">

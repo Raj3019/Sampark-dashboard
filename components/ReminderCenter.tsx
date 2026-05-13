@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { authClient } from '@/lib/auth/client';
 import { useReminders } from '@/hooks/useReminders';
 import ContactActions from '@/components/ContactActions';
+import { SABHA_DISPLAY, SABHA_TYPES } from '@/lib/sabha';
+import { ReminderItem, SabhaType } from '@/lib/types';
 
 type ReminderCenterProps = {
   variant?: 'compact' | 'full';
@@ -52,6 +54,24 @@ function formatActorLine(label: string, name: string | null, timestamp: string |
   if (!name) return null;
   const time = formatTimestamp(timestamp);
   return `${label} ${name}${time ? ` on ${time}` : ''}`;
+}
+
+function getSabhaLabel(sabhaType: SabhaType) {
+  return SABHA_DISPLAY[sabhaType]?.navLabel ?? sabhaType;
+}
+
+function sortSabhaTypes(types: SabhaType[]) {
+  const order = new Map(SABHA_TYPES.map((sabhaType, index) => [sabhaType, index]));
+  return [...types].sort((left, right) => (order.get(left) ?? 99) - (order.get(right) ?? 99));
+}
+
+function groupRemindersBySabha(reminders: ReminderItem[]) {
+  const sabhaTypes = sortSabhaTypes(Array.from(new Set(reminders.map((item) => item.sabhaType))));
+
+  return sabhaTypes.map((sabhaType) => ({
+    sabhaType,
+    reminders: reminders.filter((item) => item.sabhaType === sabhaType),
+  }));
 }
 
 export default function ReminderCenter({ variant = 'compact' }: ReminderCenterProps) {
@@ -232,25 +252,38 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
                     No {item.label.toLowerCase()} reminders.
                   </p>
                 ) : (
-                  item.reminders.map((reminder) => (
-                      <div key={`${item.label}-${reminder.id}`} className="rounded-xl border border-[#ece4d7] bg-[#fffdfa] px-3 py-3 transition-colors hover:bg-[#f8f3eb] dark:border-slate-800/90 dark:bg-slate-900/70 dark:hover:bg-slate-900">
-                        <p className="truncate text-sm font-semibold text-[#1f2937] dark:text-slate-100">{reminder.yuvakName}</p>
-                        <p className="mt-1 text-[11px] text-[#64748b] dark:text-slate-400">
-                          KK: <span className="text-[#334155] dark:text-slate-300">{reminder.followUpKK}</span> - Missed {reminder.missedSabhaCount} sabhas
-                        </p>
-                        {reminder.phoneNumber ? (
-                          <div className="mt-1.5 flex items-center gap-2 text-[11px]">
-                            <span className="text-[#64748b] dark:text-slate-400">
-                              Phone: <span className="text-[#334155] dark:text-slate-200">{reminder.phoneNumber}</span>
-                            </span>
-                            <ContactActions name={reminder.yuvakName} phoneNumber={reminder.phoneNumber} size="xs" />
-                          </div>
-                        ) : (
-                          <p className="mt-1.5 text-[11px] text-[#94a3b8] dark:text-slate-500">
-                            Phone number not available
-                          </p>
-                        )}
+                  groupRemindersBySabha(item.reminders).map((group) => (
+                    <div key={`${item.label}-${group.sabhaType}`} className="space-y-2">
+                      <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border border-[#ece4d7] bg-[#fff7ed] px-2.5 py-1.5 text-[11px] font-semibold text-[#8b5e13] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+                        <span>{getSabhaLabel(group.sabhaType)}</span>
+                        <span>{group.reminders.length}</span>
                       </div>
+                      {group.reminders.map((reminder) => (
+                        <div key={`${item.label}-${reminder.id}`} className="rounded-xl border border-[#ece4d7] bg-[#fffdfa] px-3 py-3 transition-colors hover:bg-[#f8f3eb] dark:border-slate-800/90 dark:bg-slate-900/70 dark:hover:bg-slate-900">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="truncate text-sm font-semibold text-[#1f2937] dark:text-slate-100">{reminder.yuvakName}</p>
+                            <span className="shrink-0 rounded-full border border-[#eadfce] bg-[#fff7ed] px-2 py-0.5 text-[10px] font-semibold text-[#8b5e13] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+                              {SABHA_DISPLAY[reminder.sabhaType]?.shortLabel ?? getSabhaLabel(reminder.sabhaType)}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-[11px] text-[#64748b] dark:text-slate-400">
+                            KK: <span className="text-[#334155] dark:text-slate-300">{reminder.followUpKK}</span> - Missed {reminder.missedSabhaCount} sabhas
+                          </p>
+                          {reminder.phoneNumber ? (
+                            <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+                              <span className="text-[#64748b] dark:text-slate-400">
+                                Phone: <span className="text-[#334155] dark:text-slate-200">{reminder.phoneNumber}</span>
+                              </span>
+                              <ContactActions name={reminder.yuvakName} phoneNumber={reminder.phoneNumber} size="xs" />
+                            </div>
+                          ) : (
+                            <p className="mt-1.5 text-[11px] text-[#94a3b8] dark:text-slate-500">
+                              Phone number not available
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   ))
                 )}
               </div>
