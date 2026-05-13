@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Phone, Search } from 'lucide-react';
 import { KKStats } from '@/lib/types';
 
 interface Props {
@@ -19,6 +20,16 @@ function normalizeWhatsappNumber(value: string | null | undefined) {
   if (!digitsOnly) return null;
 
   return digitsOnly.length === 10 ? `91${digitsOnly}` : digitsOnly;
+}
+
+function normalizePhoneHref(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+
+  const normalized = trimmed.replace(/[^\d+]/g, '');
+  if (!/\d{7,}/.test(normalized.replace(/\D/g, ''))) return null;
+
+  return `tel:${normalized}`;
 }
 
 function normalizePersonName(value: string) {
@@ -115,13 +126,13 @@ export default function KKWorkloadChart({
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 select-none text-xs text-slate-500">Search</span>
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             placeholder="Search KK name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-52 rounded-lg border border-slate-700 bg-slate-800 py-2 pl-16 pr-3 text-sm text-slate-200 placeholder-slate-500 focus:border-orange-500 focus:outline-none"
+            className="w-52 rounded-lg border border-slate-700 bg-slate-800 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder-slate-500 focus:border-orange-500 focus:outline-none"
           />
         </div>
         <select
@@ -156,7 +167,9 @@ export default function KKWorkloadChart({
                 const total = kk.yuvaks.length;
                 const { moderateRisk, atRisk, absentLast, activePct } = getRiskSummary(kk, last2Dates, last4Dates, lastDate);
                 const areas = Array.from(new Set(kk.yuvaks.map((y) => y.area).filter(Boolean))).sort();
-                const whatsappNumber = normalizeWhatsappNumber(kkWhatsappNumbers[normalizePersonName(kk.name)]);
+                const kkPhoneNumber = kkWhatsappNumbers[normalizePersonName(kk.name)];
+                const phoneHref = normalizePhoneHref(kkPhoneNumber);
+                const whatsappNumber = normalizeWhatsappNumber(kkPhoneNumber);
                 const whatsappHref = whatsappNumber
                   ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(buildKkWhatsappMessage(kk, sabhaLabel))}`
                   : null;
@@ -166,6 +179,16 @@ export default function KKWorkloadChart({
                     <td className="px-4 py-3 text-sm font-semibold text-slate-100">
                       <div className="flex items-center gap-2">
                         <span>{kk.name}</span>
+                        {enableWhatsappActions && phoneHref && (
+                          <a
+                            href={phoneHref}
+                            aria-label={`Call ${kk.name}`}
+                            title={`Call ${kk.name}`}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/10 text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-200"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                          </a>
+                        )}
                         {enableWhatsappActions && whatsappHref && (
                           <a
                             href={whatsappHref}
@@ -173,7 +196,7 @@ export default function KKWorkloadChart({
                             rel="noreferrer"
                             aria-label={`Open WhatsApp for ${kk.name}`}
                             title={`Send ${kk.name} their yuvak list on WhatsApp`}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/10 text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-emerald-500/35 bg-emerald-500/10 text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-200"
                           >
                             <svg
                               aria-hidden="true"

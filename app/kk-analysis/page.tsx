@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getAttendanceStatus, getKKStats, getPastDates } from '@/lib/analytics';
 import { useSheetData } from '@/hooks/useSheetData';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
@@ -149,6 +149,27 @@ export default function KKAnalysisPage() {
   const { data, loading, error, refresh } = useSheetData();
   const [attendingFilter, setAttendingFilter] = useState<'all' | 'yes' | 'no'>('yes');
   const [sabhaFilter, setSabhaFilter] = useState<SabhaFilter>('cn');
+  const [kkContacts, setKkContacts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchKkContacts = async () => {
+      try {
+        const response = await fetch('/api/kk-contacts');
+        if (!response.ok) return;
+        const payload = await response.json() as { contacts?: Record<string, string> };
+        if (!cancelled) setKkContacts(payload.contacts ?? {});
+      } catch {
+        if (!cancelled) setKkContacts({});
+      }
+    };
+
+    fetchKkContacts();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -176,7 +197,7 @@ export default function KKAnalysisPage() {
   const allCN = yuvaks.filter((yuvak) => yuvak.sabhaType === 'Chirag Nagar');
   const allKishor = yuvaks.filter((yuvak) => yuvak.sabhaType === 'Chirag Nagar(Kishor)');
   const allBal = yuvaks.filter((yuvak) => yuvak.sabhaType === 'Bal Sabha');
-  const kkWhatsappNumbers = allCN.reduce<Record<string, string>>((acc, yuvak) => {
+  const kkWhatsappNumbers = yuvaks.reduce<Record<string, string>>((acc, yuvak) => {
     const nameKey = normalizePersonName(yuvak.name);
     const phoneNumber = yuvak.phoneNumber?.trim();
 
@@ -184,6 +205,12 @@ export default function KKAnalysisPage() {
     acc[nameKey] = phoneNumber;
     return acc;
   }, {});
+  Object.entries(kkContacts).forEach(([kkName, phoneNumber]) => {
+    const nameKey = normalizePersonName(kkName);
+    const trimmedPhone = phoneNumber?.trim();
+    if (!nameKey || !trimmedPhone) return;
+    kkWhatsappNumbers[nameKey] = trimmedPhone;
+  });
 
   const cnActiveDates = pastDates.filter((date) => allCN.some((yuvak) => yuvak.dateAttendance[date]));
   const kishorActiveDates = pastDates.filter((date) => allKishor.some((yuvak) => yuvak.dateAttendance[date]));
@@ -292,6 +319,8 @@ export default function KKAnalysisPage() {
           borderClass="border-purple-500/20"
           badgeClass="border border-purple-500/20 bg-purple-500/10 text-purple-400"
           sabhaLabel="Kishor"
+          enableWhatsappActions
+          kkWhatsappNumbers={kkWhatsappNumbers}
         />
       )}
 
@@ -304,6 +333,8 @@ export default function KKAnalysisPage() {
           borderClass="border-orange-500/20"
           badgeClass="border border-orange-500/20 bg-orange-500/10 text-orange-400"
           sabhaLabel="Bal"
+          enableWhatsappActions
+          kkWhatsappNumbers={kkWhatsappNumbers}
         />
       )}
     </div>
