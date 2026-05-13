@@ -8,6 +8,7 @@ import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import StatsCard from '@/components/StatsCard';
 import YuvakTable from '@/components/YuvakTable';
 import ContactActions from '@/components/ContactActions';
+import FollowUpKkSummary from '@/components/FollowUpKkSummary';
 
 type TabType = 'overview' | 'yuvaks' | 'kk';
 type RecentSabhaSummary = {
@@ -311,7 +312,12 @@ export default function BalSabhaPage() {
           </div>
 
           <div>
-            <AttendanceTrendChart sessionTrend={stats.sessionTrend.slice(-20)} sabhaLabel="Bal Sabha" totalYuvaks={stats.totalYuvaks} />
+            <AttendanceTrendChart
+              sessionTrend={stats.sessionTrend.slice(-20)}
+              sabhaLabel="Bal Sabha"
+              totalYuvaks={stats.totalYuvaks}
+              sessionMetaByDate={sabhaSessionMeta?.[sabhaType]}
+            />
           </div>
 
           <div className="space-y-3">
@@ -337,6 +343,8 @@ export default function BalSabhaPage() {
               </span>
             </button>
             {!isRiskSectionCollapsed && (
+            <div className="space-y-4">
+            <FollowUpKkSummary yuvaks={balYuvaks} dates={activePastDates} sabhaLabel="Bal Sabha" />
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               {[
                 {
@@ -397,6 +405,7 @@ export default function BalSabhaPage() {
                   )}
                 </div>
               ))}
+            </div>
             </div>
             )}
           </div>

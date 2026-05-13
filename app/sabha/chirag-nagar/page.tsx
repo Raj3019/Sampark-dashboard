@@ -8,6 +8,7 @@ import YuvakTable from '@/components/YuvakTable';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import ContactActions from '@/components/ContactActions';
+import FollowUpKkSummary from '@/components/FollowUpKkSummary';
 
 type TabType = 'overview' | 'yuvaks' | 'kk';
 type RecentSabhaSummary = {
@@ -323,6 +324,7 @@ export default function ChiragNagarPage() {
                 sessionTrend={last20Trend}
                 sabhaLabel="Chirag Nagar"
                 totalYuvaks={stats.totalYuvaks}
+                sessionMetaByDate={sabhaSessionMeta?.[sabhaType]}
               />
             </div>
 
@@ -349,6 +351,8 @@ export default function ChiragNagarPage() {
                 </span>
               </button>
               {!isRiskSectionCollapsed && (
+              <div className="space-y-4">
+              <FollowUpKkSummary yuvaks={filteredYuvaks} dates={activePastDates} sabhaLabel="Yuva Sabha" />
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                 {[
                   {
@@ -409,6 +413,7 @@ export default function ChiragNagarPage() {
                     )}
                   </div>
                 ))}
+              </div>
               </div>
               )}
             </div>

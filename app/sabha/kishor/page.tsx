@@ -10,6 +10,8 @@ import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import VaktaTopicTrendChart from '@/components/charts/VaktaTopicTrendChart';
 import { authClient } from '@/lib/auth/client';
 import ContactActions from '@/components/ContactActions';
+import FollowUpKkSummary from '@/components/FollowUpKkSummary';
+import InfoHint from '@/components/InfoHint';
 
 type TabType = 'overview' | 'yuvaks' | 'kk-performance' | 'kk';
 type RecentSabhaSummary = {
@@ -439,6 +441,8 @@ export default function KishorSabhaPage() {
               </span>
             </button>
             {!isRiskSectionCollapsed && (
+            <div className="space-y-4">
+            <FollowUpKkSummary yuvaks={kishorYuvaks} dates={activePastDates} sabhaLabel="AYC Sabha" />
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               {[
                 {
@@ -500,6 +504,7 @@ export default function KishorSabhaPage() {
                 </div>
               ))}
             </div>
+            </div>
             )}
           </div>
 
@@ -513,13 +518,17 @@ export default function KishorSabhaPage() {
                     </p>
                     <h3 className="text-slate-100 font-semibold mt-1">{session.date}</h3>
                   </div>
-                  <span className="rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-500/15 px-2.5 py-1 text-xs font-medium text-sky-300">
                     {session.attendanceCount}/{totalCount}
+                    <InfoHint label="Present / total yuvaks" />
                   </span>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
-                    <p className="text-slate-500 text-[11px] uppercase tracking-wide">Attendance</p>
+                    <p className="inline-flex items-center gap-1.5 text-slate-500 text-[11px] uppercase tracking-wide">
+                      Attendance
+                      <InfoHint label="Present / total yuvaks" />
+                    </p>
                     <p className="mt-1 text-slate-100 font-semibold">{session.attendancePct}%</p>
                   </div>
                   <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3">
