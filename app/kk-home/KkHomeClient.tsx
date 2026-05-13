@@ -139,7 +139,7 @@ export default function KkHomeClient() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-sky-400/15 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 -bottom-20 h-44 w-44 rounded-full bg-amber-300/10 blur-3xl" />
         <div className="relative flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-slate-100 sm:text-2xl">{kkDisplayName} Bhai's Dashboard</h1>
+          <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-slate-100 sm:text-2xl">{kkDisplayName} Bhai&apos;s Dashboard</h1>
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/12 px-2.5 py-1 text-[11px] font-semibold text-amber-200 sm:px-3 sm:text-xs">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-200" />
             <span className="truncate">{primaryArea}</span>

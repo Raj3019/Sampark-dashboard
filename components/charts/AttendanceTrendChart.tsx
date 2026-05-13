@@ -119,9 +119,7 @@ export default function AttendanceTrendChart({
   const textPrimary = isLight ? '#334155' : '#94a3b8';
   const textSecondary = isLight ? '#475569' : '#64748b';
   const gridColor = isLight ? '#dbe4ef' : '#1e293b';
-  const tooltipBg = isLight ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.96)';
   const tooltipTitle = isLight ? '#0f172a' : '#f1f5f9';
-  const tooltipBody = isLight ? '#334155' : '#94a3b8';
   const tooltipBorder = isLight ? '#cbd5e1' : '#475569';
 
   const chartData =

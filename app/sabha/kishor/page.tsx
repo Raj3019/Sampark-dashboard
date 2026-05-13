@@ -9,6 +9,7 @@ import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import VaktaTopicTrendChart from '@/components/charts/VaktaTopicTrendChart';
 import { authClient } from '@/lib/auth/client';
+import ContactActions from '@/components/ContactActions';
 
 type TabType = 'overview' | 'yuvaks' | 'kk-performance' | 'kk';
 type RecentSabhaSummary = {
@@ -21,6 +22,7 @@ type RecentSabhaSummary = {
 type RiskFollowUpItem = {
   name: string;
   followUpKK: string;
+  phoneNumber: string;
 };
 
 function parseSabhaDate(value: string): Date {
@@ -204,8 +206,8 @@ export default function KishorSabhaPage() {
     setKkSortAsc(key === 'name');
   };
 
-  const KkArrow = ({ k }: { k: 'name' | 'total' | 'active' | 'deactive' | 'deactivePct' | 'avgAttendance' | 'efficiencyScore' }) =>
-    kkSortKey === k
+  const renderKkSortArrow = (key: 'name' | 'total' | 'active' | 'deactive' | 'deactivePct' | 'avgAttendance' | 'efficiencyScore') =>
+    kkSortKey === key
       ? <span className="text-orange-400">{kkSortAsc ? ' ↑' : ' ↓'}</span>
       : <span className="text-slate-600"> ↕</span>;
 
@@ -289,6 +291,7 @@ export default function KishorSabhaPage() {
     const item = {
       name: yuvak.name,
       followUpKK: yuvak.followUpKK?.trim() || 'Not assigned',
+      phoneNumber: yuvak.phoneNumber,
     };
     const missedLast1 = last1Dates.length === 1 && last1Dates.every((date) => !yuvak.dateAttendance[date]);
     const missedLast2 = last2Dates.length === 2 && last2Dates.every((date) => !yuvak.dateAttendance[date]);
@@ -481,7 +484,10 @@ export default function KishorSabhaPage() {
                     <div className="mt-4 space-y-2">
                       {bucket.items.map((item) => (
                         <div key={`${bucket.key}-${item.name}`} className="rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2.5">
-                          <p className="text-sm font-medium text-slate-100">{item.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-slate-100">{item.name}</p>
+                            <ContactActions name={item.name} phoneNumber={item.phoneNumber} size="xs" />
+                          </div>
                           <p className="text-xs text-slate-400 mt-1">Follow-up: {item.followUpKK}</p>
                         </div>
                       ))}
@@ -750,13 +756,13 @@ export default function KishorSabhaPage() {
                 <thead className="bg-slate-900/50 border-b border-slate-700">
                   <tr>
                     <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide">Rank</th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('name')}>KK Name<KkArrow k="name" /></th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('total')}>Total<KkArrow k="total" /></th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('active')}>Active<KkArrow k="active" /></th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('deactive')}>Deactive<KkArrow k="deactive" /></th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('deactivePct')}>Deactive %<KkArrow k="deactivePct" /></th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('avgAttendance')}>Avg Attendance<KkArrow k="avgAttendance" /></th>
-                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('efficiencyScore')}>Efficiency<KkArrow k="efficiencyScore" /></th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('name')}>KK Name{renderKkSortArrow('name')}</th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('total')}>Total{renderKkSortArrow('total')}</th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('active')}>Active{renderKkSortArrow('active')}</th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('deactive')}>Deactive{renderKkSortArrow('deactive')}</th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('deactivePct')}>Deactive %{renderKkSortArrow('deactivePct')}</th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('avgAttendance')}>Avg Attendance{renderKkSortArrow('avgAttendance')}</th>
+                    <th className="text-left px-4 py-3 text-slate-400 text-xs uppercase tracking-wide cursor-pointer hover:text-slate-200" onClick={() => handleKkSort('efficiencyScore')}>Efficiency{renderKkSortArrow('efficiencyScore')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">

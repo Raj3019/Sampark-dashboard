@@ -75,10 +75,10 @@ html.light {
   --color-bg-elevated: #FFFFFF;
   --color-bg-tint: #F2EEE7;
   --color-text-strong: #1F2937;
-  --color-text-body: #475569;
-  --color-text-muted: #7C8798;
-  --color-border-subtle: #E7E0D6;
-  --color-border-strong: #D8CDBD;
+  --color-text-body: #334155;
+  --color-text-muted: #5F6F85;
+  --color-border-subtle: #DDD2C1;
+  --color-border-strong: #BFAF99;
   --color-brand-saffron: #D97706;
   --color-brand-saffron-soft: #F59E0B;
   --color-brand-sky: #0EA5E9;
@@ -122,15 +122,49 @@ html.light {
   --sidebar-ring: rgba(217, 119, 6, 0.28);
 
   --color-slate-950: #FFFFFF;
-  --color-slate-900: #FCFAF6;
-  --color-slate-800: #F2EEE7;
-  --color-slate-700: #E7E0D6;
-  --color-slate-600: #C7BDAF;
-  --color-slate-500: #7C8798;
-  --color-slate-400: #64748B;
-  --color-slate-300: #475569;
-  --color-slate-200: #334155;
-  --color-slate-100: #1F2937;
+  --color-slate-900: #FBF8F2;
+  --color-slate-800: #EFE7DA;
+  --color-slate-700: #D8CDBD;
+  --color-slate-600: #A99A86;
+  --color-slate-500: #5F6F85;
+  --color-slate-400: #475569;
+  --color-slate-300: #334155;
+  --color-slate-200: #25364A;
+  --color-slate-100: #172033;
+
+  --color-green-300: #15803D;
+  --color-green-400: #166534;
+  --color-green-500: #16A34A;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #047857;
+  --color-emerald-500: #10B981;
+  --color-yellow-300: #A16207;
+  --color-yellow-400: #B45309;
+  --color-yellow-500: #F59E0B;
+  --color-amber-300: #A16207;
+  --color-amber-400: #B45309;
+  --color-amber-500: #D97706;
+  --color-orange-300: #C2410C;
+  --color-orange-400: #C2410C;
+  --color-orange-500: #EA580C;
+  --color-red-300: #B91C1C;
+  --color-red-400: #B91C1C;
+  --color-red-500: #DC2626;
+  --color-rose-300: #BE123C;
+  --color-rose-400: #BE123C;
+  --color-rose-500: #E11D48;
+  --color-blue-300: #1D4ED8;
+  --color-blue-400: #2563EB;
+  --color-blue-500: #3B82F6;
+  --color-sky-300: #0369A1;
+  --color-sky-400: #0284C7;
+  --color-sky-500: #0EA5E9;
+  --color-purple-300: #6D28D9;
+  --color-purple-400: #7E22CE;
+  --color-purple-500: #A855F7;
+  --color-violet-200: #6D28D9;
+  --color-violet-300: #6D28D9;
+  --color-violet-400: #7C3AED;
 }
 
 .dark,

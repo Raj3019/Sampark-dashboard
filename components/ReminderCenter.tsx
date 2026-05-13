@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { authClient } from '@/lib/auth/client';
 import { useReminders } from '@/hooks/useReminders';
+import ContactActions from '@/components/ContactActions';
 
 type ReminderCenterProps = {
   variant?: 'compact' | 'full';
@@ -25,16 +26,6 @@ const RISK_STYLES: Record<'moderate' | 'high', { card: string; badge: string; do
 
 function formatDates(dates: string[]) {
   return dates.join(', ');
-}
-
-function normalizePhoneHref(value: string | null | undefined) {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-
-  const normalized = trimmed.replace(/[^\d+]/g, '');
-  if (!normalized) return null;
-
-  return `tel:${normalized}`;
 }
 
 function hasUsablePhoneNumber(value: string | null | undefined) {
@@ -241,26 +232,18 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
                     No {item.label.toLowerCase()} reminders.
                   </p>
                 ) : (
-                  item.reminders.map((reminder) => {
-                    const phoneHref = normalizePhoneHref(reminder.phoneNumber);
-                    return (
+                  item.reminders.map((reminder) => (
                       <div key={`${item.label}-${reminder.id}`} className="rounded-xl border border-[#ece4d7] bg-[#fffdfa] px-3 py-3 transition-colors hover:bg-[#f8f3eb] dark:border-slate-800/90 dark:bg-slate-900/70 dark:hover:bg-slate-900">
                         <p className="truncate text-sm font-semibold text-[#1f2937] dark:text-slate-100">{reminder.yuvakName}</p>
                         <p className="mt-1 text-[11px] text-[#64748b] dark:text-slate-400">
                           KK: <span className="text-[#334155] dark:text-slate-300">{reminder.followUpKK}</span> - Missed {reminder.missedSabhaCount} sabhas
                         </p>
-                        {phoneHref ? (
+                        {reminder.phoneNumber ? (
                           <div className="mt-1.5 flex items-center gap-2 text-[11px]">
                             <span className="text-[#64748b] dark:text-slate-400">
                               Phone: <span className="text-[#334155] dark:text-slate-200">{reminder.phoneNumber}</span>
                             </span>
-                            <a
-                              href={phoneHref}
-                              aria-label={`Call ${reminder.yuvakName}`}
-                              className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2 py-0.5 font-semibold uppercase tracking-[0.12em] text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-200"
-                            >
-                              Call
-                            </a>
+                            <ContactActions name={reminder.yuvakName} phoneNumber={reminder.phoneNumber} size="xs" />
                           </div>
                         ) : (
                           <p className="mt-1.5 text-[11px] text-[#94a3b8] dark:text-slate-500">
@@ -268,8 +251,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
                           </p>
                         )}
                       </div>
-                    );
-                  })
+                  ))
                 )}
               </div>
             )}
@@ -288,7 +270,6 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
           ) : (
             visibleReminders.map((reminder) => {
               const styles = RISK_STYLES[reminder.riskLevel];
-              const phoneHref = normalizePhoneHref(reminder.phoneNumber);
               return (
                 <article key={reminder.id} className={`rounded-2xl border px-4 py-4 ${styles.card}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -367,28 +348,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
                         Leader review
                       </span>
                     )}
-                    {phoneHref && (
-                      <a
-                        href={phoneHref}
-                        aria-label={`Call ${reminder.yuvakName}`}
-                        title={`Call ${reminder.yuvakName}`}
-                        className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 uppercase tracking-[0.16em] text-emerald-200 transition-colors hover:bg-emerald-500/20"
-                      >
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 24 24"
-                          className="h-3.5 w-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.64 2.62a2 2 0 0 1-.45 2.11L8.03 9.72a16 16 0 0 0 6.25 6.25l1.27-1.27a2 2 0 0 1 2.11-.45c.84.31 1.72.52 2.62.64A2 2 0 0 1 22 16.92z" />
-                        </svg>
-                        Call
-                      </a>
-                    )}
+                    <ContactActions name={reminder.yuvakName} phoneNumber={reminder.phoneNumber} size="xs" />
                   </div>
                 </article>
               );

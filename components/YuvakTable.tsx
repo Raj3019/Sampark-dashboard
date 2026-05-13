@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Yuvak, AttendanceStatus } from '@/lib/types';
 import { getDirectoryRiskStatus } from '@/lib/analytics';
+import ContactActions from '@/components/ContactActions';
 
 function InlineStatusBadge({ status }: { status: AttendanceStatus }) {
   const configs: Record<AttendanceStatus, { label: string; dot: string; bg: string; text: string }> = {
@@ -169,7 +170,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
     setPage(1);
   };
 
-  const Arrow = ({ k }: { k: SortKey }) =>
+  const renderSortArrow = (k: SortKey) =>
     sortKey === k
       ? <span className="text-orange-400">{sortAsc ? ' ↑' : ' ↓'}</span>
       : <span className="text-slate-600"> ↕</span>;
@@ -257,18 +258,18 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
             <tr className="border-b border-slate-700/60 bg-slate-800/50">
               <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
                   onClick={() => handleSort('status')}>
-                Status <Arrow k="status" />
+                Status {renderSortArrow('status')}
               </th>
               <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
                   onClick={() => handleSort('name')}>
-                Name <Arrow k="name" />
+                Name {renderSortArrow('name')}
               </th>
               <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
                 STD
               </th>
               <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
                   onClick={() => handleSort('kk')}>
-                KK (Follow-Up Person) <Arrow k="kk" />
+                KK (Follow-Up Person) {renderSortArrow('kk')}
               </th>
               {showSabhaType && (
                 <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">Sabha</th>
@@ -288,7 +289,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
               ) : (
                 <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
                     onClick={() => handleSort('attendance')}>
-                  Attendance <Arrow k="attendance" />
+                  Attendance {renderSortArrow('attendance')}
                 </th>
               )}
             </tr>
@@ -305,7 +306,10 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
 
                 {/* Name */}
                 <td className="px-4 py-3.5">
-                  <span className="text-slate-100 font-semibold">{y.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-100 font-semibold">{y.name}</span>
+                    <ContactActions name={y.name} phoneNumber={y.phoneNumber} size="xs" />
+                  </div>
                 </td>
 
                 {/* STD */}
