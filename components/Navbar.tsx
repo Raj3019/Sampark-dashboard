@@ -9,7 +9,6 @@ import {
   ChartColumn,
   LayoutDashboard,
   LogOut,
-  MapPin,
   Menu,
   Moon,
   PanelLeftClose,
@@ -28,7 +27,8 @@ import { useTheme } from '@/components/ThemeProvider';
 import { toast } from 'sonner';
 import { useUpcomingEkadashi } from '@/hooks/useUpcomingEkadashi';
 import { useSheetData } from '@/hooks/useSheetData';
-import { Yuvak } from '@/lib/types';
+import PersonDetailDrawer from '@/components/PersonDetailDrawer';
+import { PeopleSearchResult, PeopleSearchResultType, PersonDetail } from '@/lib/peopleSearchTypes';
 
 type NavItem = {
   href: string;
@@ -64,114 +64,13 @@ const adminSecondaryNavItems: NavItem[] = [
 
 const ROLE_LABELS: Record<string, string> = { admin: 'Admin', leader: 'Leader', kk: 'KK' };
 
-type SearchResult =
-  | {
-      type: 'yuvak';
-      title: string;
-      subtitle: string;
-      meta: string;
-      href: string;
-    }
-  | {
-      type: 'kk';
-      title: string;
-      subtitle: string;
-      meta: string;
-      href: string;
-    }
-  | {
-      type: 'area';
-      title: string;
-      subtitle: string;
-      meta: string;
-      href: string;
-    };
-
-function matchesQuery(values: Array<string | number | null | undefined>, query: string) {
-  return values.some((value) => String(value ?? '').toLowerCase().includes(query));
-}
-
-function getSearchResultIcon(type: SearchResult['type']) {
+function getSearchResultIcon(type: PeopleSearchResultType) {
   if (type === 'kk') return Users;
-  if (type === 'area') return MapPin;
   return UserRound;
 }
 
 function encodeQuery(value: string) {
   return encodeURIComponent(value.trim());
-}
-
-function buildSearchResults(yuvaks: Yuvak[], rawQuery: string): SearchResult[] {
-  const query = rawQuery.trim().toLowerCase();
-  if (query.length < 2) return [];
-
-  const yuvakResults = yuvaks
-    .filter((yuvak) => matchesQuery([
-      yuvak.name,
-      yuvak.followUpKK,
-      yuvak.area,
-      yuvak.phoneNumber,
-      yuvak.std,
-      yuvak.sabhaType,
-    ], query))
-    .slice(0, 5)
-    .map((yuvak): SearchResult => ({
-      type: 'yuvak',
-      title: yuvak.name,
-      subtitle: [yuvak.sabhaType, yuvak.area || 'No area'].filter(Boolean).join(' • '),
-      meta: `${yuvak.attendancePercent}% attendance${yuvak.followUpKK ? ` • KK: ${yuvak.followUpKK}` : ''}`,
-      href: `/yuvaks?q=${encodeQuery(yuvak.name)}`,
-    }));
-
-  const kkMap = new Map<string, Yuvak[]>();
-  for (const yuvak of yuvaks) {
-    const kkName = yuvak.followUpKK?.trim();
-    if (!kkName) continue;
-    if (!matchesQuery([kkName], query)) continue;
-    kkMap.set(kkName, [...(kkMap.get(kkName) ?? []), yuvak]);
-  }
-
-  const kkResults = Array.from(kkMap.entries())
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 3)
-    .map(([kkName, kkYuvaks]): SearchResult => {
-      const avgAttendance = kkYuvaks.length > 0
-        ? Math.round(kkYuvaks.reduce((sum, yuvak) => sum + yuvak.attendancePercent, 0) / kkYuvaks.length)
-        : 0;
-      const sabhas = Array.from(new Set(kkYuvaks.map((yuvak) => yuvak.sabhaType))).join(', ');
-      return {
-        type: 'kk',
-        title: kkName,
-        subtitle: `${kkYuvaks.length} assigned yuvaks`,
-        meta: `${avgAttendance}% avg attendance${sabhas ? ` • ${sabhas}` : ''}`,
-        href: `/yuvaks?kk=${encodeQuery(kkName)}`,
-      };
-    });
-
-  const areaMap = new Map<string, Yuvak[]>();
-  for (const yuvak of yuvaks) {
-    const area = yuvak.area?.trim();
-    if (!area) continue;
-    if (!matchesQuery([area], query)) continue;
-    areaMap.set(area, [...(areaMap.get(area) ?? []), yuvak]);
-  }
-
-  const areaResults = Array.from(areaMap.entries())
-    .sort((a, b) => b[1].length - a[1].length)
-    .slice(0, 3)
-    .map(([area, areaYuvaks]): SearchResult => {
-      const sabhas = Array.from(new Set(areaYuvaks.map((yuvak) => yuvak.sabhaType))).join(', ');
-      const activeCount = areaYuvaks.filter((yuvak) => yuvak.superActive).length;
-      return {
-        type: 'area',
-        title: area,
-        subtitle: `${areaYuvaks.length} yuvaks in area`,
-        meta: `${activeCount} active${sabhas ? ` • ${sabhas}` : ''}`,
-        href: `/yuvaks?q=${encodeQuery(area)}`,
-      };
-    });
-
-  return [...yuvakResults, ...kkResults, ...areaResults].slice(0, 8);
 }
 
 function ThemeToggleIcon({ theme }: { theme: 'dark' | 'light' }) {
@@ -271,6 +170,13 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
   const [relativeNow, setRelativeNow] = useState(() => Date.now());
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<PeopleSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [personDetail, setPersonDetail] = useState<PersonDetail | null>(null);
   const { theme, toggle } = useTheme();
   const { data: session } = useAuthSession();
   const { data: sheetData, refresh: refreshSheetData } = useSheetData();
@@ -299,7 +205,6 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
   }, []);
 
   const updateLabel = useMemo(() => getRelativeUpdateLabel(sheetData?.lastUpdated, relativeNow), [relativeNow, sheetData?.lastUpdated]);
-  const searchResults = useMemo(() => buildSearchResults(sheetData?.yuvaks ?? [], searchQuery), [sheetData?.yuvaks, searchQuery]);
   const trimmedSearchQuery = searchQuery.trim();
   const ekadashiLabel = ekadashiLoading
     ? 'Loading Ekadashi...'
@@ -308,6 +213,44 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
       : ekadashiError?.toLowerCase().includes('rate limit')
         ? 'Ekadashi temporarily unavailable'
         : 'Upcoming Ekadashi unavailable';
+
+  useEffect(() => {
+    if (trimmedSearchQuery.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      setSearchError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError(null);
+
+      try {
+        const response = await fetch(`/api/people/search?q=${encodeQuery(trimmedSearchQuery)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.error ?? 'Search failed');
+        }
+        const body = await response.json() as { results: PeopleSearchResult[] };
+        setSearchResults(body.results);
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setSearchResults([]);
+        setSearchError(err instanceof Error ? err.message : 'Search failed');
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 180);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [trimmedSearchQuery]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -341,6 +284,29 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
     if (!trimmedSearchQuery) return;
     setSearchOpen(false);
     router.push(`/yuvaks?q=${encodeQuery(trimmedSearchQuery)}`);
+  };
+
+  const handleSearchResultClick = async (result: PeopleSearchResult) => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError(null);
+    setPersonDetail(null);
+
+    try {
+      const response = await fetch(`/api/people/details?type=${encodeQuery(result.type)}&id=${encodeQuery(result.id)}`);
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to load details');
+      }
+      const body = await response.json() as { detail: PersonDetail };
+      setPersonDetail(body.detail);
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : 'Failed to load details');
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const sidebarContent = (onLinkClick?: () => void, collapsed = false) => (
@@ -452,19 +418,29 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
                     <p className="text-sm font-semibold text-[#334155] dark:text-slate-200">Find records quickly</p>
                     <p className="mt-1 text-xs text-[#64748b] dark:text-slate-500">Search by yuvak name, KK, area, phone number, standard, or sabha.</p>
                   </div>
+                ) : searchLoading ? (
+                  <div className="px-4 py-4">
+                    <p className="text-sm font-semibold text-[#334155] dark:text-slate-200">Searching...</p>
+                    <p className="mt-1 text-xs text-[#64748b] dark:text-slate-500">Checking yuvaks, KKs, and leaders.</p>
+                  </div>
+                ) : searchError ? (
+                  <div className="px-4 py-4">
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-300">Search unavailable</p>
+                    <p className="mt-1 text-xs text-[#64748b] dark:text-slate-500">{searchError}</p>
+                  </div>
                 ) : searchResults.length > 0 ? (
                   <div className="max-h-[24rem] overflow-y-auto py-1.5">
                     {searchResults.map((result) => {
                       const Icon = getSearchResultIcon(result.type);
                       return (
-                        <Link
-                          key={`${result.type}-${result.title}-${result.href}`}
-                          href={result.href}
-                          onClick={() => {
-                            setSearchOpen(false);
-                            setSearchQuery('');
+                        <button
+                          key={`${result.type}-${result.id}`}
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            void handleSearchResultClick(result);
                           }}
-                          className="flex gap-3 px-4 py-3 transition hover:bg-[#f1eadf] dark:hover:bg-slate-800/80"
+                          className="flex w-full gap-3 px-4 py-3 text-left transition hover:bg-[#f1eadf] dark:hover:bg-slate-800/80"
                         >
                           <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f5eadc] text-[#d97706] dark:bg-amber-500/12 dark:text-amber-300">
                             <Icon className="h-4 w-4" />
@@ -477,7 +453,7 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
                             <span className="mt-0.5 block truncate text-xs text-[#64748b] dark:text-slate-400">{result.subtitle}</span>
                             <span className="mt-0.5 block truncate text-[11px] text-[#8a97aa] dark:text-slate-500">{result.meta}</span>
                           </span>
-                        </Link>
+                        </button>
                       );
                     })}
                   </div>
@@ -552,6 +528,18 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
           </aside>
         </div>
       ) : null}
+
+      <PersonDetailDrawer
+        open={detailOpen}
+        loading={detailLoading}
+        error={detailError}
+        detail={personDetail}
+        onClose={() => {
+          setDetailOpen(false);
+          setDetailError(null);
+          setPersonDetail(null);
+        }}
+      />
     </>
   );
 }
