@@ -37,7 +37,7 @@ const accentMap = {
 
 export default function StatsCard({ title, value, subtitle, icon, accent = 'orange', eyebrow }: Props) {
   return (
-    <div className="relative overflow-hidden rounded-[22px] border border-[#e7e0d6] bg-white/92 p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-700/80 dark:bg-slate-800/90 dark:shadow-none">
+    <div className="relative overflow-hidden rounded-[22px] border border-[#d9cdbb] bg-[#f1eadf] p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-700/80 dark:bg-slate-800/90 dark:shadow-none">
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-br ${accentMap[accent].glow} to-transparent`} />
       <div className="relative flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">

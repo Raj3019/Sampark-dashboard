@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getAuthPool } from '@/lib/auth/db';
+import { isSessionWithinMaxAge } from '@/lib/auth/session-policy';
 
 export type AppRole = 'admin' | 'leader' | 'kk';
 
@@ -20,9 +21,15 @@ export function getRoleHomePath(role: string | undefined) {
 }
 
 export async function getServerSession() {
-  return auth.api.getSession({
+  const session = await auth.api.getSession({
     headers: await headers(),
   });
+
+  if (!isSessionWithinMaxAge(session)) {
+    return null;
+  }
+
+  return session;
 }
 
 export async function requireServerSession() {

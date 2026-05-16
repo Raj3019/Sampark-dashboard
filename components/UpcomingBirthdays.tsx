@@ -122,7 +122,7 @@ export default function UpcomingBirthdays() {
   const hiddenCount = Math.max(0, birthdays.length - 2);
 
   return (
-    <aside className="w-full rounded-3xl border border-[#e7e0d6] bg-white/92 px-5 py-5 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none xl:max-h-[28rem] xl:overflow-hidden">
+    <aside className="w-full rounded-3xl border border-[#d9cdbb] bg-[#f1eadf] px-5 py-5 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none xl:max-h-[28rem] xl:overflow-hidden">
       <div className="flex items-center gap-2">
         <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-300/40 bg-amber-50 text-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
           <svg

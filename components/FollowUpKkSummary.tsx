@@ -113,7 +113,7 @@ export default function FollowUpKkSummary({ yuvaks, dates, sabhaLabel = 'Sabha' 
   };
 
   return (
-    <div className="rounded-xl border border-[#e7e0d6] bg-white/80 p-4 shadow-[0_10px_24px_rgba(31,41,55,0.05)] dark:border-slate-700 dark:bg-slate-900/45 dark:shadow-none">
+    <div className="rounded-xl border border-[#d9cdbb] bg-[#f1eadf] p-4 shadow-[0_10px_24px_rgba(31,41,55,0.05)] dark:border-slate-700 dark:bg-slate-900/45 dark:shadow-none">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8b6f47] dark:text-slate-500">Follow-up KK view</p>
@@ -127,7 +127,7 @@ export default function FollowUpKkSummary({ yuvaks, dates, sabhaLabel = 'Sabha' 
           <select
             value={selectedKk}
             onChange={(event) => setSelectedKk(event.target.value)}
-            className="min-w-56 rounded-xl border border-[#d8cdbd] bg-white px-3 py-2 text-sm font-medium text-[#1f2937] outline-none focus:border-orange-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            className="min-w-56 rounded-xl border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm font-medium text-[#1f2937] outline-none focus:border-orange-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
           >
             {kkOptions.map((kkName) => (
               <option key={kkName} value={kkName}>{kkName}</option>
@@ -158,7 +158,7 @@ export default function FollowUpKkSummary({ yuvaks, dates, sabhaLabel = 'Sabha' 
           </thead>
           <tbody className="divide-y divide-[#ece4d7] dark:divide-slate-800">
             {selectedRows.map((row) => (
-              <tr key={`${row.yuvak.sabhaType}-${row.yuvak.name}`} className="bg-white/50 dark:bg-slate-900/20">
+              <tr key={`${row.yuvak.sabhaType}-${row.yuvak.name}`} className="bg-[#fffdfa]/60 dark:bg-slate-900/20">
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-[#1f2937] dark:text-slate-100">{row.yuvak.name}</span>

@@ -6,7 +6,7 @@ import { getPastDates, getSessionTrend } from '@/lib/analytics';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import VaktaTopicTrendChart from '@/components/charts/VaktaTopicTrendChart';
 import ContactActions from '@/components/ContactActions';
-import { authClient } from '@/lib/auth/client';
+import { useAuthSession } from '@/hooks/useAuthSession';
 import { SABHA_DISPLAY, SABHA_TYPES } from '@/lib/sabha';
 import { SabhaType, Yuvak } from '@/lib/types';
 
@@ -120,7 +120,7 @@ function KkMetricCard({
 export default function KkHomeClient() {
   const { data, loading, error, refresh } = useSheetData();
   const { data: fullData } = useSheetData({ scope: 'full' });
-  const { data: session } = authClient.useSession();
+  const { data: session } = useAuthSession();
   const [openStats, setOpenStats] = useState<Record<string, boolean>>({});
   const [collapsedSabhas, setCollapsedSabhas] = useState<Record<string, boolean>>({});
 
@@ -161,7 +161,7 @@ export default function KkHomeClient() {
     <div className="space-y-5 sm:space-y-6">
       <div className="rounded-2xl border border-[#e7e0d6] bg-white px-4 py-4 shadow-[0_14px_34px_rgba(15,23,42,0.08)] dark:border-sky-500/25 dark:bg-slate-900 dark:shadow-[0_10px_30px_rgba(2,6,23,0.34)] sm:px-5 sm:py-5">
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-[#0f172a] dark:text-slate-50 sm:text-2xl">{kkDisplayName} Bhai&apos;s Dashboard</h1>
+          <h1 className="min-w-0 text-xl font-extrabold tracking-tight text-[#0f172a] dark:text-slate-50 sm:text-2xl">{kkDisplayName} Dashboard</h1>
           <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:border-amber-300/40 dark:bg-amber-300/12 dark:text-amber-200 sm:px-3 sm:text-xs">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 dark:bg-amber-200" />
             <span className="truncate">{hasMultipleSabhas ? `${sabhaTypes.length} sabhas assigned` : getPrimaryArea(yuvaks)}</span>

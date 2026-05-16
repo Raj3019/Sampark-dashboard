@@ -8,7 +8,7 @@ import YuvakTable from '@/components/YuvakTable';
 import AttendanceTrendChart from '@/components/charts/AttendanceTrendChart';
 import KKWorkloadChart from '@/components/charts/KKWorkloadChart';
 import VaktaTopicTrendChart from '@/components/charts/VaktaTopicTrendChart';
-import { authClient } from '@/lib/auth/client';
+import { useAuthSession } from '@/hooks/useAuthSession';
 import ContactActions from '@/components/ContactActions';
 import FollowUpKkSummary from '@/components/FollowUpKkSummary';
 import InfoHint from '@/components/InfoHint';
@@ -106,7 +106,7 @@ function AttendanceSabhaCard({
 
 export default function KishorSabhaPage() {
   const { data, loading, error, refresh } = useSheetData();
-  const { data: session } = authClient.useSession();
+  const { data: session } = useAuthSession();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [attendingFilter, setAttendingFilter] = useState<'all' | 'yes' | 'no'>('yes');
   const [isRiskSectionCollapsed, setIsRiskSectionCollapsed] = useState(true);

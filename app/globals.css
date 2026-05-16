@@ -239,11 +239,17 @@ h1, h2, h3, h4, h5, h6 {
 
 select,
 input[type="text"],
+input[type="password"],
 input[type="date"],
 input[type="search"] {
   background-color: var(--color-bg-elevated);
   color: var(--color-text-strong);
   border-color: var(--color-border-subtle);
+}
+
+input[type="password"] {
+  -webkit-text-fill-color: var(--color-text-strong);
+  caret-color: var(--color-text-strong);
 }
 
 select option {

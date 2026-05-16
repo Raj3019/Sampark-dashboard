@@ -57,20 +57,20 @@ export default async function LoginPage({
               </div>
             </div>
 
-            <div className="mx-auto w-full max-w-md lg:justify-self-end">
-              <div className="rounded-[1.35rem] border border-slate-700/70 bg-[linear-gradient(180deg,rgba(37,49,74,0.98),rgba(33,44,68,0.98))] p-5 shadow-[0_18px_42px_rgba(2,6,23,0.28)]">
-                <div className="mb-4 space-y-1.5">
-                  <h2 className="text-[2rem] font-bold tracking-tight text-slate-50">Welcome Back</h2>
-                  <p className="text-[0.96rem] leading-6 text-slate-400">
+            <div className="mx-auto w-full max-w-sm lg:justify-self-end">
+              <div className="rounded-2xl border border-slate-700/70 bg-[linear-gradient(180deg,rgba(37,49,74,0.98),rgba(33,44,68,0.98))] p-6 shadow-[0_18px_42px_rgba(2,6,23,0.28)]">
+                <div className="mb-5 space-y-1">
+                  <h2 className="text-xl font-bold tracking-tight text-slate-50">Welcome Back</h2>
+                  <p className="text-[0.9rem] leading-5 text-slate-400">
                     Enter your credentials to access your dashboard.
                   </p>
                 </div>
                 <LoginForm callbackUrl={callbackUrl} />
               </div>
 
-              <p className="mt-4 text-center text-[0.86rem] text-slate-400">
+              <p className="mt-3 text-center text-[0.85rem] text-slate-400">
                 Don&apos;t have an account?{' '}
-                <span className="font-semibold text-orange-400">Contact Administrator</span>
+                <span className="font-semibold text-orange-400">rajchauhan3019@gmail.com</span>
               </p>
             </div>
           </div>

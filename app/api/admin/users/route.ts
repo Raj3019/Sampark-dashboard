@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminApiSession } from '@/lib/auth/session';
 import { getAuthPool } from '@/lib/auth/db';
 import { auth } from '@/lib/auth';
+import { AUTH_SESSION_MAX_AGE_SECONDS } from '@/lib/auth/session-policy';
 
 export const runtime = 'nodejs';
 
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
       secure: secureCookie,
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
     });
   }
 

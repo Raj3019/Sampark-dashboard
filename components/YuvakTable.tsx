@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Yuvak, AttendanceStatus } from '@/lib/types';
 import { getDirectoryRiskStatus } from '@/lib/analytics';
 import ContactActions from '@/components/ContactActions';
@@ -27,11 +28,11 @@ function AttendanceDots({ yuvak, last6 }: { yuvak: Yuvak; last6: string[] }) {
       <div className="flex gap-0.5">
         {last6.map((d, i) => (
           <span key={i} title={d}
-            className={`w-3.5 h-3.5 rounded-sm ${yuvak.dateAttendance[d] ? 'bg-green-500' : 'bg-slate-700'}`}
+            className={`w-3.5 h-3.5 rounded-sm ${yuvak.dateAttendance[d] ? 'bg-green-500' : 'bg-[#d8cdbd] dark:bg-slate-700'}`}
           />
         ))}
       </div>
-      <span className="text-slate-400 text-xs tabular-nums">{count}/{last6.length}</span>
+      <span className="text-[#64748b] text-xs tabular-nums dark:text-slate-400">{count}/{last6.length}</span>
     </div>
   );
 }
@@ -50,7 +51,7 @@ function Last3Badge({ yuvak, last3 }: { yuvak: Yuvak; last3: string[] }) {
 }
 
 function LastSabhaBadge({ yuvak, lastDate }: { yuvak: Yuvak; lastDate: string | undefined }) {
-  if (!lastDate) return <span className="text-slate-600 text-xs">—</span>;
+  if (!lastDate) return <span className="text-[#94a3b8] text-xs dark:text-slate-600">—</span>;
   return yuvak.dateAttendance[lastDate] ? (
     <span className="inline-flex items-center gap-1 text-green-400 text-xs font-medium">
       <span>✅</span> Present
@@ -173,13 +174,13 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
   const renderSortArrow = (k: SortKey) =>
     sortKey === k
       ? <span className="text-orange-400">{sortAsc ? ' ↑' : ' ↓'}</span>
-      : <span className="text-slate-600"> ↕</span>;
+      : <span className="text-[#94a3b8] dark:text-slate-600"> ↕</span>;
 
   return (
-    <div className="bg-slate-900 border border-slate-700/60 rounded-xl overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-[#d9cdbb] bg-[#f1eadf] dark:border-slate-700/60 dark:bg-slate-900">
 
       {/* ── Filters ── */}
-      <div className="px-4 py-3 border-b border-slate-700/60 flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-center">
+      <div className="flex flex-col gap-3 border-b border-[#d9cdbb] px-4 py-3 dark:border-slate-700/60 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs select-none">🔍</span>
           <input
@@ -187,13 +188,13 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
             placeholder="Search yuvak name..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 w-full sm:w-60"
+            className="w-full rounded-lg border border-[#d8cdbd] bg-[#fffdfa] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder:text-[#94a3b8] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500 sm:w-60"
           />
         </div>
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value as AttendanceStatus | 'all'); setPage(1); }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
+          className="w-full rounded-lg border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm text-[#334155] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
         >
           <option value="all">All Status</option>
           <option value="green">Low Risk</option>
@@ -204,7 +205,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
           <select
             value={filterSabha}
             onChange={(e) => { setFilterSabha(e.target.value as 'all' | 'cn' | 'kishor' | 'bal'); setPage(1); }}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
+            className="w-full rounded-lg border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm text-[#334155] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
           >
             <option value="all">All Sabhas</option>
             <option value="cn">Chirag Nagar</option>
@@ -215,7 +216,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
         <select
           value={filterKK}
           onChange={(e) => { setFilterKK(e.target.value); setPage(1); }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
+          className="w-full rounded-lg border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm text-[#334155] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
         >
           {kkList.map((k) => (
             <option key={k} value={k}>{k === 'all' ? 'All KKs' : k}</option>
@@ -224,7 +225,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
         <select
           value={dateWindow}
           onChange={(e) => { setDateWindow(e.target.value as 'last6' | '1m' | '3m' | 'custom'); setPage(1); }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 w-full sm:w-auto"
+          className="w-full rounded-lg border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm text-[#334155] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
         >
           <option value="last6">Last 6 Sabhas</option>
           <option value="1m">Last 1 Month</option>
@@ -237,57 +238,57 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
               type="date"
               value={customFrom}
               onChange={(e) => { setCustomFrom(e.target.value); setPage(1); }}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 scheme-dark"
+              className="rounded-lg border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm text-[#334155] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:scheme-dark"
             />
-            <span className="text-slate-500 text-xs">to</span>
+            <span className="text-[#64748b] text-xs dark:text-slate-500">to</span>
             <input
               type="date"
               value={customTo}
               onChange={(e) => { setCustomTo(e.target.value); setPage(1); }}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500 scheme-dark"
+              className="rounded-lg border border-[#d8cdbd] bg-[#fffdfa] px-3 py-2 text-sm text-[#334155] focus:border-orange-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:scheme-dark"
             />
           </div>
         )}
-        <span className="sm:ml-auto text-slate-500 text-sm">{filtered.length} of {yuvaks.length} yuvaks</span>
+        <span className="text-sm text-[#64748b] dark:text-slate-500 sm:ml-auto">{filtered.length} of {yuvaks.length} yuvaks</span>
       </div>
 
       {/* ── Table ── */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-700/60 bg-slate-800/50">
-              <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
+            <tr className="border-b border-[#d9cdbb] bg-[#eadfce]/70 dark:border-slate-700/60 dark:bg-slate-800/50">
+              <th className="cursor-pointer whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] hover:text-[#334155] dark:text-slate-500 dark:hover:text-slate-300"
                   onClick={() => handleSort('status')}>
                 Status {renderSortArrow('status')}
               </th>
-              <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
+              <th className="cursor-pointer whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] hover:text-[#334155] dark:text-slate-500 dark:hover:text-slate-300"
                   onClick={() => handleSort('name')}>
                 Name {renderSortArrow('name')}
               </th>
-              <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-slate-500">
                 STD
               </th>
-              <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
+              <th className="cursor-pointer whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] hover:text-[#334155] dark:text-slate-500 dark:hover:text-slate-300"
                   onClick={() => handleSort('kk')}>
                 KK (Follow-Up Person) {renderSortArrow('kk')}
               </th>
               {showSabhaType && (
-                <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">Sabha</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-slate-500">Sabha</th>
               )}
               {hasDates ? (
                 <>
-                  <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-slate-500">
                     Last {dotsDisplay.length} Sabhas
                   </th>
-                  <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-slate-500">
                     Last 3
                   </th>
-                  <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-slate-500">
                     Last Sabha
                   </th>
                 </>
               ) : (
-                <th className="text-left px-4 py-3 text-slate-500 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-300 whitespace-nowrap"
+                <th className="cursor-pointer whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[#64748b] hover:text-[#334155] dark:text-slate-500 dark:hover:text-slate-300"
                     onClick={() => handleSort('attendance')}>
                   Attendance {renderSortArrow('attendance')}
                 </th>
@@ -295,9 +296,9 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-[#d9cdbb] dark:divide-slate-800">
             {paginated.map((y, i) => (
-              <tr key={`${y.name}-${i}`} className="hover:bg-slate-800/40 transition-colors">
+              <tr key={`${y.name}-${i}`} className="transition-colors hover:bg-[#f8f3eb] dark:hover:bg-slate-800/40">
 
                 {/* Status */}
                 <td className="px-4 py-3.5 whitespace-nowrap">
@@ -307,7 +308,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                 {/* Name */}
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-100 font-semibold">{y.name}</span>
+                    <span className="font-semibold text-[#1f2937] dark:text-slate-100">{y.name}</span>
                     <ContactActions name={y.name} phoneNumber={y.phoneNumber} size="xs" />
                   </div>
                 </td>
@@ -315,13 +316,13 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                 {/* STD */}
                 <td className="px-4 py-3.5">
                   {y.std
-                    ? <span className="text-xs px-2 py-0.5 rounded bg-slate-700/80 text-slate-300 font-medium whitespace-nowrap">Std {y.std}</span>
-                    : <span className="text-slate-600 text-xs">—</span>
+                    ? <span className="whitespace-nowrap rounded bg-[#fff7ed] px-2 py-0.5 text-xs font-medium text-[#64748b] dark:bg-slate-700/80 dark:text-slate-300">Std {y.std}</span>
+                    : <span className="text-xs text-[#94a3b8] dark:text-slate-600">—</span>
                   }
                 </td>
 
                 {/* KK */}
-                <td className="px-4 py-3.5 text-slate-300">{y.followUpKK || '—'}</td>
+                <td className="px-4 py-3.5 text-[#334155] dark:text-slate-300">{y.followUpKK || '—'}</td>
 
                 {/* Sabha type */}
                 {showSabhaType && (
@@ -355,7 +356,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                   /* Fallback: progress bar when date columns not available */
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#d8cdbd] dark:bg-slate-700">
                         <div
                           className={`h-full rounded-full ${
                             y.attendancePercent >= 60 ? 'bg-green-500' :
@@ -364,7 +365,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
                           style={{ width: `${Math.min(100, y.attendancePercent)}%` }}
                         />
                       </div>
-                      <span className="text-slate-300 text-xs tabular-nums">{y.attendancePercent.toFixed(0)}%</span>
+                      <span className="text-xs tabular-nums text-[#334155] dark:text-slate-300">{y.attendancePercent.toFixed(0)}%</span>
                     </div>
                   </td>
                 )}
@@ -373,7 +374,7 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
 
             {paginated.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={10} className="px-4 py-10 text-center text-[#64748b] dark:text-slate-500">
                   No yuvaks found matching the current filters.
                 </td>
               </tr>
@@ -384,19 +385,29 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
 
       {/* ── Pagination ── */}
       {totalPages > 1 && (
-        <div className="px-4 py-3 border-t border-slate-700/60 flex items-center justify-between text-sm text-slate-400">
+        <div className="flex items-center justify-between border-t border-[#d9cdbb] px-4 py-3 text-sm text-[#64748b] dark:border-slate-700/60 dark:text-slate-400">
           <span>Page {page} of {totalPages}</span>
           <div className="flex gap-2">
             <button
+              type="button"
+              aria-label="Previous page"
+              title="Previous page"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs"
-            >Prev</button>
+              className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#d8cdbd] text-[#334155] hover:bg-[#cdbda8] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
             <button
+              type="button"
+              aria-label="Next page"
+              title="Next page"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs"
-            >Next</button>
+              className="inline-flex h-8 w-8 items-center justify-center rounded bg-[#d8cdbd] text-[#334155] hover:bg-[#cdbda8] disabled:cursor-not-allowed disabled:opacity-40 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}

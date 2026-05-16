@@ -59,11 +59,11 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
   return (
     <form onSubmit={handleSubmit} className="space-y-3.5">
       <div className="space-y-1.5">
-        <label htmlFor="username" className="block text-[0.72rem] font-semibold uppercase tracking-widest text-slate-300">
+        <label htmlFor="username" className="block text-[0.9rem] font-bold uppercase tracking-widest text-white">
           Username
         </label>
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s7-4 7-10V7l-7-3-7 3v5c0 6 7 10 7 10Z" />
             </svg>
@@ -75,17 +75,17 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             placeholder="Enter your username"
-            className="w-full rounded-lg border border-slate-600/80 bg-slate-800/88 px-10 py-2 text-[0.86rem] text-slate-100 outline-none transition-[border-color,background-color] placeholder:text-slate-500 focus:border-[#d77a07] focus:bg-slate-800"
+            className="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 text-[0.95rem] text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-[#d77a07] focus:ring-2 focus:ring-[#d77a07]/20"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="password" className="block text-[0.72rem] font-semibold uppercase tracking-widest text-slate-300">
+        <label htmlFor="password" className="block text-[0.9rem] font-bold uppercase tracking-widest text-white">
           Password
         </label>
         <div className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-500">
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="4" y="11" width="16" height="9" rx="2" />
               <path d="M8 11V8a4 4 0 1 1 8 0v3" />
@@ -98,12 +98,12 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Enter your password"
-            className="w-full rounded-lg border border-slate-600/80 bg-slate-800/88 px-10 py-2 pr-10 text-[0.86rem] text-slate-100 outline-none transition-[border-color,background-color] placeholder:text-slate-500 focus:border-[#d77a07] focus:bg-slate-800"
+            className="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 pr-10 text-[0.95rem] text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-[#d77a07] focus:ring-2 focus:ring-[#d77a07]/20"
           />
           <button
             type="button"
             onClick={() => setShowPassword((current) => !current)}
-            className="absolute inset-y-0 right-2 my-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-500 transition-colors hover:text-slate-300"
+            className="absolute inset-y-0 right-2 my-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-colors hover:text-slate-600"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
             title={showPassword ? 'Hide password' : 'Show password'}
           >

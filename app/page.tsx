@@ -155,10 +155,10 @@ function AttendanceSabhaCard({
   valueClassName: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800 p-4">
-      <h3 className="mb-1 text-base font-semibold tracking-tight text-slate-100">{title}</h3>
-      <p className="mb-4 text-xs text-slate-400">{subtitle}</p>
-      {sessions.length === 0 ? <p className="text-slate-500 text-sm">Not enough data.</p> : (
+    <div className="rounded-xl border border-[#d9cdbb] bg-[#f1eadf] p-4 dark:border-slate-700 dark:bg-slate-800">
+      <h3 className="mb-1 text-base font-semibold tracking-tight text-[#1f2937] dark:text-slate-100">{title}</h3>
+      <p className="mb-4 text-xs text-[#64748b] dark:text-slate-400">{subtitle}</p>
+      {sessions.length === 0 ? <p className="text-[#64748b] text-sm dark:text-slate-500">Not enough data.</p> : (
         <div className="space-y-4">
           {sessions.map((s) => {
             const dateParts = formatAttendanceCardDate(s.date);
@@ -166,16 +166,16 @@ function AttendanceSabhaCard({
 
             return (
               <div key={s.date} className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[18px] border border-slate-600/35 bg-slate-700/75">
-                  <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400">{dateParts.month}</span>
-                  <span className="mt-0.5 text-[0.95rem] font-semibold leading-none text-slate-100">{dateParts.day}</span>
+                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[18px] border border-[#d8cdbd] bg-[#fffdfa] dark:border-slate-600/35 dark:bg-slate-700/75">
+                  <span className="text-[10px] font-semibold tracking-[0.16em] text-[#64748b] dark:text-slate-400">{dateParts.month}</span>
+                  <span className="mt-0.5 text-[0.95rem] font-semibold leading-none text-[#1f2937] dark:text-slate-100">{dateParts.day}</span>
                 </div>
 
                 <div className="min-w-0 flex-1 pt-0.5">
-                  <p className="truncate text-sm font-semibold leading-snug text-slate-100">{content.title}</p>
-                  <p className="mt-0.5 truncate text-xs text-slate-400">{content.subtitle}</p>
+                  <p className="truncate text-sm font-semibold leading-snug text-[#1f2937] dark:text-slate-100">{content.title}</p>
+                  <p className="mt-0.5 truncate text-xs text-[#64748b] dark:text-slate-400">{content.subtitle}</p>
                   <div className="mt-2.5 flex items-center gap-3">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#d8cdbd] dark:bg-slate-700">
                       <div className={`h-full rounded-full ${barClassName}`} style={{ width: `${s.percentage}%` }} />
                     </div>
                     <span className={`w-10 text-right text-sm font-medium ${valueClassName}`}>{s.percentage}%</span>
@@ -388,7 +388,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[30px] border border-[#e7e0d6] bg-white/90 px-6 py-6 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-[30px] border border-[#d9cdbb] bg-[#f1eadf] px-6 py-6 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-[#eadfce] bg-[#fff7ed] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a16207] dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
             <Sparkles className="h-3.5 w-3.5" />
@@ -398,11 +398,11 @@ export default function DashboardPage() {
           <p className="mt-2 max-w-2xl text-sm text-[#64748b] dark:text-slate-400">Overview of Yuva, AYC, and Bal sabha attendance with quick health signals and last-4 session momentum.</p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:min-w-[22rem]">
-          <div className="rounded-2xl border border-[#ece4d7] bg-[#fcfaf6] px-4 py-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="rounded-2xl border border-[#d8cdbd] bg-[#fffdfa] px-4 py-3 dark:border-slate-800 dark:bg-slate-950/70">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Last Updated</p>
             <p className="mt-1 text-lg font-semibold text-[#1f2937] dark:text-slate-100">{updatedTime}</p>
           </div>
-          <div className="rounded-2xl border border-[#ece4d7] bg-[#fcfaf6] px-4 py-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="rounded-2xl border border-[#d8cdbd] bg-[#fffdfa] px-4 py-3 dark:border-slate-800 dark:bg-slate-950/70">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Coverage</p>
             <p className="mt-1 text-lg font-semibold text-[#1f2937] dark:text-slate-100">{attendingCount} attending</p>
             <p className="mt-1 text-xs text-[#7c8798] dark:text-slate-500">{nonAttendingCount} not attending</p>
@@ -414,7 +414,7 @@ export default function DashboardPage() {
         <StatsCard title="Total Yuvaks" value={totalYuvaks} subtitle="All three sabhas combined" icon="S" accent="orange" eyebrow="Network" />
         <StatsCard title="Active" value={totalGreen} subtitle={`${activePercent}% of total marked super active`} icon="A" accent="green" eyebrow="Healthy" />
         <StatsCard title="Needs Attention" value={needsAttentionFromSheet} subtitle={`${attentionPercent}% need follow-up attention`} icon="!" accent="yellow" eyebrow="Follow-up" />
-        <div className="relative overflow-hidden rounded-[22px] border border-[#e7e0d6] bg-white/92 p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-700/80 dark:bg-slate-800/90 dark:shadow-none">
+        <div className="relative overflow-hidden rounded-[22px] border border-[#d9cdbb] bg-[#f1eadf] p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-700/80 dark:bg-slate-800/90 dark:shadow-none">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-br from-sky-500/10 via-sky-500/0 to-transparent" />
           <div className="relative flex h-full flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
@@ -426,7 +426,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-end justify-between gap-2">
               <p className="text-[2.1rem] font-bold tracking-tight text-sky-600 dark:text-sky-400">{totalYuvaks}</p>
-              <div className="rounded-xl border border-[#ece4d7] bg-[#fcfaf6] px-2.5 py-1.5 text-right dark:border-slate-800 dark:bg-slate-950/70">
+              <div className="rounded-xl border border-[#d8cdbd] bg-[#fffdfa] px-2.5 py-1.5 text-right dark:border-slate-800 dark:bg-slate-950/70">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[#94a3b8] dark:text-slate-500">Attending Rate</p>
                 <p className="mt-1 text-sm font-semibold text-[#1f2937] dark:text-slate-100">{totalYuvaks > 0 ? Math.round((attendingCount / totalYuvaks) * 100) : 0}%</p>
               </div>
@@ -439,20 +439,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="rounded-[24px] border border-[#e7e0d6] bg-white/92 p-5 shadow-[0_16px_34px_rgba(31,41,55,0.07)] dark:border-slate-800 dark:bg-slate-800/90 dark:shadow-none">
+      <div className="rounded-[24px] border border-[#d9cdbb] bg-[#f1eadf] p-5 shadow-[0_16px_34px_rgba(31,41,55,0.07)] dark:border-slate-800 dark:bg-slate-800/90 dark:shadow-none">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#94a3b8] dark:text-slate-500">Momentum</p>
             <h3 className="mt-1 text-lg font-semibold text-[#1f2937] dark:text-slate-100">Last 4 Sabha Average Attendance</h3>
             <p className="mt-1 text-[13px] text-[#64748b] dark:text-slate-400">A cleaner view of short-term attendance strength across the overall network and each sabha.</p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#eadfce] bg-[#fcfaf6] px-3 py-1 text-[11px] text-[#64748b] dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-400">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#d8cdbd] bg-[#fffdfa] px-3 py-1 text-[11px] text-[#64748b] dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-400">
             <ArrowUpRight className="h-3.5 w-3.5" />
             Hover a tile for latest session details
           </div>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="group relative overflow-hidden rounded-[20px] border border-[#ece4d7] bg-[#fcfaf6] p-4 transition-transform duration-200 hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="group relative overflow-hidden rounded-[20px] border border-[#d8cdbd] bg-[#fffdfa] p-4 transition-transform duration-200 hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/70">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-br from-sky-500/10 via-sky-500/0 to-transparent" />
             <div className="relative">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[#6488c7] dark:text-sky-300">Overall</p>
@@ -474,7 +474,7 @@ export default function DashboardPage() {
           {sabhaCards.map((card) => {
             const last4Dates = card.dates.slice(-4);
             return (
-              <div key={`${card.sabhaType}-last4avg`} className="group relative overflow-hidden rounded-[20px] border border-[#ece4d7] bg-[#fcfaf6] p-4 transition-transform duration-200 hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/70">
+              <div key={`${card.sabhaType}-last4avg`} className="group relative overflow-hidden rounded-[20px] border border-[#d8cdbd] bg-[#fffdfa] p-4 transition-transform duration-200 hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900/70">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-br from-white to-transparent dark:from-slate-800/10" />
                 <div className="relative">
                   <p className={`text-[11px] uppercase tracking-[0.18em] ${card.accent.title}`}>{card.ui.shortLabel}</p>
@@ -502,36 +502,36 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-3">
         {sabhaCards.map((card) => (
-          <div key={card.sabhaType} className={`rounded-[18px] border border-[#e7e0d6] bg-white/92 p-3.5 shadow-[0_10px_20px_rgba(31,41,55,0.045)] dark:bg-slate-800/90 dark:shadow-none ${card.accent.border}`}>
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div>
+          <div key={card.sabhaType} className={`rounded-[18px] border border-[#d9cdbb] bg-[#f1eadf] p-4 shadow-[0_10px_20px_rgba(31,41,55,0.045)] dark:bg-slate-800/90 dark:shadow-none ${card.accent.border}`}>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <h3 className={`text-[1.25rem] font-semibold leading-tight ${card.accent.title}`}>{card.ui.fullLabel}</h3>
                 <p className="mt-0.5 text-[12px] text-[#7c8798] dark:text-slate-500">{card.ui.subtitle}</p>
               </div>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${card.accent.chip}`}>{card.ui.shortLabel}</span>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${card.accent.chip}`}>{card.ui.shortLabel}</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="min-w-0">
-                <p className="text-[1.7rem] font-bold leading-none tracking-tight text-[#1f2937] dark:text-slate-100">{card.stats.totalYuvaks}</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#94a3b8] dark:text-slate-500">Total</p>
+            <div className="grid grid-cols-3 items-start gap-3">
+              <div className="min-w-0 text-left">
+                <p className="font-mono text-[1.7rem] font-bold leading-none tracking-tight text-[#1f2937] dark:text-slate-100">{card.stats.totalYuvaks}</p>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-[#94a3b8] dark:text-slate-500">Total</p>
               </div>
-              <div className="min-w-0">
-                <p className="text-[1.7rem] font-bold leading-none tracking-tight text-emerald-600 dark:text-green-400">{card.avgAttendanceLast4}%</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#94a3b8] dark:text-slate-500">Avg Att.</p>
+              <div className="min-w-0 text-center">
+                <p className="font-mono text-[1.7rem] font-bold leading-none tracking-tight text-emerald-600 dark:text-green-400">{card.avgAttendanceLast4}%</p>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-[#94a3b8] dark:text-slate-500">Avg Att.</p>
               </div>
-              <div className="min-w-0">
-                <p className={`text-[1.7rem] font-bold leading-none tracking-tight ${card.accent.expected}`}>{card.predicted}%</p>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#94a3b8] dark:text-slate-500">Expected</p>
+              <div className="min-w-0 text-right">
+                <p className={`font-mono text-[1.7rem] font-bold leading-none tracking-tight ${card.accent.expected}`}>{card.predicted}%</p>
+                <p className="mt-1.5 text-[10px] uppercase tracking-[0.12em] text-[#94a3b8] dark:text-slate-500">Expected</p>
               </div>
             </div>
 
-            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+            <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
               <span className="rounded-full bg-emerald-500/12 px-2 py-0.5 font-medium text-emerald-600 dark:text-emerald-300">{card.activeFromSheet} active</span>
               <span className="rounded-full bg-amber-500/12 px-2 py-0.5 font-medium text-amber-600 dark:text-amber-300">{card.attentionFromSheet} attention</span>
             </div>
 
-            <div className="mt-2 border-t border-[#ece4d7] pt-2 dark:border-slate-700">
+            <div className="mt-3 border-t border-[#d8cdbd] pt-3 dark:border-slate-700">
               <SabhaMetaPanel
                 {...card.meta}
                 compact={true}
@@ -543,18 +543,18 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="rounded-[22px] border border-[#e7e0d6] bg-white/92 p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-800 dark:bg-slate-800/90 dark:shadow-none">
+      <div className="rounded-[22px] border border-[#d9cdbb] bg-[#f1eadf] p-4 shadow-[0_14px_30px_rgba(31,41,55,0.06)] dark:border-slate-800 dark:bg-slate-800/90 dark:shadow-none">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-lg font-semibold text-[#1f2937] dark:text-slate-100">Area Segregation</h3>
             <p className="mt-0.5 text-[13px] text-[#7c8798] dark:text-slate-500">Attending and non-attending counts by area and sabha type</p>
           </div>
-          <span className="inline-flex items-center rounded-full border border-[#e7e0d6] bg-[#fcfaf6] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#64748b] dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
+          <span className="inline-flex items-center rounded-full border border-[#d8cdbd] bg-[#fffdfa] px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[#64748b] dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
             Auto updates from sheet
           </span>
         </div>
 
-        <div className="overflow-x-auto rounded-[18px] border border-[#ece4d7] bg-[#fcfaf6] dark:border-slate-700 dark:bg-slate-900/60">
+        <div className="overflow-x-auto rounded-[18px] border border-[#d8cdbd] bg-[#fffdfa] dark:border-slate-700 dark:bg-slate-900/60">
           <table className="min-w-full text-sm border-collapse">
             <thead>
               <tr className="bg-[#f5efe6] dark:bg-slate-900/80">
@@ -565,8 +565,8 @@ export default function DashboardPage() {
                   </th>
                 ))}
               </tr>
-              <tr className="bg-[#fcfaf6] dark:bg-slate-900/50">
-                <th className="sticky left-0 z-10 border-b border-[#ece4d7] bg-[#fcfaf6] px-4 py-2 text-left text-[11px] text-[#94a3b8] dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-500">&nbsp;</th>
+              <tr className="bg-[#fffdfa] dark:bg-slate-900/50">
+                <th className="sticky left-0 z-10 border-b border-[#ece4d7] bg-[#fffdfa] px-4 py-2 text-left text-[11px] text-[#94a3b8] dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-500">&nbsp;</th>
                 {sabhaColumns.map((col) => (
                   <Fragment key={`header-${col.key}`}>
                     <th key={`${col.key}-yes`} className="border-b border-[#ece4d7] px-3 py-2 text-center text-[11px] uppercase tracking-[0.18em] text-emerald-600 dark:border-slate-700 dark:text-emerald-300">Yes</th>
@@ -577,7 +577,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {areaRows.map((row, idx) => (
-                <tr key={row.area} className={`${idx % 2 === 0 ? 'bg-white/70 dark:bg-slate-800/35' : 'bg-[#fcfaf6] dark:bg-slate-800/10'} transition-colors hover:bg-sky-500/5`}>
+                <tr key={row.area} className={`${idx % 2 === 0 ? 'bg-[#fffdfa]/70 dark:bg-slate-800/35' : 'bg-[#f1eadf]/40 dark:bg-slate-800/10'} transition-colors hover:bg-sky-500/5`}>
                   <td className="sticky left-0 z-10 border-b border-[#ece4d7] bg-inherit px-4 py-3 text-[15px] font-medium text-[#1f2937] dark:border-slate-700/70 dark:text-slate-100">{row.area}</td>
                   {sabhaColumns.map((col) => (
                     <Fragment key={`${row.area}-${col.key}`}>
@@ -605,32 +605,32 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-        <h3 className="text-slate-100 font-semibold mb-1">Status Audit (Raw Parsed Values)</h3>
-        <p className="text-slate-500 text-xs mb-4">Use this to verify sheet filter counts vs app counts.</p>
-        <div className="overflow-x-auto rounded-lg border border-slate-700/70">
+      <div className="rounded-xl border border-[#d9cdbb] bg-[#f1eadf] p-5 dark:border-slate-700 dark:bg-slate-800">
+        <h3 className="text-[#1f2937] font-semibold mb-1 dark:text-slate-100">Status Audit (Raw Parsed Values)</h3>
+        <p className="text-[#64748b] text-xs mb-4 dark:text-slate-500">Use this to verify sheet filter counts vs app counts.</p>
+        <div className="overflow-x-auto rounded-lg border border-[#d8cdbd] dark:border-slate-700/70">
           <table className="min-w-full text-sm border-collapse">
             <thead>
-              <tr className="bg-slate-900/70">
-                <th className="px-3 py-2 text-left text-slate-200 border-b border-slate-700">Sabha</th>
-                <th className="px-3 py-2 text-center text-slate-200 border-b border-slate-700">Total</th>
-                <th className="px-3 py-2 text-center text-emerald-300 border-b border-slate-700">Super Active Yes</th>
-                <th className="px-3 py-2 text-center text-rose-300 border-b border-slate-700">Super Active No</th>
-                <th className="px-3 py-2 text-center text-emerald-300 border-b border-slate-700">Attending Yes</th>
-                <th className="px-3 py-2 text-center text-rose-300 border-b border-slate-700">Attending No</th>
-                <th className="px-3 py-2 text-left text-slate-200 border-b border-slate-700">Super Active Names</th>
+              <tr className="bg-[#eadfce]/70 dark:bg-slate-900/70">
+                <th className="px-3 py-2 text-left text-[#1f2937] border-b border-[#d8cdbd] dark:text-slate-200 dark:border-slate-700">Sabha</th>
+                <th className="px-3 py-2 text-center text-[#1f2937] border-b border-[#d8cdbd] dark:text-slate-200 dark:border-slate-700">Total</th>
+                <th className="px-3 py-2 text-center text-emerald-600 border-b border-[#d8cdbd] dark:text-emerald-300 dark:border-slate-700">Super Active Yes</th>
+                <th className="px-3 py-2 text-center text-rose-500 border-b border-[#d8cdbd] dark:text-rose-300 dark:border-slate-700">Super Active No</th>
+                <th className="px-3 py-2 text-center text-emerald-600 border-b border-[#d8cdbd] dark:text-emerald-300 dark:border-slate-700">Attending Yes</th>
+                <th className="px-3 py-2 text-center text-rose-500 border-b border-[#d8cdbd] dark:text-rose-300 dark:border-slate-700">Attending No</th>
+                <th className="px-3 py-2 text-left text-[#1f2937] border-b border-[#d8cdbd] dark:text-slate-200 dark:border-slate-700">Super Active Names</th>
               </tr>
             </thead>
             <tbody>
               {statusAuditRows.map((row, idx) => (
-                <tr key={row.sabha} className={idx % 2 === 0 ? 'bg-slate-800/30' : 'bg-slate-800/10'}>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-slate-200">{row.sabha}</td>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-center text-slate-100 font-semibold">{row.total}</td>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-center text-emerald-300 font-semibold">{row.superActiveYes}</td>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-center text-rose-300 font-semibold">{row.superActiveNo}</td>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-center text-emerald-300 font-semibold">{row.attendingYes}</td>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-center text-rose-300 font-semibold">{row.attendingNo}</td>
-                  <td className="px-3 py-2 border-b border-slate-700/70 text-xs text-slate-300">
+                <tr key={row.sabha} className={idx % 2 === 0 ? 'bg-[#fffdfa]/70 dark:bg-slate-800/30' : 'bg-[#f1eadf]/40 dark:bg-slate-800/10'}>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-[#334155] dark:border-slate-700/70 dark:text-slate-200">{row.sabha}</td>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-center text-[#1f2937] font-semibold dark:border-slate-700/70 dark:text-slate-100">{row.total}</td>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-center text-emerald-600 font-semibold dark:border-slate-700/70 dark:text-emerald-300">{row.superActiveYes}</td>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-center text-rose-500 font-semibold dark:border-slate-700/70 dark:text-rose-300">{row.superActiveNo}</td>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-center text-emerald-600 font-semibold dark:border-slate-700/70 dark:text-emerald-300">{row.attendingYes}</td>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-center text-rose-500 font-semibold dark:border-slate-700/70 dark:text-rose-300">{row.attendingNo}</td>
+                  <td className="px-3 py-2 border-b border-[#d8cdbd] text-xs text-[#334155] dark:border-slate-700/70 dark:text-slate-300">
                     {row.superActiveYesNames.length > 0 ? row.superActiveYesNames.join(', ') : '—'}
                   </td>
                 </tr>
@@ -665,38 +665,38 @@ export default function DashboardPage() {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-slate-100 font-semibold">KK Performance by Sabha</h3>
+        <h3 className="text-[#1f2937] font-semibold dark:text-slate-100">KK Performance by Sabha</h3>
         {kkInsightsBySabha.map((insight) => (
-          <div key={`kk-insight-${insight.sabhaType}`} className="bg-slate-800 border border-slate-700 rounded-xl p-5">
+          <div key={`kk-insight-${insight.sabhaType}`} className="rounded-xl border border-[#d9cdbb] bg-[#f1eadf] p-5 dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-slate-100 font-medium">{insight.label}</p>
-              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-700 text-slate-300">{insight.shortLabel}</span>
+              <p className="text-[#1f2937] font-medium dark:text-slate-100">{insight.label}</p>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#d8cdbd] text-[#334155] dark:bg-slate-700 dark:text-slate-300">{insight.shortLabel}</span>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-slate-900/40 border border-green-500/20 rounded-xl p-4">
-                <h4 className="text-slate-100 font-semibold mb-1">Most Active KK</h4>
-                <p className="text-slate-500 text-xs mb-3">Best follow-up attendance performance (Last 4 Sabha)</p>
+              <div className="rounded-xl border border-green-500/20 bg-[#fffdfa]/70 p-4 dark:bg-slate-900/40">
+                <h4 className="text-[#1f2937] font-semibold mb-1 dark:text-slate-100">Most Active KK</h4>
+                <p className="text-[#64748b] text-xs mb-3 dark:text-slate-500">Best follow-up attendance performance (Last 4 Sabha)</p>
                 {!insight.mostActiveKK ? (
-                  <p className="text-slate-500 text-sm">No KK data available.</p>
+                  <p className="text-[#64748b] text-sm dark:text-slate-500">No KK data available.</p>
                 ) : (
                   <>
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <p className="text-green-300 font-semibold text-base">{insight.mostActiveKK.name}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">Follow-up yuvaks: {insight.mostActiveKK.yuvaks.length}</p>
+                        <p className="text-[#64748b] text-xs mt-0.5 dark:text-slate-500">Follow-up yuvaks: {insight.mostActiveKK.yuvaks.length}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-green-400">{insight.mostActiveKK.avgAttendanceLast4}%</p>
-                        <p className="text-slate-500 text-xs">Avg attendance (Last 4 Sabha)</p>
+                        <p className="text-[#64748b] text-xs dark:text-slate-500">Avg attendance (Last 4 Sabha)</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs mb-3">
                       <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{insight.mostActiveKK.greenCount} active</span>
                       <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{insight.mostActiveKK.yellowCount} attention</span>
                     </div>
-                    <div className="border-t border-slate-700 pt-3">
-                      <p className="text-slate-400 text-xs mb-2">Follow-up yuvak list (with attendance)</p>
-                      <p className="text-slate-500 text-[11px] mb-2">% is based on last 4 sabha: {insight.last4Dates.join(', ') || 'N/A'}</p>
+                    <div className="border-t border-[#d8cdbd] pt-3 dark:border-slate-700">
+                      <p className="text-[#64748b] text-xs mb-2 dark:text-slate-400">Follow-up yuvak list (with attendance)</p>
+                      <p className="text-[#64748b] text-[11px] mb-2 dark:text-slate-500">% is based on last 4 sabha: {insight.last4Dates.join(', ') || 'N/A'}</p>
                       <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                         {[...insight.mostActiveKK.yuvaks]
                           .sort((a, b) => b.attendancePercent - a.attendancePercent)
@@ -707,7 +707,7 @@ export default function DashboardPage() {
 
                             return (
                             <div key={getKkYuvakRowKey('active', insight.mostActiveKK?.name, y, index)} className="flex items-center justify-between text-xs">
-                              <span className="text-slate-300">{y.name}</span>
+                              <span className="text-[#334155] dark:text-slate-300">{y.name}</span>
                               <span className="text-green-300 font-medium">{yLast4Pct}%</span>
                             </div>
                             );
@@ -718,30 +718,30 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="bg-slate-900/40 border border-yellow-500/20 rounded-xl p-4">
-                <h4 className="text-slate-100 font-semibold mb-1">Most Deactive KK</h4>
-                <p className="text-slate-500 text-xs mb-3">Lowest follow-up attendance performance (Last 4 Sabha)</p>
+              <div className="rounded-xl border border-yellow-500/20 bg-[#fffdfa]/70 p-4 dark:bg-slate-900/40">
+                <h4 className="text-[#1f2937] font-semibold mb-1 dark:text-slate-100">Most Deactive KK</h4>
+                <p className="text-[#64748b] text-xs mb-3 dark:text-slate-500">Lowest follow-up attendance performance (Last 4 Sabha)</p>
                 {!insight.mostDeactiveKK ? (
-                  <p className="text-slate-500 text-sm">No KK data available.</p>
+                  <p className="text-[#64748b] text-sm dark:text-slate-500">No KK data available.</p>
                 ) : (
                   <>
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <p className="text-yellow-300 font-semibold text-base">{insight.mostDeactiveKK.name}</p>
-                        <p className="text-slate-500 text-xs mt-0.5">Follow-up yuvaks: {insight.mostDeactiveKK.yuvaks.length}</p>
+                        <p className="text-[#64748b] text-xs mt-0.5 dark:text-slate-500">Follow-up yuvaks: {insight.mostDeactiveKK.yuvaks.length}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-yellow-400">{insight.mostDeactiveKK.avgAttendanceLast4}%</p>
-                        <p className="text-slate-500 text-xs">Avg attendance (Last 4 Sabha)</p>
+                        <p className="text-[#64748b] text-xs dark:text-slate-500">Avg attendance (Last 4 Sabha)</p>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs mb-3">
                       <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">{insight.mostDeactiveKK.greenCount} active</span>
                       <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">{insight.mostDeactiveKK.yellowCount} attention</span>
                     </div>
-                    <div className="border-t border-slate-700 pt-3">
-                      <p className="text-slate-400 text-xs mb-2">Follow-up yuvak list (with attendance)</p>
-                      <p className="text-slate-500 text-[11px] mb-2">% is based on last 4 sabha: {insight.last4Dates.join(', ') || 'N/A'}</p>
+                    <div className="border-t border-[#d8cdbd] pt-3 dark:border-slate-700">
+                      <p className="text-[#64748b] text-xs mb-2 dark:text-slate-400">Follow-up yuvak list (with attendance)</p>
+                      <p className="text-[#64748b] text-[11px] mb-2 dark:text-slate-500">% is based on last 4 sabha: {insight.last4Dates.join(', ') || 'N/A'}</p>
                       <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                         {[...insight.mostDeactiveKK.yuvaks]
                           .sort((a, b) => a.attendancePercent - b.attendancePercent)
@@ -752,7 +752,7 @@ export default function DashboardPage() {
 
                             return (
                             <div key={getKkYuvakRowKey('deactive', insight.mostDeactiveKK?.name, y, index)} className="flex items-center justify-between text-xs">
-                              <span className="text-slate-300">{y.name}</span>
+                              <span className="text-[#334155] dark:text-slate-300">{y.name}</span>
                               <span className="text-yellow-300 font-medium">{yLast4Pct}%</span>
                             </div>
                             );
@@ -768,15 +768,15 @@ export default function DashboardPage() {
       </div>
 
       {kkStats.length > 0 && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-slate-100 font-semibold mb-1">KK Follow-Up Summary</h3>
-          <p className="text-slate-500 text-xs mb-4">Top KKs by yuvak count</p>
+        <div className="rounded-xl border border-[#d9cdbb] bg-[#f1eadf] p-5 dark:border-slate-700 dark:bg-slate-800">
+          <h3 className="text-[#1f2937] font-semibold mb-1 dark:text-slate-100">KK Follow-Up Summary</h3>
+          <p className="text-[#64748b] text-xs mb-4 dark:text-slate-500">Top KKs by yuvak count</p>
           <div className="space-y-2 overflow-y-auto max-h-56">
             {kkStats.slice(0, 10).map((kk) => (
-              <div key={kk.name} className="flex items-center justify-between py-1.5 border-b border-slate-700/50">
+              <div key={kk.name} className="flex items-center justify-between py-1.5 border-b border-[#d8cdbd] dark:border-slate-700/50">
                 <div>
-                  <p className="text-slate-200 text-sm">{kk.name}</p>
-                  <p className="text-slate-500 text-xs">{kk.yuvaks.length} yuvaks · avg {kk.avgAttendance}%</p>
+                  <p className="text-[#334155] text-sm dark:text-slate-200">{kk.name}</p>
+                  <p className="text-[#64748b] text-xs dark:text-slate-500">{kk.yuvaks.length} yuvaks · avg {kk.avgAttendance}%</p>
                 </div>
                 <div className="flex gap-1.5 text-xs">
                   <span className="px-1.5 py-0.5 rounded bg-green-500/15 text-green-400">{kk.greenCount}</span>

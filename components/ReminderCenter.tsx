@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authClient } from '@/lib/auth/client';
+import { useAuthSession } from '@/hooks/useAuthSession';
 import { useReminders } from '@/hooks/useReminders';
 import ContactActions from '@/components/ContactActions';
 import { SABHA_DISPLAY, SABHA_TYPES } from '@/lib/sabha';
@@ -75,7 +75,7 @@ function groupRemindersBySabha(reminders: ReminderItem[]) {
 }
 
 export default function ReminderCenter({ variant = 'compact' }: ReminderCenterProps) {
-  const { data: session } = authClient.useSession();
+  const { data: session } = useAuthSession();
   const role = (session?.user as { role?: string } | undefined)?.role ?? '';
   const isLeader = role === 'leader' || role === 'admin';
   const { reminders, loading, error } = useReminders();
@@ -135,7 +135,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-[#e7e0d6] bg-white/92 px-5 py-5 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none">
+      <div className="rounded-3xl border border-[#d9cdbb] bg-[#f1eadf] px-5 py-5 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none">
         <div className="animate-pulse space-y-3">
           <div className="h-4 w-40 rounded bg-[#ece4d7] dark:bg-slate-800" />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -164,7 +164,7 @@ export default function ReminderCenter({ variant = 'compact' }: ReminderCenterPr
     : 'Your assigned follow-up reminders appear here first.';
 
   return (
-    <section className={`rounded-3xl border border-[#e7e0d6] bg-white/92 shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none ${variant === 'full' ? 'p-5 sm:p-6' : 'max-h-[28rem] overflow-hidden p-5'}`}>
+    <section className={`rounded-3xl border border-[#d9cdbb] bg-[#f1eadf] shadow-[0_20px_45px_rgba(31,41,55,0.08)] dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-none ${variant === 'full' ? 'p-5 sm:p-6' : 'max-h-[28rem] overflow-hidden p-5'}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

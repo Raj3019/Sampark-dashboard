@@ -277,7 +277,7 @@ export default function ChiragNagarPage() {
 
         {/* Overview */}
       {activeTab === 'overview' && (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
               {recentSabhaSummaries.length > 0 ? recentSabhaSummaries.map((session, index) => (
                 <div key={session.date} className="rounded-xl border border-sky-500/20 bg-slate-800 p-5">
@@ -328,7 +328,7 @@ export default function ChiragNagarPage() {
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="order-first space-y-3">
               <button
                 type="button"
                 onClick={() => setIsRiskSectionCollapsed((prev) => !prev)}

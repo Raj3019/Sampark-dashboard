@@ -2,6 +2,7 @@ import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
 import { admin, username } from 'better-auth/plugins';
 import { getAuthDb, getAuthPool } from '@/lib/auth/db';
+import { AUTH_SESSION_MAX_AGE_SECONDS, AUTH_SESSION_UPDATE_AGE_SECONDS } from '@/lib/auth/session-policy';
 
 const baseURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000';
 
@@ -16,6 +17,11 @@ export const auth = betterAuth({
   trustedOrigins: [baseURL],
   emailAndPassword: {
     enabled: true,
+  },
+  session: {
+    expiresIn: AUTH_SESSION_MAX_AGE_SECONDS,
+    updateAge: AUTH_SESSION_UPDATE_AGE_SECONDS,
+    disableSessionRefresh: true,
   },
   rateLimit: {
     enabled: false,
