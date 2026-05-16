@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { type ComponentType, useEffect, useMemo, useState } from 'react';
+import { type ComponentType, type FormEvent, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   BookOpen,
@@ -9,6 +9,7 @@ import {
   ChartColumn,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Menu,
   Moon,
   PanelLeftClose,
@@ -17,6 +18,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  UserRound,
   Users,
   X,
 } from 'lucide-react';
@@ -26,6 +28,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { toast } from 'sonner';
 import { useUpcomingEkadashi } from '@/hooks/useUpcomingEkadashi';
 import { useSheetData } from '@/hooks/useSheetData';
+import { Yuvak } from '@/lib/types';
 
 type NavItem = {
   href: string;
@@ -60,6 +63,116 @@ const adminSecondaryNavItems: NavItem[] = [
 ];
 
 const ROLE_LABELS: Record<string, string> = { admin: 'Admin', leader: 'Leader', kk: 'KK' };
+
+type SearchResult =
+  | {
+      type: 'yuvak';
+      title: string;
+      subtitle: string;
+      meta: string;
+      href: string;
+    }
+  | {
+      type: 'kk';
+      title: string;
+      subtitle: string;
+      meta: string;
+      href: string;
+    }
+  | {
+      type: 'area';
+      title: string;
+      subtitle: string;
+      meta: string;
+      href: string;
+    };
+
+function matchesQuery(values: Array<string | number | null | undefined>, query: string) {
+  return values.some((value) => String(value ?? '').toLowerCase().includes(query));
+}
+
+function getSearchResultIcon(type: SearchResult['type']) {
+  if (type === 'kk') return Users;
+  if (type === 'area') return MapPin;
+  return UserRound;
+}
+
+function encodeQuery(value: string) {
+  return encodeURIComponent(value.trim());
+}
+
+function buildSearchResults(yuvaks: Yuvak[], rawQuery: string): SearchResult[] {
+  const query = rawQuery.trim().toLowerCase();
+  if (query.length < 2) return [];
+
+  const yuvakResults = yuvaks
+    .filter((yuvak) => matchesQuery([
+      yuvak.name,
+      yuvak.followUpKK,
+      yuvak.area,
+      yuvak.phoneNumber,
+      yuvak.std,
+      yuvak.sabhaType,
+    ], query))
+    .slice(0, 5)
+    .map((yuvak): SearchResult => ({
+      type: 'yuvak',
+      title: yuvak.name,
+      subtitle: [yuvak.sabhaType, yuvak.area || 'No area'].filter(Boolean).join(' • '),
+      meta: `${yuvak.attendancePercent}% attendance${yuvak.followUpKK ? ` • KK: ${yuvak.followUpKK}` : ''}`,
+      href: `/yuvaks?q=${encodeQuery(yuvak.name)}`,
+    }));
+
+  const kkMap = new Map<string, Yuvak[]>();
+  for (const yuvak of yuvaks) {
+    const kkName = yuvak.followUpKK?.trim();
+    if (!kkName) continue;
+    if (!matchesQuery([kkName], query)) continue;
+    kkMap.set(kkName, [...(kkMap.get(kkName) ?? []), yuvak]);
+  }
+
+  const kkResults = Array.from(kkMap.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 3)
+    .map(([kkName, kkYuvaks]): SearchResult => {
+      const avgAttendance = kkYuvaks.length > 0
+        ? Math.round(kkYuvaks.reduce((sum, yuvak) => sum + yuvak.attendancePercent, 0) / kkYuvaks.length)
+        : 0;
+      const sabhas = Array.from(new Set(kkYuvaks.map((yuvak) => yuvak.sabhaType))).join(', ');
+      return {
+        type: 'kk',
+        title: kkName,
+        subtitle: `${kkYuvaks.length} assigned yuvaks`,
+        meta: `${avgAttendance}% avg attendance${sabhas ? ` • ${sabhas}` : ''}`,
+        href: `/yuvaks?kk=${encodeQuery(kkName)}`,
+      };
+    });
+
+  const areaMap = new Map<string, Yuvak[]>();
+  for (const yuvak of yuvaks) {
+    const area = yuvak.area?.trim();
+    if (!area) continue;
+    if (!matchesQuery([area], query)) continue;
+    areaMap.set(area, [...(areaMap.get(area) ?? []), yuvak]);
+  }
+
+  const areaResults = Array.from(areaMap.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 3)
+    .map(([area, areaYuvaks]): SearchResult => {
+      const sabhas = Array.from(new Set(areaYuvaks.map((yuvak) => yuvak.sabhaType))).join(', ');
+      const activeCount = areaYuvaks.filter((yuvak) => yuvak.superActive).length;
+      return {
+        type: 'area',
+        title: area,
+        subtitle: `${areaYuvaks.length} yuvaks in area`,
+        meta: `${activeCount} active${sabhas ? ` • ${sabhas}` : ''}`,
+        href: `/yuvaks?q=${encodeQuery(area)}`,
+      };
+    });
+
+  return [...yuvakResults, ...kkResults, ...areaResults].slice(0, 8);
+}
 
 function ThemeToggleIcon({ theme }: { theme: 'dark' | 'light' }) {
   return theme === 'dark'
@@ -156,6 +269,8 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [relativeNow, setRelativeNow] = useState(() => Date.now());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const { data: session } = useAuthSession();
   const { data: sheetData, refresh: refreshSheetData } = useSheetData();
@@ -184,6 +299,8 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
   }, []);
 
   const updateLabel = useMemo(() => getRelativeUpdateLabel(sheetData?.lastUpdated, relativeNow), [relativeNow, sheetData?.lastUpdated]);
+  const searchResults = useMemo(() => buildSearchResults(sheetData?.yuvaks ?? [], searchQuery), [sheetData?.yuvaks, searchQuery]);
+  const trimmedSearchQuery = searchQuery.trim();
   const ekadashiLabel = ekadashiLoading
     ? 'Loading Ekadashi...'
     : ekadashi
@@ -217,6 +334,13 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!trimmedSearchQuery) return;
+    setSearchOpen(false);
+    router.push(`/yuvaks?q=${encodeQuery(trimmedSearchQuery)}`);
   };
 
   const sidebarContent = (onLinkClick?: () => void, collapsed = false) => (
@@ -290,15 +414,82 @@ export default function Navbar({ sidebarCollapsed, onSidebarCollapsedChange }: N
 
       <div className={`fixed right-0 top-0 z-30 hidden border-b border-[#eadfce] bg-[#fffcf7]/92 backdrop-blur transition-[left] duration-200 md:block dark:border-slate-800 dark:bg-[#0f172acc] ${sidebarCollapsed ? 'left-20' : 'left-[16.5rem]'}`}>
         <div className="flex h-[5.25rem] items-center gap-4 px-6">
-          <div className="flex min-w-0 flex-1 items-center rounded-xl border border-[#e6d8c5] bg-white px-4 py-3 shadow-[0_10px_30px_rgba(148,116,75,0.06)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            <Search className="mr-3 h-4 w-4 text-[#7a8aa5] dark:text-slate-500" />
-            <input
-              type="text"
-              aria-label="Search"
-              placeholder="Search yuvaks, KKs, or areas..."
-              className="w-full border-0 bg-transparent! text-[15px] text-[#1f3552] placeholder:text-[#97a4bb] focus:outline-none dark:bg-transparent! dark:text-slate-100 dark:placeholder:text-slate-500"
-            />
-          </div>
+          <form onSubmit={handleSearchSubmit} className="relative min-w-0 flex-1">
+            <div className="flex items-center rounded-xl border border-[#e6d8c5] bg-white px-4 py-3 shadow-[0_10px_30px_rgba(148,116,75,0.06)] transition focus-within:border-[#d8b98d] dark:border-slate-700 dark:bg-slate-900 dark:shadow-none dark:focus-within:border-slate-500">
+              <Search className="mr-3 h-4 w-4 text-[#7a8aa5] dark:text-slate-500" />
+              <input
+                type="text"
+                aria-label="Search yuvaks, KKs, areas, phone, or standard"
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setSearchOpen(true);
+                }}
+                onFocus={() => setSearchOpen(true)}
+                onBlur={() => window.setTimeout(() => setSearchOpen(false), 140)}
+                placeholder="Search yuvaks, KKs, areas, phone, std..."
+                className="w-full border-0 bg-transparent! text-[15px] text-[#1f3552] placeholder:text-[#97a4bb] focus:outline-none dark:bg-transparent! dark:text-slate-100 dark:placeholder:text-slate-500"
+              />
+              {trimmedSearchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchOpen(false);
+                  }}
+                  className="ml-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7a8aa5] transition hover:bg-[#f1eadf] hover:text-[#1f3552] dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+
+            {searchOpen ? (
+              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border border-[#d8cdbd] bg-[#fffdfa] shadow-[0_18px_44px_rgba(31,41,55,0.16)] dark:border-slate-700 dark:bg-slate-900 dark:shadow-[0_18px_44px_rgba(0,0,0,0.35)]">
+                {trimmedSearchQuery.length < 2 ? (
+                  <div className="px-4 py-3">
+                    <p className="text-sm font-semibold text-[#334155] dark:text-slate-200">Find records quickly</p>
+                    <p className="mt-1 text-xs text-[#64748b] dark:text-slate-500">Search by yuvak name, KK, area, phone number, standard, or sabha.</p>
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-[24rem] overflow-y-auto py-1.5">
+                    {searchResults.map((result) => {
+                      const Icon = getSearchResultIcon(result.type);
+                      return (
+                        <Link
+                          key={`${result.type}-${result.title}-${result.href}`}
+                          href={result.href}
+                          onClick={() => {
+                            setSearchOpen(false);
+                            setSearchQuery('');
+                          }}
+                          className="flex gap-3 px-4 py-3 transition hover:bg-[#f1eadf] dark:hover:bg-slate-800/80"
+                        >
+                          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#f5eadc] text-[#d97706] dark:bg-amber-500/12 dark:text-amber-300">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span className="truncate text-sm font-semibold text-[#1f3552] dark:text-slate-100">{result.title}</span>
+                              <span className="shrink-0 rounded-full bg-[#eadfce] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#64748b] dark:bg-slate-800 dark:text-slate-400">{result.type}</span>
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs text-[#64748b] dark:text-slate-400">{result.subtitle}</span>
+                            <span className="mt-0.5 block truncate text-[11px] text-[#8a97aa] dark:text-slate-500">{result.meta}</span>
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-4">
+                    <p className="text-sm font-semibold text-[#334155] dark:text-slate-200">No matches found</p>
+                    <p className="mt-1 text-xs text-[#64748b] dark:text-slate-500">Try a yuvak name, KK name, area, phone number, or sabha.</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </form>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-xl border border-[#f2d7a5] bg-[#fff3dc] px-3.5 py-2.5 text-[14px] font-semibold text-[#e18b00] shadow-[0_12px_28px_rgba(225,139,0,0.08)] dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-300 dark:shadow-none">

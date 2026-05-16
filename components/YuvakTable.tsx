@@ -67,15 +67,17 @@ interface Props {
   yuvaks: Yuvak[];
   dates: string[];
   showSabhaType?: boolean;
+  initialSearch?: string;
+  initialKK?: string;
 }
 
 type SortKey = 'name' | 'area' | 'attendance' | 'status' | 'kk';
 
-export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Props) {
-  const [search, setSearch]             = useState('');
+export default function YuvakTable({ yuvaks, dates, showSabhaType = false, initialSearch = '', initialKK = 'all' }: Props) {
+  const [search, setSearch]             = useState(initialSearch);
   const [filterStatus, setFilterStatus] = useState<AttendanceStatus | 'all'>('all');
   const [filterSabha, setFilterSabha]   = useState<'all' | 'cn' | 'kishor' | 'bal'>('all');
-  const [filterKK, setFilterKK]         = useState('all');
+  const [filterKK, setFilterKK]         = useState(initialKK);
   const [dateWindow, setDateWindow]     = useState<'last6' | '1m' | '3m' | 'custom'>('last6');
   const [customFrom, setCustomFrom]     = useState('');
   const [customTo, setCustomTo]         = useState('');
@@ -138,14 +140,24 @@ export default function YuvakTable({ yuvaks, dates, showSabhaType = false }: Pro
   );
 
   const filtered = withStatus.filter((y) => {
+    const normalizedFilterKK = filterKK.trim().toLowerCase();
     if (filterStatus !== 'all' && y.status !== filterStatus) return false;
     if (filterSabha === 'cn'     && y.sabhaType !== 'Chirag Nagar') return false;
     if (filterSabha === 'kishor' && y.sabhaType !== 'Chirag Nagar(Kishor)') return false;
     if (filterSabha === 'bal' && y.sabhaType !== 'Bal Sabha') return false;
-    if (filterKK !== 'all' && y.followUpKK !== filterKK) return false;
-    if (search &&
-      !y.name.toLowerCase().includes(search.toLowerCase()) &&
-      !y.followUpKK.toLowerCase().includes(search.toLowerCase())) return false;
+    if (normalizedFilterKK !== 'all' && y.followUpKK.trim().toLowerCase() !== normalizedFilterKK) return false;
+    if (search) {
+      const query = search.toLowerCase();
+      const searchable = [
+        y.name,
+        y.followUpKK,
+        y.area,
+        y.phoneNumber,
+        y.std,
+        y.sabhaType,
+      ].join(' ').toLowerCase();
+      if (!searchable.includes(query)) return false;
+    }
     return true;
   });
 
