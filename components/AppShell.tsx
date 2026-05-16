@@ -10,7 +10,7 @@ import { useAuthSession } from '@/hooks/useAuthSession';
 
 function FullScreenLoader() {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-4">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="relative h-12 w-12">
           <div className="absolute inset-0 rounded-full border-2 border-slate-800" />
@@ -25,12 +25,34 @@ function FullScreenLoader() {
   );
 }
 
+function AuthGateFallback({ showLoader }: { showLoader: boolean }) {
+  if (showLoader) return <FullScreenLoader />;
+  return <div className="min-h-screen bg-[#0f172a]" />;
+}
+
+function useDelayedValue(active: boolean, delayMs: number) {
+  const [value, setValue] = useState(false);
+
+  useEffect(() => {
+    if (!active) {
+      const reset = window.setTimeout(() => setValue(false), 0);
+      return () => window.clearTimeout(reset);
+    }
+
+    const timeout = window.setTimeout(() => setValue(true), delayMs);
+    return () => window.clearTimeout(timeout);
+  }, [active, delayMs]);
+
+  return active && value;
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isLoginPage = pathname === '/login';
   const { data: session, isPending } = useAuthSession();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const showAuthLoader = useDelayedValue(isPending, 450);
 
   useEffect(() => {
     if (!isLoginPage && !isPending && !session) {
@@ -43,11 +65,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (isPending) {
-    return <FullScreenLoader />;
+    return <AuthGateFallback showLoader={showAuthLoader} />;
   }
 
   if (!session) {
-    return <FullScreenLoader />;
+    return <AuthGateFallback showLoader={showAuthLoader} />;
   }
 
   return (

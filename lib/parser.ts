@@ -260,9 +260,18 @@ function parseSingleSheet(input: SheetParseInput): { yuvaks: Yuvak[]; dates: str
         dateAttendance[dates[di]] = parseBool(row[colIdx] ?? '');
       });
 
-      const pct = idx.attendancePercent >= 0 ? parsePercent(row[idx.attendancePercent] ?? '') : 0;
-      const attended = idx.sabhasAttended >= 0 ? parseInt(row[idx.sabhasAttended] ?? '0', 10) || 0 : 0;
-      const total = dates.length > 0 ? dates.length : (pct > 0 && attended > 0 ? Math.round((attended / pct) * 100) : 0);
+      const attendedFromDateColumns = dates.filter((date) => dateAttendance[date]).length;
+      const totalFromDateColumns = dates.length;
+      const pctFromDateColumns = totalFromDateColumns > 0
+        ? Math.round((attendedFromDateColumns / totalFromDateColumns) * 100)
+        : 0;
+      const pct = totalFromDateColumns > 0
+        ? pctFromDateColumns
+        : idx.attendancePercent >= 0 ? parsePercent(row[idx.attendancePercent] ?? '') : 0;
+      const attended = totalFromDateColumns > 0
+        ? attendedFromDateColumns
+        : idx.sabhasAttended >= 0 ? parseInt(row[idx.sabhasAttended] ?? '0', 10) || 0 : 0;
+      const total = totalFromDateColumns;
       const hasAnySessionAttendance = Object.values(dateAttendance).some(Boolean);
       const inferredAttending = hasAnySessionAttendance || attended > 0 || pct > 0;
 

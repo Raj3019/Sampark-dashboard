@@ -198,19 +198,27 @@ export function buildYuvakDetail(data: ParsedSheetData, access: UserAccessContex
 export function buildKkDetail(data: ParsedSheetData, users: PeopleUserRow[], access: UserAccessContext, kkName: string): KkDetail | null {
   const visibleYuvaks = getVisibleYuvaksForAccess(data, access);
   const assignedYuvaks = visibleYuvaks.filter((yuvak) => samePersonValue(yuvak.followUpKK, kkName));
-  const selfYuvak = visibleYuvaks.find((yuvak) => samePersonValue(yuvak.name, kkName)) ?? null;
+  const assignedSabhaTypes = new Set(assignedYuvaks.map((yuvak) => yuvak.sabhaType));
+  const selfYuvak = visibleYuvaks.find((yuvak) =>
+    samePersonValue(yuvak.name, kkName) &&
+    (assignedSabhaTypes.size === 0 || assignedSabhaTypes.has(yuvak.sabhaType))
+  ) ?? null;
   if (assignedYuvaks.length === 0 && !(access.role === 'kk' && samePersonValue(kkName, access.assignedKK))) {
     return null;
   }
 
   const activePastDates = getActivePastDates(data, visibleYuvaks);
+  const selfSabhaYuvaks = selfYuvak
+    ? visibleYuvaks.filter((yuvak) => yuvak.sabhaType === selfYuvak.sabhaType)
+    : [];
+  const selfActivePastDates = selfYuvak ? getActivePastDates(data, selfSabhaYuvaks) : [];
   const showPersonal = canViewKkPersonal(access, kkName);
   const linkedUser = users.find((user) => user.role === 'kk' && samePersonValue(user.assignedKK, kkName)) ?? null;
   const risks = assignedYuvaks.map((yuvak) => getDirectoryRiskStatus(yuvak, activePastDates));
   const selfRecords = selfYuvak
-    ? activePastDates.map((date) => ({ date, present: Boolean(selfYuvak.dateAttendance[date]) }))
+    ? selfActivePastDates.map((date) => ({ date, present: Boolean(selfYuvak.dateAttendance[date]) }))
     : [];
-  const lastSelfDate = activePastDates[activePastDates.length - 1];
+  const lastSelfDate = selfActivePastDates[selfActivePastDates.length - 1];
 
   return {
     type: 'kk',
@@ -241,7 +249,7 @@ export function buildKkDetail(data: ParsedSheetData, users: PeopleUserRow[], acc
           totalSabhas: selfYuvak.totalSabhas,
           sabhasAttended: selfYuvak.sabhasAttended,
           attendancePercent: selfYuvak.attendancePercent,
-          risk: getDirectoryRiskStatus(selfYuvak, activePastDates),
+          risk: getDirectoryRiskStatus(selfYuvak, selfActivePastDates),
           superActive: selfYuvak.superActive,
           lastSabhaDate: lastSelfDate ?? null,
           lastSabhaPresent: lastSelfDate ? Boolean(selfYuvak.dateAttendance[lastSelfDate]) : null,
