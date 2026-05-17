@@ -252,6 +252,22 @@ input[type="password"] {
   caret-color: var(--color-text-strong);
 }
 
+.login-auth-input,
+.login-auth-input[type="text"],
+.login-auth-input[type="password"] {
+  background-color: #ffffff;
+  color: #0f172a;
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.login-auth-input::placeholder {
+  color: #64748b;
+  -webkit-text-fill-color: #64748b;
+  opacity: 1;
+}
+
 select option {
   background-color: var(--color-bg-elevated);
   color: var(--color-text-strong);

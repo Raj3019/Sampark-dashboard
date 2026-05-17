@@ -75,7 +75,7 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             placeholder="Enter your username"
-            className="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 text-[0.95rem] text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-[#d77a07] focus:ring-2 focus:ring-[#d77a07]/20"
+            className="login-auth-input w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 text-[0.95rem] text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-[#d77a07] focus:ring-2 focus:ring-[#d77a07]/20"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Enter your password"
-            className="w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 pr-10 text-[0.95rem] text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-[#d77a07] focus:ring-2 focus:ring-[#d77a07]/20"
+            className="login-auth-input w-full rounded-lg border border-slate-300 bg-white px-10 py-2.5 pr-10 text-[0.95rem] text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 focus:border-[#d77a07] focus:ring-2 focus:ring-[#d77a07]/20"
           />
           <button
             type="button"
@@ -151,6 +151,7 @@ export default function LoginForm({ callbackUrl = '/' }: { callbackUrl?: string 
       <button
         type="submit"
         disabled={isSubmitting}
+        aria-busy={isSubmitting}
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#e58200] px-4 py-2 text-[1.12rem] font-semibold text-white shadow-[0_10px_18px_rgba(229,130,0,0.22)] transition-colors hover:bg-[#d77a07] disabled:cursor-not-allowed disabled:opacity-70"
       >
         <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
