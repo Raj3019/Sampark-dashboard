@@ -1,4 +1,4 @@
-import { getSabhaData } from '../lib/sabhaWorkbookService';
+import { getSabhaData } from '../lib/server/attendanceDataService';
 import { getPastDates } from '../lib/analytics';
 
 async function main() {

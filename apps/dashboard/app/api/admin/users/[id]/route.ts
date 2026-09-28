@@ -34,9 +34,10 @@ export async function PATCH(
     );
   }
 
-  const setRoleResult = await auth.admin.setRole({
-    body: { userId: id, role },
-  });
+  // SDK beta types narrow role to "admin" | "user"; the service accepts our custom roles ('leader','kk') fine
+  const setRoleOptions = { userId: id, role } as unknown as Parameters<typeof auth.admin.setRole>[0];
+
+  const setRoleResult = await auth.admin.setRole(setRoleOptions);
 
   if (setRoleResult.error) {
     return NextResponse.json(
@@ -76,9 +77,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
   }
 
-  const removeResult = await auth.admin.removeUser({
-    body: { userId: id },
-  });
+  const removeResult = await auth.admin.removeUser({ userId: id });
 
   if (removeResult.error) {
     return NextResponse.json(

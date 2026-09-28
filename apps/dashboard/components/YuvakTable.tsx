@@ -21,16 +21,41 @@ function InlineStatusBadge({ status }: { status: AttendanceStatus }) {
   );
 }
 
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Session date ISO "YYYY-MM-DD" -> "25 Sep"
+function formatVisitedDate(iso: string) {
+  const date = new Date(`${iso}T00:00:00Z`);
+  if (!Number.isNaN(date.getTime())) {
+    return `${String(date.getUTCDate()).padStart(2, '0')} ${MONTH_SHORT[date.getUTCMonth()]}`;
+  }
+  return iso;
+}
+
 function AttendanceDots({ yuvak, last6 }: { yuvak: Yuvak; last6: string[] }) {
   const count = last6.filter((d) => yuvak.dateAttendance[d]).length;
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-0.5">
-        {last6.map((d, i) => (
-          <span key={i} title={d}
-            className={`w-3.5 h-3.5 rounded-sm ${yuvak.dateAttendance[d] ? 'bg-green-500' : 'bg-[#d8cdbd] dark:bg-slate-700'}`}
-          />
-        ))}
+        {last6.map((d, i) => {
+          const visited = yuvak.dateVisited?.[d];
+          return (
+            <span key={i}
+              title={
+                visited
+                  ? `Present — visited ${visited.sabhaType} on ${formatVisitedDate(visited.sessionDate)}`
+                  : d
+              }
+              className={`w-3.5 h-3.5 rounded-sm ${
+                yuvak.dateAttendance[d]
+                  ? visited
+                    ? 'bg-green-500 ring-1 ring-amber-400'
+                    : 'bg-green-500'
+                  : 'bg-[#d8cdbd] dark:bg-slate-700'
+              }`}
+            />
+          );
+        })}
       </div>
       <span className="text-[#64748b] text-xs tabular-nums dark:text-slate-400">{count}/{last6.length}</span>
     </div>

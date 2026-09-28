@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthPool } from '@/lib/auth/db';
 import { getUserAccessContext, requireApiSession } from '@/lib/auth/session';
 import { buildReminderItems, buildReminderSummary, filterReminderItemsForAccess, loadReminderItems, syncReminderItems } from '@/lib/reminders';
-import { getSabhaData } from '@/lib/sabhaWorkbookService';
+import { getSabhaData } from '@/lib/server/attendanceDataService';
 
 export const runtime = 'nodejs';
 

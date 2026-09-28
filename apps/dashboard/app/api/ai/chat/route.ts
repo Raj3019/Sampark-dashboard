@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { convertToModelMessages, stepCountIs, streamText, tool, UIMessage } from 'ai';
 import { groq } from '@ai-sdk/groq';
 import { z } from 'zod';
-import { getSabhaData } from '@/lib/server/sabhaDataService';
+import { getSabhaData } from '@/lib/server/attendanceDataService';
 import { getUserAccessContext, requireApiSession } from '@/lib/auth/session';
 import {
   attendingFilterSchema,

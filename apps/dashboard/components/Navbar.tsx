@@ -7,6 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   ChartColumn,
+  CheckCircle,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -40,6 +41,7 @@ const leaderNavItems: NavItem[] = [
   { href: '/sabha/kishor', label: 'AYC Sabha', icon: BookOpen },
   { href: '/kk-analysis', label: 'KK Analysis', icon: ChartColumn },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: Users },
+  { href: '/attendance', label: 'Attendance', icon: CheckCircle },
 ];
 
 const adminPrimaryNavItems: NavItem[] = [
@@ -49,6 +51,7 @@ const adminPrimaryNavItems: NavItem[] = [
   { href: '/sabha/bal', label: 'Bal Sabha', icon: BookOpen },
   { href: '/kk-analysis', label: 'KK Analysis', icon: ChartColumn },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: Users },
+  { href: '/attendance', label: 'Attendance', icon: CheckCircle },
 ];
 
 const kkNavItems: NavItem[] = [
@@ -59,7 +62,6 @@ const kkNavItems: NavItem[] = [
 const adminSecondaryNavItems: NavItem[] = [
   { href: '/admin/users', label: 'User Management', icon: ShieldCheck },
   { href: '/admin/logs', label: 'Login Activity', icon: CalendarDays },
-  { href: '/admin/sheet-changes', label: 'Sheet History', icon: Sparkles },
 ];
 
 const ROLE_LABELS: Record<string, string> = { admin: 'Admin', leader: 'Leader', kk: 'KK' };

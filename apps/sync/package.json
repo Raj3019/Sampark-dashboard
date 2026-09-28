@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "dry-run": "ts-node src/index.ts --dry-run",
+    "dry-run:kishor": "ts-node src/index.ts --dry-run --job kishor",
+    "dry-run:yuvak": "ts-node src/index.ts --dry-run --job yuvak",
+    "dry-run:bal": "ts-node src/index.ts --dry-run --job bal",
+    "start": "ts-node src/index.ts",
+    "start:kishor": "ts-node src/index.ts --job kishor",
+    "start:yuvak": "ts-node src/index.ts --job yuvak",
+    "start:bal": "ts-node src/index.ts --job bal",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@types/node": "^25.9.1",
+    "dotenv": "^17.4.2",
+    "pg": "^8.20.0",
+    "playwright": "^1.60.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "name": "@sabha/sync",
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
+  }
+}

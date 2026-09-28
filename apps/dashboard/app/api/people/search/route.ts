@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getUserAccessContext, requireApiSession } from '@/lib/auth/session';
 import { buildPeopleSearchResults, getPeopleUsers } from '@/lib/peopleSearch';
-import { getSabhaData } from '@/lib/sabhaWorkbookService';
+import { getSabhaData } from '@/lib/server/attendanceDataService';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;

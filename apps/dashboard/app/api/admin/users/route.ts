@@ -78,9 +78,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Assigned KK is required for KK users' }, { status: 400 });
   }
 
-  const createResult = await auth.admin.createUser({
-    body: { name, email, password, role },
-  });
+  // SDK beta types narrow role to "admin" | "user"; the service accepts our custom roles ('leader','kk') fine
+  const createOptions = { name, email, password, role } as unknown as Parameters<typeof auth.admin.createUser>[0];
+
+  const createResult = await auth.admin.createUser(createOptions);
 
   if (createResult.error || !createResult.data?.user) {
     return NextResponse.json(

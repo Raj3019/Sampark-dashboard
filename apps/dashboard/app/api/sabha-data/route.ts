@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getSabhaData } from '@/lib/sabhaWorkbookService';
+import { getSabhaData } from '@/lib/server/attendanceDataService';
 import { getUserAccessContext, requireApiSession } from '@/lib/auth/session';
 
-export const maxDuration = 60; // seconds — allow time for Drive retries
+export const maxDuration = 30;
 
 function sameKkName(left: string | null | undefined, right: string | null | undefined) {
   return (left ?? '').trim().toLowerCase() === (right ?? '').trim().toLowerCase();
@@ -42,6 +42,6 @@ export async function GET(request: Request) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: `Failed to fetch sheet data: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: `Failed to load sabha data: ${message}` }, { status: 500 });
   }
 }

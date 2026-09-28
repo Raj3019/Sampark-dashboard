@@ -27,6 +27,8 @@ export interface Yuvak {
   attendancePercent: number;
   superActive: boolean;
   dateAttendance: Record<string, boolean>; // date string -> attended
+  /** Date label -> visit info when that present row carried a "visited other sabha" subtitle. */
+  dateVisited?: Record<string, { sabhaType: string; sessionDate: string } | undefined>;
   totalSabhas: number;
 }
 

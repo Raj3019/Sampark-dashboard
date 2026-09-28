@@ -6,7 +6,7 @@
 -- up orphans when deleting users via the Admin API.
 
 CREATE TABLE IF NOT EXISTS "user_kk_assignment" (
-  "id"          text        NOT NULL PRIMARY KEY,
+  "id"          uuid        NOT NULL PRIMARY KEY,
   "assigned_kk" text,
   "phone"       text,
   "updated_at"  timestamptz NOT NULL DEFAULT NOW()
@@ -29,17 +29,6 @@ CREATE TABLE IF NOT EXISTS "activity_log" (
 
 CREATE INDEX IF NOT EXISTS "activity_log_userId_idx"    ON "activity_log" ("userId");
 CREATE INDEX IF NOT EXISTS "activity_log_createdAt_idx" ON "activity_log" ("createdAt" DESC);
-
--- Sheet change log: human-readable diff from snapshot comparisons
-CREATE TABLE IF NOT EXISTS "sheet_change_log" (
-  "id"          text        NOT NULL PRIMARY KEY,
-  "sabhaType"   text        NOT NULL,
-  "changeType"  text        NOT NULL,
-  "description" text        NOT NULL,
-  "detectedAt"  timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS "sheet_change_log_detectedAt_idx" ON "sheet_change_log" ("detectedAt" DESC);
 
 CREATE TABLE IF NOT EXISTS "reminder_item" (
   "id" text NOT NULL PRIMARY KEY,
