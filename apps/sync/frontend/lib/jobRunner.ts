@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 
-export type JobType = "kishor" | "yuvak";
+export type JobType = "kishor" | "yuvak" | "report";
 export type JobStatus = "running" | "done" | "error" | "terminated";
 export type JobTrigger = "manual" | "cron" | "agent";
 

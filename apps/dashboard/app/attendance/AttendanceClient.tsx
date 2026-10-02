@@ -457,7 +457,7 @@ export default function AttendanceClient() {
                     <td className="px-5 py-4 text-right">
                       <button
                         onClick={() => openMarks(session)}
-                        className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-orange-300 transition-colors hover:bg-orange-500/10 hover:text-orange-200"
+                        className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-[0_2px_6px_rgba(217,119,6,0.28)] disabled:opacity-60"
                       >
                         Marks
                       </button>

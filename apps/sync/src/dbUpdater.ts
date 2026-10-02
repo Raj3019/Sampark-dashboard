@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import {
   type AIResolverConfig,
   type RosterEntry,
@@ -337,6 +337,35 @@ async function matchNamesToMembers(
   };
 }
 
+// ─── Sync alerts (dashboard /admin/alerts) ────────────────────────────────────
+
+/** Source value for alerts raised by the live scrape jobs. */
+export const ALERT_SOURCE_ATTENDANCE_SYNC = "attendance-sync";
+const ALERT_KIND_UNKNOWN_NAME = "unknown_name";
+
+/**
+ * Refresh semantics per (source, kind, sabha_type, sampark_sabha): delete
+ * UNDISMISSED rows of that combination (dismissed rows are history kept
+ * forever), then the caller inserts the current run's set. NULL-safe on
+ * sampark_sabha so unscoped jobs (kishor/yuvak) match correctly.
+ */
+const DELETE_UNDISMISSED_ALERTS_SQL = `
+  DELETE FROM sync_alert
+  WHERE source = $1
+    AND kind = $2
+    AND sabha_type = $3
+    AND sampark_sabha IS NOT DISTINCT FROM $4
+    AND dismissed = false
+`;
+
+const INSERT_UNKNOWN_NAME_ALERTS_SQL = `
+  INSERT INTO sync_alert (source, kind, sabha_type, sampark_sabha, member_name, ref_date, message, detail)
+  SELECT $1, $2, $3, $4, t.name, $5::date,
+         'Name not found in roster — attendance not recorded: "' || t.name || '"',
+         jsonb_build_object('presentCount', $6::int, 'absentCount', $7::int)
+  FROM unnest($8::text[]) AS t(name)
+`;
+
 // ─── Marks SQL (idempotent: re-runs freely overwrite present/absent) ─────────
 
 const UPSERT_ATTENDANCE_SQL = `
@@ -350,6 +379,60 @@ const UPSERT_ATTENDANCE_SQL = `
 `;
 
 // ─── Main export ──────────────────────────────────────────────────────────────
+
+/** Refresh scope for one run's unknown-name alerts (shared by all rows). */
+export interface UnknownNameAlertScope {
+  source: string;
+  sabhaType: string;
+  samparkSabha: string | null;
+  refDate: string | null;
+  /** Unmatched scraped names; deduped before insert. */
+  unknownNames: string[];
+  /** Message context: the run's matched present/absent counts. */
+  presentCount: number;
+  absentCount: number;
+}
+
+/**
+ * Refresh semantics per (source, kind, sabha_type, sampark_sabha): delete the
+ * UNDISMISSED rows of that combination (dismissed rows stay as history), then
+ * insert this run's set — batched in the caller's transaction. One alert per
+ * unique scraped name (deduped).
+ */
+export async function writeUnknownNameAlerts(
+  client: PoolClient,
+  scope: UnknownNameAlertScope
+): Promise<number> {
+  // Empty sets still delete: a later run whose roster now covers those names
+  // clears the stale undismissed alerts; dismissed rows are untouched.
+  await client.query(DELETE_UNDISMISSED_ALERTS_SQL, [
+    scope.source,
+    ALERT_KIND_UNKNOWN_NAME,
+    scope.sabhaType,
+    scope.samparkSabha,
+  ]);
+  const names = Array.from(
+    new Set(scope.unknownNames.map((name) => name.trim()).filter(Boolean))
+  );
+  if (names.length === 0) return 0;
+  await client.query(INSERT_UNKNOWN_NAME_ALERTS_SQL, [
+    scope.source,
+    ALERT_KIND_UNKNOWN_NAME,
+    scope.sabhaType,
+    scope.samparkSabha,
+    scope.refDate,
+    scope.presentCount,
+    scope.absentCount,
+    names,
+  ]);
+  log(
+    "INFO",
+    `[alerts] ${scope.source}/${ALERT_KIND_UNKNOWN_NAME} for "${scope.sabhaType}"` +
+      `${scope.samparkSabha ? ` (scope ${scope.samparkSabha})` : ""}: ` +
+      `${names.length} alert(s) refreshed`
+  );
+  return names.length;
+}
 
 /**
  * Upsert one Sabha session and its attendance marks into the Neon Postgres DB.
@@ -586,6 +669,19 @@ export async function upsertAttendance(
       );
     }
 
+    // Unknown-name alerts ride in the same transaction as the marks: refresh
+    // (delete undismissed, insert the current set) per (source, kind,
+    // sabha_type, sampark_sabha); failed alert writes roll back with the run.
+    await writeUnknownNameAlerts(client, {
+      source: ALERT_SOURCE_ATTENDANCE_SYNC,
+      sabhaType,
+      samparkSabha: input.memberScope ?? null,
+      refDate: isoDate,
+      unknownNames: match.unknownNames,
+      presentCount: summary.matchedPresent,
+      absentCount: summary.matchedAbsent,
+    });
+
     await client.query("COMMIT");
 
     summary.correctedCount = corrected;
@@ -598,7 +694,8 @@ export async function upsertAttendance(
         `${match.marks.size} marks (${created} new, ${corrected} corrected, ` +
         `${match.marks.size - created - corrected} unchanged); ` +
         `${summary.visitedCount} visited other sabha; ` +
-        `${summary.unknownNames.length} unknown skipped; ` +
+        `${summary.unknownNames.length} unknown skipped` +
+        `${summary.unknownNames.length > 0 ? " (unknown-name alerts refreshed)" : ""}; ` +
         `${summary.sameNameGroups} same-name groups; ` +
         `${transferred.length} transferred out, ${restoredMembers.length} restored; ` +
         `${match.exactMatches} exact matches, ${match.resolverMatches} resolver matches.`

@@ -10,9 +10,9 @@ export async function POST(req: NextRequest) {
   }
 
   const { jobType } = body;
-  if (jobType !== "kishor" && jobType !== "yuvak") {
+  if (!["kishor", "yuvak", "report"].includes(jobType ?? "")) {
     return NextResponse.json(
-      { error: 'jobType must be "kishor" or "yuvak"' },
+      { error: 'jobType must be "kishor", "yuvak", or "report"' },
       { status: 400 }
     );
   }

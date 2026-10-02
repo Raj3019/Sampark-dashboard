@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "sabha-analytics",
   "private": true,
   "version": "0.1.0",
@@ -16,6 +16,8 @@
     "sync:yuvak": "pnpm --filter @sabha/sync start:yuvak",
     "sync:bal": "pnpm --filter @sabha/sync start:bal",
     "sync:dry-run": "pnpm --filter @sabha/sync dry-run",
+    "sync:report": "pnpm --filter @sabha/sync start:report",
+    "sync:report:dry-run": "pnpm --filter @sabha/sync dry-run:report",
     "typecheck:sync": "pnpm --filter @sabha/sync typecheck"
   },
   "packageManager": "pnpm@10.21.0",

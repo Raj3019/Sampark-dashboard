@@ -9,6 +9,7 @@ import { type AIResolverConfig, type ScrapedRowInput } from "./aiResolver";
 import { upsertAttendance, type DbUpdateSummary } from "./dbUpdater";
 import { getJobById, JOBS, type SyncJob } from "./jobs";
 import { log } from "./logger";
+import { runReportFlowCli } from "./reportFlow";
 import { createRunReport, saveRunReport } from "./runReport";
 import { scrapeAttendance } from "./scraper";
 
@@ -44,7 +45,10 @@ async function selectJob(): Promise<SyncJob> {
   if (jobId) {
     const job = getJobById(jobId);
     if (!job) {
-      throw new Error(`Unknown --job "${jobId}". Available jobs: ${JOBS.map((j) => j.id).join(", ")}`);
+      throw new Error(
+        `Unknown --job "${jobId}". Available jobs: ${JOBS.map((j) => j.id).join(", ")}. ` +
+          `For the Members Attendance report use --job report (pnpm run sync:report).`
+      );
     }
     if (!job.enabled) {
       throw new Error(`Job "${jobId}" is currently disabled. Enabled jobs: ${JOBS.filter((j) => j.enabled).map((j) => j.id).join(", ")}`);
@@ -53,7 +57,10 @@ async function selectJob(): Promise<SyncJob> {
   }
 
   if (!process.stdin.isTTY) {
-    throw new Error(`Missing --job. Available jobs: ${JOBS.filter((j) => j.enabled).map((j) => j.id).join(", ")}`);
+    throw new Error(
+      `Missing --job. Available jobs: ${JOBS.filter((j) => j.enabled).map((j) => j.id).join(", ")}. ` +
+        `For the Members Attendance report export & import run: pnpm run sync:report (or --job report).`
+    );
   }
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -128,6 +135,16 @@ async function main(): Promise<void> {
   const dryRun = hasFlag("--dry-run");
   const force = hasFlag("--force");
   void force;
+
+  // Members Attendance report export & import — runs independently of the
+  // kishor/yuvak/bal scrape jobs (--job report, or --report <path> to import
+  // an already-downloaded xlsx).
+  const jobIdFlag = getFlagValue("--job");
+  if (jobIdFlag?.trim().toLowerCase() === "report") {
+    await runReportFlowCli({ dryRun, reportPath: getFlagValue("--report") });
+    return;
+  }
+
   const report = createRunReport(dryRun, force);
 
   // Tracks which phase we're in so a failure log can say WHERE it broke.

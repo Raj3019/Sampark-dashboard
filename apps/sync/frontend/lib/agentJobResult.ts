@@ -8,6 +8,11 @@ interface AttendanceCount {
   total?: number;
 }
 
+/**
+ * Shapes mirrored from apps/sync/src (runReport.ts, dbUpdater.ts, reportFlow.ts).
+ * Fields are optional so pre-migration run reports (sheet-era shapes) still
+ * summarize without crashing.
+ */
 interface StoredRunReport {
   runnerJobId?: string;
   runId?: string;
@@ -38,6 +43,7 @@ interface StoredRunReport {
     sheetOnly?: Array<{ tabName?: string; names?: string[] }>;
   };
   warnings?: string[];
+  // Sheet-era shape (pre-migration reports only).
   sheetUpdates?: Array<{
     tabName?: string;
     present?: string[];
@@ -48,6 +54,94 @@ interface StoredRunReport {
       skippedBecauseDuplicate?: boolean;
     };
   }>;
+  // Current scrape-shape (kishor/yuvak).
+  visited?: Array<{
+    name: string;
+    actualSabha: string | null;
+    actualDate: string | null;
+    matchedMemberId?: string;
+  }>;
+  sameNameGroups?: number;
+  restoredCount?: number;
+  dbUpdate?: {
+    sabhaType?: string;
+    sessionDate?: string | null;
+    sessionDateDisplay?: string;
+    dryRun?: boolean;
+    matched?: number;
+    matchedPresent?: number;
+    matchedAbsent?: number;
+    correctedCount?: number;
+    newCount?: number;
+    unknownNames?: string[];
+    visitors?: number;
+    visitedCount?: number;
+    visited?: Array<{
+      name: string;
+      actualSabha: string | null;
+      actualDate: string | null;
+      matchedMemberId?: string;
+    }>;
+    sameNameGroups?: number;
+    transferredOutCount?: number;
+    restoredCount?: number;
+    sessionCreated?: boolean;
+  };
+  // Report-job shape (reportFlow.ts).
+  reportFlow?: {
+    source?: 'download' | 'file';
+    rowsParsed?: number;
+    datedColumns?: string[];
+    confirmedWeek?: string | null;
+    confirmedWeekStart?: string;
+    confirmedWeekEnd?: string;
+    mergeTargetDate?: string | null;
+    confirmationSkipped?: boolean;
+    blankMarkCells?: number;
+    unrecognizedMarkValues?: string[];
+    skippedNoMarkRows?: number;
+    skippedTotalRows?: number;
+    unknownSabhaRows?: Array<{ sabha?: string; memberName?: string }>;
+    perSabha?: Array<{
+      label?: string;
+      reportSabha?: string;
+      dbSabhaType?: string;
+      rowsParsed?: number;
+      membersMatched?: number;
+      sameNameGroups?: number;
+      duplicateRows?: number;
+      confirmedWeek?: string | null;
+      mergeTargetDate?: string | null;
+      sessionsCreated?: number;
+      marksUpserted?: number;
+      presentMarks?: number;
+      absentMarks?: number;
+      newMarks?: number;
+      correctedMarks?: number;
+      markConflicts?: number;
+      unknownNames?: string[];
+    }>;
+    verification?: Array<{
+      label?: string;
+      membersCompared?: number;
+      fullyMatching?: number;
+      mismatchDetails?: string[];
+      unknownNames?: string[];
+      confirmedWeek?: string | null;
+    }>;
+    conflicts?: Array<{
+      sabhaLabel?: string;
+      sabhaType?: string;
+      member?: string;
+      exportDate?: string;
+      scrapeSessionDate?: string;
+      scrapePresent?: boolean;
+      exportPresent?: boolean;
+      sessionId?: string;
+    }>;
+    result?: 'match' | 'drift';
+    driftCount?: number;
+  };
 }
 
 const AUTO_ROOT = path.join(process.cwd(), '..');
@@ -92,23 +186,62 @@ function readReportForJob(jobId: string): StoredRunReport | undefined {
 }
 
 function summarizeReport(jobId: string, report: StoredRunReport) {
-  const updates = report.sheetUpdates ?? [];
-  const tabs = updates.map((update) => {
-    const matched = finiteNumber(update.summary?.matched);
-    const unmatched = uniqueNames(update.summary?.unmatched ?? []);
-    const requestedPresent = uniqueNames(update.present ?? []).length;
-    const yes = Math.max(0, Math.min(matched, requestedPresent - unmatched.length));
-    const no = Math.max(0, matched - yes);
+  const warnings = uniqueNames(report.warnings ?? []);
+  const isReportJob = Boolean(report.reportFlow?.perSabha);
+  const dbUpdate = report.dbUpdate;
 
-    return {
-      tabName: update.tabName ?? 'Unknown sheet',
-      yes,
-      no,
-      total: matched,
-      unmatched,
-      skippedBecauseDuplicate: Boolean(update.summary?.skippedBecauseDuplicate),
-    };
-  });
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+  // scrape jobs (kishor/yuvak): one tab from report.dbUpdate.
+  // report job: one tab per reportFlow.perSabha entry.
+  // sheet-era reports fall back to the legacy sheetUpdates mapping.
+  let tabs: Array<{
+    tabName: string;
+    yes: number;
+    no: number;
+    total: number;
+    unmatched: string[];
+    skippedBecauseDuplicate: boolean;
+  }>;
+
+  if (isReportJob) {
+    tabs = (report.reportFlow!.perSabha ?? []).map((perSabha) => ({
+      tabName: perSabha.label ?? 'Unknown sabha',
+      yes: finiteNumber(perSabha.presentMarks),
+      no: finiteNumber(perSabha.absentMarks),
+      total: finiteNumber(perSabha.membersMatched),
+      unmatched: uniqueNames(perSabha.unknownNames ?? []),
+      skippedBecauseDuplicate: false,
+    }));
+  } else if (dbUpdate) {
+    tabs = [
+      {
+        tabName: report.job?.label ?? dbUpdate.sabhaType ?? 'Unknown sabha',
+        yes: finiteNumber(dbUpdate.matchedPresent),
+        no: finiteNumber(dbUpdate.matchedAbsent),
+        total: finiteNumber(dbUpdate.matched),
+        unmatched: uniqueNames(dbUpdate.unknownNames ?? []),
+        skippedBecauseDuplicate: false,
+      },
+    ];
+  } else {
+    // Legacy sheet-era shape (kept so old on-disk reports still summarize).
+    tabs = (report.sheetUpdates ?? []).map((update) => {
+      const matched = finiteNumber(update.summary?.matched);
+      const unmatched = uniqueNames(update.summary?.unmatched ?? []);
+      const requestedPresent = uniqueNames(update.present ?? []).length;
+      const yes = Math.max(0, Math.min(matched, requestedPresent - unmatched.length));
+      const no = Math.max(0, matched - yes);
+
+      return {
+        tabName: update.tabName ?? 'Unknown sheet',
+        yes,
+        no,
+        total: matched,
+        unmatched,
+        skippedBecauseDuplicate: Boolean(update.summary?.skippedBecauseDuplicate),
+      };
+    });
+  }
 
   const sheet = tabs.reduce(
     (total, tab) => ({
@@ -119,38 +252,73 @@ function summarizeReport(jobId: string, report: StoredRunReport) {
     { yes: 0, no: 0, total: 0 }
   );
 
+  // ── Semantics from the new shapes ─────────────────────────────────────────
+  const reportFlow = report.reportFlow;
+  const unknownNamesAll = uniqueNames(tabs.flatMap((tab) => tab.unmatched));
+  const conflicts = reportFlow?.conflicts ?? [];
+  const transfersOut = finiteNumber(dbUpdate?.transferredOutCount);
+  const transfersRestored = finiteNumber(
+    dbUpdate?.restoredCount ?? report.restoredCount
+  );
+  const visited = uniqueNames(
+    (dbUpdate?.visited ?? report.visited ?? []).map(
+      (entry) => `${entry.name ?? ''} (${entry.actualSabha ?? 'unknown sabha'}${entry.actualDate ? `, ${entry.actualDate}` : ''})`
+    )
+  );
+  const confirmedWeekISO = reportFlow?.confirmedWeek ?? undefined;
+  const driftCount = finiteNumber(reportFlow?.driftCount);
+  const verdict = reportFlow?.result;
+
+  // ── Counters (scraped / sampark) ───────────────────────────────────────────
   const scrapedPresent = uniqueNames(report.scraped?.present ?? []).length;
   const scrapedAbsent = uniqueNames(report.scraped?.absent ?? []).length;
-  const scraped = {
-    present: finiteNumber(report.countValidation?.scraped?.present, scrapedPresent),
-    absent: finiteNumber(report.countValidation?.scraped?.absent, scrapedAbsent),
-    total: finiteNumber(
-      report.countValidation?.scraped?.total,
-      finiteNumber(report.scraped?.totalRows, scrapedPresent + scrapedAbsent)
-    ),
-  };
-  const sampark = {
-    present: finiteNumber(report.countValidation?.sampark?.present, scraped.present),
-    absent: finiteNumber(report.countValidation?.sampark?.absent, scraped.absent),
-    total: finiteNumber(report.countValidation?.sampark?.total, scraped.total),
-  };
+  const scrapedFromValidation = report.countValidation?.scraped;
+  const scraped = isReportJob
+    ? {
+        present: sheet.yes,
+        absent: sheet.no,
+        total: sheet.yes + sheet.no,
+      }
+    : {
+        present: finiteNumber(scrapedFromValidation?.present, scrapedPresent),
+        absent: finiteNumber(scrapedFromValidation?.absent, scrapedAbsent),
+        total: finiteNumber(
+          scrapedFromValidation?.total,
+          finiteNumber(report.scraped?.totalRows, scrapedPresent + scrapedAbsent)
+        ),
+      };
+  const sampark = isReportJob
+    ? {
+        present: sheet.yes,
+        absent: sheet.no,
+        total: sheet.total,
+      }
+    : {
+        present: finiteNumber(report.countValidation?.sampark?.present, scraped.present),
+        absent: finiteNumber(report.countValidation?.sampark?.absent, scraped.absent),
+        total: finiteNumber(report.countValidation?.sampark?.total, scraped.total),
+      };
 
+  // ── Name comparison ────────────────────────────────────────────────────────
+  // Keys kept for Hermes compatibility; the new shapes have no nameComparison
+  // source, so they stay empty. skippedOrUnwritten now carries the names the
+  // run could not match to the roster (unknownNames).
   const onlyInSampark = uniqueNames(report.nameComparison?.samparkOnly ?? []);
   const onlyInSheet = (report.nameComparison?.sheetOnly ?? []).map((entry) => ({
     tabName: entry.tabName ?? 'Unknown sheet',
     names: uniqueNames(entry.names ?? []),
   }));
   const skippedOrUnwritten = uniqueNames([
+    ...unknownNamesAll,
     ...onlyInSampark,
-    ...tabs.flatMap((tab) => tab.unmatched),
   ]);
 
-  const warnings = uniqueNames(report.warnings ?? []);
+  // ── Warnings ──────────────────────────────────────────────────────────────
   const samparkVsScrape = report.countValidation?.matched ?? null;
-  const samparkPresentVsSheetYes = updates.length > 0
+  const samparkPresentVsSheetYes = tabs.length > 0
     ? sampark.present === sheet.yes
     : null;
-  const presentDifference = updates.length > 0
+  const presentDifference = tabs.length > 0
     ? sampark.present - sheet.yes
     : null;
 
@@ -165,6 +333,23 @@ function summarizeReport(jobId: string, report: StoredRunReport) {
   }
   if (tabs.some((tab) => tab.skippedBecauseDuplicate)) {
     warnings.push('One or more Sheet updates were skipped as duplicates');
+  }
+  if (unknownNamesAll.length > 0) {
+    warnings.push(`${unknownNamesAll.length} name(s) skipped — not in roster`);
+  }
+  if (transfersOut > 0) {
+    warnings.push(`${transfersOut} roster member(s) marked transferred_out (missing from the scrape)`);
+  }
+  if (transfersRestored > 0) {
+    warnings.push(`${transfersRestored} transferred-out member(s) restored (seen in the scrape again)`);
+  }
+  if (conflicts.length > 0) {
+    warnings.push(
+      `${conflicts.length} scrape-vs-report conflict(s) — report value applied (auto-resolved)`
+    );
+  }
+  if (verdict) {
+    warnings.push(`RESULT: ${verdict} (drift=${driftCount})`);
   }
 
   const startedAt = report.startedAt;
@@ -201,6 +386,14 @@ function summarizeReport(jobId: string, report: StoredRunReport) {
       skippedOrUnwritten,
     },
     warnings: uniqueNames(warnings),
+    // New optional fields (unknown extra fields are safely ignored by Hermes):
+    jobRunKind: (reportFlow ? 'confirm' : 'scrape') as 'scrape' | 'confirm',
+    ...(confirmedWeekISO ? { confirmedWeekISO } : {}),
+    ...(conflicts.length > 0 ? { conflictsAutoResolved: conflicts.length } : {}),
+    ...(transfersOut > 0 ? { transfersOut } : {}),
+    ...(transfersRestored > 0 ? { transfersRestored } : {}),
+    ...(visited.length > 0 ? { visited } : {}),
+    ...(verdict ? { verdict, driftCount } : {}),
     dryRun: Boolean(report.dryRun),
     failedStage: report.failedStage,
     error: report.error,
@@ -208,7 +401,7 @@ function summarizeReport(jobId: string, report: StoredRunReport) {
 }
 
 export function getAgentJobResult(jobId: string) {
-  if (!/^(kishor|yuvak)-\d+$/.test(jobId)) return undefined;
+  if (!/^(kishor|yuvak|report)-\d+$/.test(jobId)) return undefined;
 
   const job = getJob(jobId);
   if (job?.status === 'running') {

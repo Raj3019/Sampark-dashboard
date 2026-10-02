@@ -97,3 +97,24 @@ export function getJobById(jobId: string): SyncJob | undefined {
   return JOBS.find((job) => job.id === jobId);
 }
 
+/**
+ * Members Attendance REPORT flow (Sampark Reports page → Export → xlsx import).
+ * The exported xlsx's Sabha column distinguishes the two Chirag Nagar sabhas;
+ * each value maps to the literal DB sabha_type the marks are written under.
+ * Roster scope mirrors the kishor/yuvak jobs: members match where
+ * `sabha_type = sabhaType OR sampark_sabha = sabhaType`.
+ */
+export interface ReportSabhaMapping {
+  /** Exact Sabha column value observed in the exported Members Attendance xlsx. */
+  reportSabha: string;
+  /** Short log/report label ("Yuva" / "Kishor"). */
+  label: string;
+  /** Literal DB sabha_type for sabha_session / member.sabha_type. */
+  sabhaType: string;
+}
+
+export const REPORT_SABHA_MAP: readonly ReportSabhaMapping[] = [
+  { reportSabha: "Chirag Nagar", label: "Yuva", sabhaType: SABHA_TYPES.yuvak },
+  { reportSabha: "Chirag Nagar (Kishore)", label: "Kishor", sabhaType: SABHA_TYPES.kishor },
+];
+

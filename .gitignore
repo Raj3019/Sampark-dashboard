@@ -36,3 +36,10 @@ next-app-cache/
 
 #Agents
 .agents
+# Sampark download artifacts (report exports staged outside git)
+apps/sync/downloads/
+apps/sync/logs/
+
+
+#Claude
+.claude

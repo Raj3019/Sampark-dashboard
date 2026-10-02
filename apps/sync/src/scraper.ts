@@ -1,4 +1,4 @@
-import { chromium, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import * as fs from "fs";
 import * as path from "path";
 import { log, type LogLevel } from "./logger";
@@ -75,7 +75,7 @@ function maskPhone(value: string): string {
  * tell apart a block page, a blank/failed SPA, a captcha, or just a slow load —
  * especially when the scrape behaves differently on a server than locally.
  */
-async function dumpPageState(
+export async function dumpPageState(
   page: Page,
   tag: string,
   networkLog?: string[],
@@ -103,6 +103,8 @@ async function dumpPageState(
     }
 
     await page.screenshot({ path: `${base}.png`, fullPage: true }).catch(() => {});
+    const pageHtml = (await page.content().catch(() => "")) as string;
+    fs.writeFileSync(`${base}.html`, pageHtml, "utf8");
     const netSection = recentNet.length ? `\n\n=== Recent network calls ===\n${recentNet.join("\n")}` : "";
     fs.writeFileSync(`${base}.txt`, `URL: ${url}\nTitle: ${title}\n\n${bodyText}${netSection}`);
     log("ERROR", `Diagnostic [${tag}] — saved screenshot and text to ${base}.{png,txt}`);
@@ -174,54 +176,21 @@ async function fillOtp(page: Page, password: string): Promise<void> {
   log("INFO", "OTP entered");
 }
 
+export interface ScraperSession {
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
+  /** Captured API responses + failed requests for failure diagnostics. */
+  networkLog: string[];
+}
 
 /**
- * Collapse scraped rows into unique present/absent entries keyed by name,
- * preserving the subtitle of the first observed row for each name
- * (deduped across all scan passes just like uniqueNames did).
+ * Launch the headless Chromium session used for Sampark automation: clean
+ * cookies/cache, mobile viewport/UA/locale, optional proxy and a network log.
+ * Shared by the attendance scrape and the Members Attendance report flow so
+ * both run against an identical browser setup.
  */
-function uniqueEntries(rows: ScrapedRow[]): Array<{ name: string; subtitle?: string }> {
-  const byName = new Map<string, { name: string; subtitle?: string }>();
-  for (const row of rows) {
-    const name = row.name.trim();
-    if (!name || byName.has(name)) continue;
-    byName.set(name, { name, subtitle: row.subtitle });
-  }
-  return Array.from(byName.values());
-}
-
-function requireBottomCounts(counts: BottomCounts): SamparkCounts {
-  if (counts.present === null || counts.absent === null || counts.total === null) {
-    throw new Error(
-      `Could not read complete Sampark counts (present=${counts.present}, ` +
-        `absent=${counts.absent}, total=${counts.total}). Refusing to update Google Sheets.`
-    );
-  }
-  return { present: counts.present, absent: counts.absent, total: counts.total };
-}
-
-function rowCounts(rows: ScrapedRow[]): SamparkCounts {
-  const present = rows.filter((row) => row.isPresent).length;
-  const absent = rows.length - present;
-  return { present, absent, total: rows.length };
-}
-
-function sameCounts(left: SamparkCounts, right: SamparkCounts): boolean {
-  return (
-    left.present === right.present &&
-    left.absent === right.absent &&
-    left.total === right.total
-  );
-}
-
-export async function scrapeAttendance(options: ScrapeAttendanceOptions = {}): Promise<AttendanceScrapeResult> {
-  const websiteUrl = process.env.WEBSITE_URL?.trim() || "https://m.sampark369.org/";
-  const phoneNumber = requireEnv("PHONE_NUMBER");
-  const password = requireEnv("PASSWORD");
-  const sabhaName = options.sabhaName ?? process.env.SABHA_NAME?.trim() ?? DEFAULT_SABHA_NAME;
-  const sabhaPattern = options.sabhaPattern ?? new RegExp(`^${sabhaName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
-
-  log("INFO", `Opening Sampark app to read ${sabhaName} attendance...`);
+export async function openSamparkSession(): Promise<ScraperSession> {
   const browser = await chromium.launch({
     headless: true,
     // Linux servers (especially running as root or inside containers) cannot
@@ -284,79 +253,147 @@ export async function scrapeAttendance(options: ScrapeAttendanceOptions = {}): P
     networkLog.push(`FAILED ${req.method()} ${req.url()} — ${req.failure()?.errorText ?? "unknown"}`);
   });
 
-  try {
-    // ── Step 1: Login ────────────────────────────────────────────────────────
-    await page.goto(websiteUrl, { waitUntil: "domcontentloaded" });
-    const alreadyLoggedIn = /\/dashboard|\/new-attendance/.test(page.url());
+  return { browser, context, page, networkLog };
+}
 
-    if (!alreadyLoggedIn) {
-      log("INFO", "Not logged in — starting login flow");
+/**
+ * Log into the Sampark app (phone number + OTP) on the given page. Shared by
+ * the attendance scrape and the Members Attendance report flow; resolves once
+ * the dashboard route is active.
+ */
+export async function loginToSampark(page: Page, networkLog: string[]): Promise<void> {
+  const websiteUrl = process.env.WEBSITE_URL?.trim() || "https://m.sampark369.org/";
+  const phoneNumber = requireEnv("PHONE_NUMBER");
+  const password = requireEnv("PASSWORD");
 
-      // Enter phone number
-      try {
-        await page.locator("input[type='tel']").first().waitFor({ state: "visible", timeout: 30_000 });
-      } catch (err) {
-        // The login form never rendered — capture what the server actually loaded
-        // so we can tell a block page / blank SPA / captcha apart from a slow load.
-        await dumpPageState(page, "login-no-phone-field", networkLog);
-        throw err;
-      }
-      const phoneInput = page.locator("input[type='tel']").first();
-      await phoneInput.fill(phoneNumber);
+  await page.goto(websiteUrl, { waitUntil: "domcontentloaded" });
+  const alreadyLoggedIn = /\/dashboard|\/new-attendance/.test(page.url());
 
-      // Verify the number actually landed in the field — a wrong value/format in
-      // the server's .env (e.g. with a +91 prefix the field doesn't accept) shows
-      // up here as a mismatch and explains a login that never advances.
-      const enteredValue = await phoneInput.inputValue().catch(() => "");
-      log("INFO", `Phone field value: ${maskPhone(enteredValue)} (env PHONE_NUMBER: ${maskPhone(phoneNumber)})`);
-      if (enteredValue.replace(/\D/g, "") !== phoneNumber.replace(/\D/g, "")) {
-        log("WARN", "Phone field does NOT match PHONE_NUMBER — check the number/format in .env (the field may expect 10 digits without +91)");
-      }
+  if (!alreadyLoggedIn) {
+    log("INFO", "Not logged in — starting login flow");
 
-      // Click the CONTINUE button specifically. Using .first() is fragile: the
-      // mobile layout renders a nav menu whose buttons (e.g. the menu toggle) can
-      // come before the login form, so .first() may click the wrong button and
-      // never submit the form.
-      const continueBtn = page.getByRole("button", { name: /continue|submit|log\s*in|next/i }).first();
-      if (await continueBtn.count()) {
-        await continueBtn.click();
-      } else {
-        const byText = page.locator("button:has-text('CONTINUE'), button:has-text('Continue')").first();
-        await (await byText.count() ? byText : page.locator("button").first()).click();
-      }
-      log("INFO", "Phone submitted, waiting for OTP screen or dashboard");
-
-      // Wait for either OTP screen or direct dashboard (cached session)
-      try {
-        await Promise.race([
-          page.waitForURL(/dashboard/i, { timeout: 45_000 }),
-          page.waitForSelector("input.otp-input", { timeout: 45_000 }),
-        ]);
-      } catch (err) {
-        // Neither the OTP screen nor the dashboard appeared after submitting the
-        // phone number — likely a rejected number, an error toast, or a block.
-        await dumpPageState(page, "login-no-otp-or-dashboard", networkLog);
-        throw err;
-      }
-
-      const onDashboard = /\/dashboard/.test(page.url());
-      if (!onDashboard) {
-        log("INFO", "OTP screen detected — filling passcode");
-        await fillOtp(page, password);
-        try {
-          await page.waitForURL(/dashboard/i, { timeout: 45_000 });
-        } catch (err) {
-          // OTP submitted but never reached the dashboard — wrong passcode or an
-          // auth error. Capture the page so we can read any error message shown.
-          await dumpPageState(page, "login-otp-rejected", networkLog);
-          throw err;
-        }
-      }
-
-      log("INFO", "Logged in successfully");
-    } else {
-      log("INFO", "Session already active — skipping login");
+    // Enter phone number
+    try {
+      await page.locator("input[type='tel']").first().waitFor({ state: "visible", timeout: 30_000 });
+    } catch (err) {
+      // The login form never rendered — capture what the server actually loaded
+      // so we can tell a block page / blank SPA / captcha apart from a slow load.
+      await dumpPageState(page, "login-no-phone-field", networkLog);
+      throw err;
     }
+    const phoneInput = page.locator("input[type='tel']").first();
+    await phoneInput.fill(phoneNumber);
+
+    // Verify the number actually landed in the field — a wrong value/format in
+    // the server's .env (e.g. with a +91 prefix the field doesn't accept) shows
+    // up here as a mismatch and explains a login that never advances.
+    const enteredValue = await phoneInput.inputValue().catch(() => "");
+    log("INFO", `Phone field value: ${maskPhone(enteredValue)} (env PHONE_NUMBER: ${maskPhone(phoneNumber)})`);
+    if (enteredValue.replace(/\D/g, "") !== phoneNumber.replace(/\D/g, "")) {
+      log("WARN", "Phone field does NOT match PHONE_NUMBER — check the number/format in .env (the field may expect 10 digits without +91)");
+    }
+
+    // Click the CONTINUE button specifically. Using .first() is fragile: the
+    // mobile layout renders a nav menu whose buttons (e.g. the menu toggle) can
+    // come before the login form, so .first() may click the wrong button and
+    // never submit the form.
+    const continueBtn = page.getByRole("button", { name: /continue|submit|log\s*in|next/i }).first();
+    if (await continueBtn.count()) {
+      await continueBtn.click();
+    } else {
+      const byText = page.locator("button:has-text('CONTINUE'), button:has-text('Continue')").first();
+      await (await byText.count() ? byText : page.locator("button").first()).click();
+    }
+    log("INFO", "Phone submitted, waiting for OTP screen or dashboard");
+
+    // Wait for either OTP screen or direct dashboard (cached session)
+    try {
+      await Promise.race([
+        page.waitForURL(/dashboard/i, { timeout: 45_000 }),
+        page.waitForSelector("input.otp-input", { timeout: 45_000 }),
+      ]);
+    } catch (err) {
+      // Neither the OTP screen nor the dashboard appeared after submitting the
+      // phone number — likely a rejected number, an error toast, or a block.
+      await dumpPageState(page, "login-no-otp-or-dashboard", networkLog);
+      throw err;
+    }
+
+    const onDashboard = /\/dashboard/.test(page.url());
+    if (!onDashboard) {
+      log("INFO", "OTP screen detected — filling passcode");
+      await fillOtp(page, password);
+      try {
+        await page.waitForURL(/dashboard/i, { timeout: 45_000 });
+      } catch (err) {
+        // OTP submitted but never reached the dashboard — wrong passcode or an
+        // auth error. Capture the page so we can read any error message shown.
+        await dumpPageState(page, "login-otp-rejected", networkLog);
+        throw err;
+      }
+    }
+
+    log("INFO", "Logged in successfully");
+  } else {
+    log("INFO", "Session already active — skipping login");
+  }
+}
+
+
+/**
+ * Collapse scraped rows into unique present/absent entries keyed by name,
+ * preserving the subtitle of the first observed row for each name
+ * (deduped across all scan passes just like uniqueNames did).
+ */
+function uniqueEntries(rows: ScrapedRow[]): Array<{ name: string; subtitle?: string }> {
+  const byName = new Map<string, { name: string; subtitle?: string }>();
+  for (const row of rows) {
+    const name = row.name.trim();
+    if (!name || byName.has(name)) continue;
+    byName.set(name, { name, subtitle: row.subtitle });
+  }
+  return Array.from(byName.values());
+}
+
+function requireBottomCounts(counts: BottomCounts): SamparkCounts {
+  if (counts.present === null || counts.absent === null || counts.total === null) {
+    throw new Error(
+      `Could not read complete Sampark counts (present=${counts.present}, ` +
+        `absent=${counts.absent}, total=${counts.total}). Refusing to update Google Sheets.`
+    );
+  }
+  return { present: counts.present, absent: counts.absent, total: counts.total };
+}
+
+function rowCounts(rows: ScrapedRow[]): SamparkCounts {
+  const present = rows.filter((row) => row.isPresent).length;
+  const absent = rows.length - present;
+  return { present, absent, total: rows.length };
+}
+
+function sameCounts(left: SamparkCounts, right: SamparkCounts): boolean {
+  return (
+    left.present === right.present &&
+    left.absent === right.absent &&
+    left.total === right.total
+  );
+}
+
+export async function scrapeAttendance(options: ScrapeAttendanceOptions = {}): Promise<AttendanceScrapeResult> {
+  const websiteUrl = process.env.WEBSITE_URL?.trim() || "https://m.sampark369.org/";
+  const phoneNumber = requireEnv("PHONE_NUMBER");
+  const password = requireEnv("PASSWORD");
+  const sabhaName = options.sabhaName ?? process.env.SABHA_NAME?.trim() ?? DEFAULT_SABHA_NAME;
+  const sabhaPattern = options.sabhaPattern ?? new RegExp(`^${sabhaName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+
+  log("INFO", `Opening Sampark app to read ${sabhaName} attendance...`);
+
+  const { browser, context, page, networkLog } = await openSamparkSession();
+
+  try {
+    // ── Step 1: Login (shared helper — the Members Attendance report flow
+    // reuses the exact same sequence) ─────────────────────────────────────────
+    await loginToSampark(page, networkLog);
 
     // ── Step 2: Navigate to Sabha attendance list ────────────────────────────
     // Navigate directly by URL — auth token is already in the browser after login,

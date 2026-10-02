@@ -8,6 +8,8 @@
     "start:kishor": "ts-node src/index.ts --job kishor",
     "start:yuvak": "ts-node src/index.ts --job yuvak",
     "start:bal": "ts-node src/index.ts --job bal",
+    "start:report": "ts-node src/index.ts --job report",
+    "dry-run:report": "ts-node src/index.ts --job report --dry-run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,7 +18,8 @@
     "pg": "^8.20.0",
     "playwright": "^1.60.0",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "xlsx": "0.18.5"
   },
   "name": "@sabha/sync",
   "devDependencies": {

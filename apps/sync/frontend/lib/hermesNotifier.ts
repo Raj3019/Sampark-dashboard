@@ -87,6 +87,30 @@ function truncateMessage(message: string): string {
   return `${shortened.slice(0, lastLineBreak > 0 ? lastLineBreak : availableLength)}${suffix}`;
 }
 
+/**
+ * One-line summary for the Sunday report job, composed from the structured
+ * result fields (summarizeReport output): week, per-tab yes/total, and the
+ * scrape-vs-report verdict with its drift count.
+ */
+function buildReportConfirmationLine(result: Record<string, unknown> | undefined): string | undefined {
+  if (!result) return undefined;
+  const sheet = nestedRecord(result, 'sheet');
+  const tabs = Array.isArray(sheet?.tabs) ? sheet.tabs : [];
+  if (tabs.length === 0) return undefined;
+
+  const week = asString(result.confirmedWeekISO);
+  const perTab = tabs.flatMap((entry) => {
+    const record = asRecord(entry);
+    const name = asString(record?.tabName) ?? '?';
+    const yes = asNumber(record?.yes);
+    const total = asNumber(record?.total);
+    return [`${name} ${yes ?? '?'}/${total ?? '?'}`];
+  });
+  const verdict = asString(result.verdict) ?? 'match';
+  const drift = asNumber(result.driftCount) ?? 0;
+  return `📊 Sunday confirmation (week ${week ?? 'current'}) — ${perTab.join(' · ')} → RESULT: ${verdict} (${drift})`;
+}
+
 export function buildHermesCronPayload(input: HermesCronNotification) {
   const result = asRecord(input.result);
   const sabha = nestedRecord(result, 'sabha');
@@ -95,7 +119,8 @@ export function buildHermesCronPayload(input: HermesCronNotification) {
   const comparison = nestedRecord(result, 'comparison');
   const names = nestedRecord(result, 'names');
   const completedWithWarnings = result?.completedWithWarnings === true;
-  const label = asString(sabha?.label) ?? (input.jobType === 'kishor' ? 'Kishor' : 'Yuva');
+  const label = asString(sabha?.label)
+    ?? (input.jobType === 'report' ? 'Members Attendance report' : input.jobType === 'kishor' ? 'Kishor' : 'Yuva');
   const attendanceDate = formatAttendanceDate(sabha?.date);
   const icon = input.outcome === 'failed' ? '❌' : completedWithWarnings ? '⚠️' : '✅';
   const outcomeText = input.outcome === 'failed'
@@ -117,6 +142,11 @@ export function buildHermesCronPayload(input: HermesCronNotification) {
     lines.push(`⏱ Duration: ${formatDuration(input.durationSeconds)}`);
   }
   lines.push(`🔁 Attempt: ${input.attempts}/${input.maxAttempts}`);
+
+  if (input.jobType === 'report') {
+    const confirmationLine = buildReportConfirmationLine(result);
+    if (confirmationLine) lines.push(confirmationLine);
+  }
 
   const samparkPresent = asNumber(sampark?.present);
   const samparkAbsent = asNumber(sampark?.absent);

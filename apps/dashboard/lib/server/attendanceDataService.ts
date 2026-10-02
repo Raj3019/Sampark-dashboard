@@ -64,8 +64,10 @@ async function fetchAttendanceRows() {
   const pool = getAuthPool();
   const [members, sessions, records] = await Promise.all([
     pool.query<MemberRow>(
-      `SELECT m."id", m."full_name", m."phone_number", m."date_of_birth", m."area", m."std",
-              COALESCE(f."full_name", m."follow_up_kk") AS "follow_up_kk", m."attending", m."super_active"
+      `SELECT m."id", m."full_name", m."phone_number",
+              to_char(m."date_of_birth", 'YYYY-MM-DD') AS "date_of_birth", m."area", m."std",
+              m."sabha_type", COALESCE(f."full_name", m."follow_up_kk") AS "follow_up_kk",
+              m."attending", m."super_active"
        FROM "member" m
        LEFT JOIN "member" f ON f."id" = m."follow_up_member_id"`
     ),

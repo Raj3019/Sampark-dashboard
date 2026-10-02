@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
       ? (body as { jobType?: unknown }).jobType
       : undefined;
 
-  if (jobType !== 'kishor' && jobType !== 'yuvak') {
-    return json({ error: 'jobType must be kishor or yuvak' }, 400);
+  if (jobType !== 'kishor' && jobType !== 'yuvak' && jobType !== 'report') {
+    return json({ error: 'jobType must be kishor, yuvak, or report' }, 400);
   }
 
   try {

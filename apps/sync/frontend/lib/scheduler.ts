@@ -91,6 +91,18 @@ function previousDay(day: string): string {
   return previous.toISOString().slice(0, 10);
 }
 
+/** Cron day-of-week (0 = Sunday) for an ISO 'YYYY-MM-DD' schedule day. */
+function dayOfWeek(date: string): number {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+function formatJobList(schedules: typeof SCHEDULES): string {
+  return schedules
+    .map(({ jobType, time }) => `${jobType === "report" ? "Report" : jobType === "kishor" ? "Kishor" : "Yuvak"} ${time}`)
+    .join(", ");
+}
+
 function schedulerLog(
   level: "INFO" | "WARN" | "ERROR",
   message: string,
@@ -406,6 +418,9 @@ function queueStartupCatchUp(): void {
   const minutesNow = now.hour * 60 + now.minute;
 
   for (const schedule of SCHEDULES) {
+    if (schedule.dayOfWeek !== undefined && dayOfWeek(now.day) !== schedule.dayOfWeek) {
+      continue;
+    }
     const scheduledMinutes = schedule.hour * 60 + schedule.minute;
     if (minutesNow >= scheduledMinutes) {
       enqueue({
@@ -424,6 +439,9 @@ function queueStartupCatchUp(): void {
       ({ hour, minute }) =>
         hour * 60 + minute >= MIDNIGHT_CATCH_UP_CUTOFF_MINUTES
     )) {
+      if (schedule.dayOfWeek !== undefined && dayOfWeek(yesterday) !== schedule.dayOfWeek) {
+        continue;
+      }
       enqueue({
         jobType: schedule.jobType,
         scheduleDay: yesterday,
@@ -462,7 +480,7 @@ export function registerScheduler(): void {
 
   schedulerLog(
     "INFO",
-    `Scheduler registered: Kishor ${SCHEDULES[0].time}, Yuvak ${SCHEDULES[1].time} ${TIMEZONE}; ` +
+    `Scheduler registered: ${formatJobList(SCHEDULES)} ${TIMEZONE}; ` +
       `state=${STATE_PATH}; retries=${MAX_ATTEMPTS}`
   );
 

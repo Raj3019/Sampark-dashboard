@@ -6,7 +6,7 @@ Next.js 14 web interface for the Sabha attendance sync tool.
 - **Live log streaming** — real-time terminal output in the browser via SSE
 - **Persistent log browser** - `/logs` shows combined sync and scheduler logs with search and severity filters
 - **Stop button** — terminate a running job at any time
-- **Auto cron** — daily at 11:30 PM IST (Kishor) and 11:50 PM IST (Yuva)
+- **Auto cron** — daily at 11:30 PM IST (Kishor) and 11:50 PM IST (Yuva); Sunday report job at 11:00 PM IST
 
 The web app spawns the existing CLI (`../src/index.ts`) as a child process and streams its output to the browser. All scraping logic stays in the parent project.
 
@@ -53,7 +53,21 @@ POST /api/agent/jobs
 GET  /api/agent/jobs/{jobId}
 ```
 
-Send the secret as `Authorization: Bearer <secret>`. The start endpoint accepts only `kishor` or `yuvak`. The status endpoint returns the structured run report after completion. Keep this secret server-side and use the same value as Hermes `SABHA_AGENT_API_SECRET`.
+Send the secret as `Authorization: Bearer <secret>`. The start endpoint accepts `kishor`, `yuvak`, or `report`. The status endpoint returns the structured run report after completion. Keep this secret server-side and use the same value as Hermes `SABHA_AGENT_API_SECRET`.
+
+> **Note:** the existing deployment at `https://sabha.rajachauhan.dev` must be
+> re-deployed from THIS repository's `frontend/` to receive the fixed result
+> format (the report-flow job result sourcing and Hermes message content).
+> Re-deploying Hermes itself is NOT required — the payload field names and
+> routes are unchanged; only new optional result fields were added.
+
+| Env var (Sabha application) | Purpose |
+|---|---|
+| `AGENT_API_SECRET` | Must match Hermes `SABHA_AGENT_API_SECRET`; enables the protected endpoints |
+| `HERMES_NOTIFICATIONS_ENABLED` | `true`/`1`/`on`/`yes` enables the Hermes webhook delivery |
+| `HERMES_WEBHOOK_URL` | Hermes webhook endpoint URL |
+| `HERMES_WEBHOOK_SECRET` | HMAC secret for `X-Webhook-Signature-V2` / legacy `X-Webhook-Signature` |
+| `REPORT_CRON_TIME` | Weekly report job time (default `23:00`), Sunday-only |
 
 ---
 
@@ -195,12 +209,14 @@ Cron jobs are registered in `instrumentation.ts` when the Next.js server starts.
 |---|---|---|---|
 | Kishor | Every day | `KISHOR_CRON_TIME` (default `23:30`) | `CRON_TIMEZONE` |
 | Yuva | Every day | `YUVAK_CRON_TIME` (default `23:50`) | `CRON_TIMEZONE` |
+| Report | Sunday only | `REPORT_CRON_TIME` (default `23:00`) | `CRON_TIMEZONE` |
 
 Configure the schedule in the Sabha application environment:
 
 ```env
 KISHOR_CRON_TIME=23:30
 YUVAK_CRON_TIME=23:50
+REPORT_CRON_TIME=23:00
 CRON_TIMEZONE=Asia/Kolkata
 ```
 
@@ -214,8 +230,30 @@ stored in `runs/scheduler-state.json`, and events are written to
 `logs/scheduler-YYYY-MM-DD.log`.
 
 The server must still be kept running with pm2. If it restarts after a scheduled
-time, the scheduler catches up that day's missed run; restarts before 6 AM also
+time, the scheduler catches up that day's missed run (schedule-day aware: the
+Sunday-only report job is only caught up on Sundays); restarts before 6 AM also
 recover the previous evening's missed runs.
+
+### Hermes notification content sample (report job)
+
+The `report` job notification message carries the structured result, including
+this summary line inside `message`:
+
+```text
+✅ Members Attendance report
+Attendance sync completed successfully
+
+RUN DETAILS
+🗓 Scheduled: 2026-10-04
+⏱ Duration: 1m 1s
+🔁 Attempt: 1/3
+📊 Sunday confirmation (week 2026-09-27) — Yuva 61/126 · Kishor 26/104 → RESULT: match (0)
+
+ATTENDANCE SUMMARY
+Sampark  • Present 87  • Absent 143  • Total 230
+Sheet       • Yes 87  • No 143  • Total 230
+...
+```
 
 ---
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { type ComponentType, type FormEvent, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  AlertTriangle,
   BookOpen,
   CalendarDays,
   ChartColumn,
@@ -62,6 +63,7 @@ const kkNavItems: NavItem[] = [
 const adminSecondaryNavItems: NavItem[] = [
   { href: '/admin/users', label: 'User Management', icon: ShieldCheck },
   { href: '/admin/logs', label: 'Login Activity', icon: CalendarDays },
+  { href: '/admin/alerts', label: 'Sync Alerts', icon: AlertTriangle },
 ];
 
 const ROLE_LABELS: Record<string, string> = { admin: 'Admin', leader: 'Leader', kk: 'KK' };
