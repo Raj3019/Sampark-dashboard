@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { NEON_AUTH_SESSION_COOKIE_NAME } from '@neondatabase/auth/server';
-import { auth } from '@/lib/auth/server';
+import { getAuth } from '@/lib/auth/server';
 
 function hasSessionCookie(request: NextRequest) {
   return request.cookies.has(NEON_AUTH_SESSION_COOKIE_NAME);
@@ -28,7 +28,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return auth.middleware({ loginUrl: '/login' })(request);
+  return getAuth().middleware({ loginUrl: '/login' })(request);
 }
 
 export const config = {

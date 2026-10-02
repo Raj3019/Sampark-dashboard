@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/server';
+import { getAuth } from '@/lib/auth/server';
 import { getServerSession, requireAdminApiSession } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
@@ -28,7 +28,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Password must be at most 128 characters' }, { status: 400 });
   }
 
-  const setPasswordResult = await auth.admin.setUserPassword({
+  const setPasswordResult = await getAuth().admin.setUserPassword({
     userId: id,
     newPassword,
   });

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/server';
+import { getAuth } from '@/lib/auth/server';
 import { getAuthPool } from '@/lib/auth/db';
 
 export type AppRole = 'admin' | 'leader' | 'kk';
@@ -38,7 +38,7 @@ export async function getServerSession(): Promise<{
   session: Record<string, unknown>;
   user: NeonAuthUser;
 } | null> {
-  const { data } = await auth.getSession();
+  const { data } = await getAuth().getSession();
 
   if (!data?.session || !data?.user) {
     return null;

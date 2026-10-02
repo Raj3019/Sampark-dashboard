@@ -9,5 +9,4 @@ apps/sync/downloads
 apps/sync/logs
 apps/sync/runs
 apps/sync/frontend/.next
-apps/dashboard
 docs

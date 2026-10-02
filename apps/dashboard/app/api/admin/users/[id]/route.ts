@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/server';
+import { getAuth } from '@/lib/auth/server';
 import { getServerSession, requireAdminApiSession } from '@/lib/auth/session';
 import { getAuthPool } from '@/lib/auth/db';
 
@@ -35,6 +35,7 @@ export async function PATCH(
   }
 
   // SDK beta types narrow role to "admin" | "user"; the service accepts our custom roles ('leader','kk') fine
+  const auth = getAuth();
   const setRoleOptions = { userId: id, role } as unknown as Parameters<typeof auth.admin.setRole>[0];
 
   const setRoleResult = await auth.admin.setRole(setRoleOptions);
@@ -77,7 +78,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
   }
 
-  const removeResult = await auth.admin.removeUser({ userId: id });
+  const removeResult = await getAuth().admin.removeUser({ userId: id });
 
   if (removeResult.error) {
     return NextResponse.json(

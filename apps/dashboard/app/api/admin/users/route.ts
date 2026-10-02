@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminApiSession } from '@/lib/auth/session';
 import { getAuthPool } from '@/lib/auth/db';
-import { auth } from '@/lib/auth/server';
+import { getAuth } from '@/lib/auth/server';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +20,7 @@ export async function GET() {
   const { response } = await requireAdminApiSession();
   if (response) return response;
 
-  const listResult = await auth.admin.listUsers({ query: { limit: 500, sortBy: 'createdAt', sortDirection: 'desc' } });
+  const listResult = await getAuth().admin.listUsers({ query: { limit: 500, sortBy: 'createdAt', sortDirection: 'desc' } });
 
   if (listResult.error || !listResult.data) {
     return NextResponse.json(
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
   }
 
   // SDK beta types narrow role to "admin" | "user"; the service accepts our custom roles ('leader','kk') fine
+  const auth = getAuth();
   const createOptions = { name, email, password, role } as unknown as Parameters<typeof auth.admin.createUser>[0];
 
   const createResult = await auth.admin.createUser(createOptions);
