@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
+import { logEvent } from "./appLogger";
 
 export type JobType = "kishor" | "yuvak" | "report";
 export type JobStatus = "running" | "done" | "error" | "terminated";
@@ -85,6 +86,7 @@ export function startJob(jobType: JobType, trigger: JobTrigger = "manual"): stri
   addLog(`[SYSTEM] Starting ${jobType} job (trigger: ${trigger})`);
   addLog(`[SYSTEM] Working directory: ${AUTO_ROOT}`);
   addLog(`[SYSTEM] Command: npx ts-node src/index.ts --job ${jobType}`);
+  logEvent("info", "job_started", { jobId, jobType, trigger });
 
   const child = spawn(
     "npx",
@@ -138,6 +140,15 @@ export function startJob(jobType: JobType, trigger: JobTrigger = "manual"): stri
     else if (!spawnError) {
       addLog(code === 0 ? "[SYSTEM] Job completed successfully." : `[SYSTEM] Job finished with exit code ${code}.`);
     }
+    logEvent(job.status === "done" ? "info" : job.status === "terminated" ? "warn" : "error", "job_finished", {
+      jobId,
+      jobType,
+      status: job.status,
+      exitCode: job.exitCode ?? null,
+      timedOut: job.timedOut ?? false,
+      durationMs: job.finishedAt.getTime() - job.startedAt.getTime(),
+      spawnError: spawnError?.message ?? null,
+    });
     emitter.emit("done", job.exitCode ?? 1);
   };
 
@@ -174,6 +185,7 @@ export function terminateJob(jobId: string): void {
   const pid = job.child.pid;
   job.terminationRequested = true;
   appendJobLog(job, "[SYSTEM] Terminating job...");
+  logEvent("warn", "job_terminate_requested", { jobId, pid: pid ?? null });
 
   if (process.platform === "win32" && pid) {
     // taskkill /f /t kills the full process tree (cmd.exe + ts-node + Chromium)

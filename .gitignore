@@ -24,7 +24,7 @@ apps/sync/logs/@
 apps/sync/attendance-summary.txt
 apps/sync/attendance-summary-hist.txt
 runs/
-logs/
+/logs/
 
 # misc
 .DS_Store

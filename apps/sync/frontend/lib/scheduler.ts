@@ -5,6 +5,7 @@ import { getJob, getStatus, startJob, type JobType } from "./jobRunner";
 import { getAgentJobResult } from "./agentJobResult";
 import { notifyHermes, type HermesCronNotification } from "./hermesNotifier";
 import { getSchedulerConfig } from "./scheduleConfig";
+import { logEvent } from "./appLogger";
 
 type ScheduleStatus = "queued" | "running" | "retrying" | "success" | "failed";
 
@@ -110,9 +111,9 @@ function schedulerLog(
 ): void {
   const prefix = `[${new Date().toISOString()}] [${level}] [SCHEDULER]`;
   const line = `${prefix}${jobType ? ` [job=${jobType}]` : ""} ${message}`;
-  if (level === "ERROR") console.error(line);
-  else if (level === "WARN") console.warn(line);
-  else console.log(line);
+  const mapped =
+    level === "ERROR" ? "error" : level === "WARN" ? "warn" : "info";
+  logEvent(mapped, "scheduler", { jobType: jobType ?? null, message });
 
   try {
     fs.mkdirSync(LOGS_DIR, { recursive: true });

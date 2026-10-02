@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authorizeAgentRequest } from '@/lib/agentAuth';
 import { startJob, type JobType } from '@/lib/jobRunner';
+import { logEvent } from '@/lib/appLogger';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,7 @@ function json(body: object, status: number) {
 export async function POST(request: NextRequest) {
   const authorization = authorizeAgentRequest(request);
   if (!authorization.ok) {
+    logEvent('warn', 'agent_request_denied', { status: authorization.status });
     return json({ error: authorization.error }, authorization.status);
   }
 
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
   try {
     const validJobType = jobType as JobType;
     const jobId = startJob(validJobType, 'agent');
+    logEvent('info', 'agent_job_accepted', { jobId, jobType: validJobType });
     return json({
       jobId,
       jobType: validJobType,

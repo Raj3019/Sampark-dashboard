@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { startJob, type JobType } from "@/lib/jobRunner";
+import { logEvent } from "@/lib/appLogger";
 
 export async function POST(req: NextRequest) {
   let body: { jobType?: string };
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const jobId = startJob(jobType as JobType, "manual");
+    logEvent("info", "manual_job_accepted", { jobId, jobType });
     return NextResponse.json({ jobId });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
