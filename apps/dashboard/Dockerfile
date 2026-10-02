@@ -18,6 +18,12 @@ RUN pnpm install --frozen-lockfile
 COPY packages/shared/ packages/shared/
 COPY apps/dashboard/ apps/dashboard/
 
+# Build-time placeholders: next build prerenders pages whose root layout calls
+# getSession() (Neon Auth), which throws if the cookie secret is missing and
+# kills the build worker. Runtime env (Dokploy container env) overrides these.
+ENV NEON_AUTH_COOKIE_SECRET=build-time-placeholder-secret-32-chars
+ENV NEON_AUTH_BASE_URL=http://placeholder.invalid
+
 RUN pnpm --filter @sabha/dashboard build
 
 EXPOSE 3000
