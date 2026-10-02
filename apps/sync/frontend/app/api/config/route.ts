@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
-import { getSheetUrl } from "@/lib/config";
-import { formatDailySchedule, getSchedulerConfig } from "@/lib/scheduleConfig";
+import { formatScheduleLabel, getSchedulerConfig } from "@/lib/scheduleConfig";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const scheduler = getSchedulerConfig();
   const schedules = Object.fromEntries(
-    scheduler.schedules.map(({ jobType, time }) => [
+    scheduler.schedules.map(({ jobType, time, dayOfWeek }) => [
       jobType,
-      { time, label: formatDailySchedule(time) },
+      { time, label: formatScheduleLabel(time, dayOfWeek), dayOfWeek },
     ])
   );
 
   return NextResponse.json({
-    sheetUrl: getSheetUrl(),
     scheduler: {
       timezone: scheduler.timezone,
       schedules,

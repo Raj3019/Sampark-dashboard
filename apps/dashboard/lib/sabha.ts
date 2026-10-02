@@ -43,11 +43,3 @@ export const SABHA_DISPLAY: Record<SabhaType, {
     subtitle: 'Bal karyakar and attendance',
   },
 };
-
-export function getSabhaSheetEnvConfig() {
-  return [
-    { sabhaType: 'Chirag Nagar' as const, envKey: 'GOOGLE_SHEET_NAME_YUVA', fallback: 'Attendance Data - Yuva' },
-    { sabhaType: 'Chirag Nagar(Kishor)' as const, envKey: 'GOOGLE_SHEET_NAME_KISHOR', fallback: 'Attendance Data - Kishor' },
-    { sabhaType: 'Bal Sabha' as const, envKey: 'GOOGLE_SHEET_NAME_BAL', fallback: 'Attendance Data - Bal' },
-  ];
-}

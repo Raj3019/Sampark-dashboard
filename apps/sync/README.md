@@ -365,10 +365,50 @@ Use `runs/latest.json` to inspect the most recent run. It includes:
 | `AI_MODEL` | ⬜ | OpenRouter model (default `google/gemini-flash-1.5`) |
 | `OPENROUTER_BASE_URL` | ⬜ | OpenRouter API base URL |
 | `AGENT_API_SECRET` | ⬜ | Enables the protected Hermes job API; must match Hermes `SABHA_AGENT_API_SECRET` |
-| `KISHOR_CRON_TIME` | Optional | Daily Kishor sync time in 24-hour `HH:mm` format (default `23:30`) |
-| `YUVAK_CRON_TIME` | Optional | Daily Yuvak sync time in 24-hour `HH:mm` format (default `23:50`) |
-| `REPORT_CRON_TIME` | Optional | Weekly Sunday report job time in 24-hour `HH:mm` format (default `23:00`) |
+| `KISHOR_CRON_TIME` | Optional | Kishor sync time in 24-hour `HH:mm` format (default `23:55`) |
+| `KISHOR_CRON_DAY` | Optional | Kishor sync day-of-week `0-6` (0=Sunday; default `3` = Wednesday) |
+| `YUVAK_CRON_TIME` | Optional | Yuvak sync time in 24-hour `HH:mm` format (default `23:55`) |
+| `YUVAK_CRON_DAY` | Optional | Yuvak sync day-of-week `0-6` (0=Sunday; default `5` = Friday) |
+| `REPORT_CRON_TIME` | Optional | Weekly report job time in 24-hour `HH:mm` format (default `23:55`) |
+| `REPORT_CRON_DAY` | Optional | Report job day-of-week `0-6` (0=Sunday; default `0` = Sunday) |
 | `HERMES_NOTIFICATIONS_ENABLED` | ⬜ | Enables Hermes Telegram notifications for scheduled runs |
 | `HERMES_WEBHOOK_URL` | ⬜ | Hermes webhook endpoint URL |
 | `HERMES_WEBHOOK_SECRET` | ⬜ | HMAC secret signing Hermes webhook payloads (V2 + legacy signature) |
 | `CRON_TIMEZONE` | Optional | IANA timezone used by the scheduler (default `Asia/Kolkata`) |
+
+## Dokploy Deployment (VPS)
+
+The sync frontend server + Playwright worker must run on an always-on host
+(Vercel cannot host browsers or the cron process). Deploy via Dokploy:
+
+1. New project -> Deployment -> Dockerfile service
+2. Build: context = **repo root**, Dockerfile path = `apps/sync/Dockerfile`
+3. Domain: map `sabha.rajachauhan.dev` -> container port `3000`
+4. Container env (set in Dokploy UI):
+
+   ```env
+   PHONE_NUMBER=...
+   WEBSITE_URL=https://m.sampark369.org/
+   PASSWORD=...
+   DATABASE_URL=postgresql://... (Neon prod branch, sslmode=require)
+   AGENT_API_SECRET=<same value as Hermes SABHA_AGENT_API_SECRET>
+   HERMES_NOTIFICATIONS_ENABLED=1
+   HERMES_WEBHOOK_URL=<Hermes endpoint, if this host emits>
+   HERMES_WEBHOOK_SECRET=<HMAC secret>
+   # cron (defaults already: Wed/Fri/Sun 23:55 IST)
+   KISHOR_CRON_TIME=23:55
+   KISHOR_CRON_DAY=3
+   YUVAK_CRON_TIME=23:55
+   YUVAK_CRON_DAY=5
+   REPORT_CRON_TIME=23:55
+   REPORT_CRON_DAY=0
+   CRON_TIMEZONE=Asia/Kolkata
+   ```
+
+   Do NOT commit `apps/sync/.env` in the image; Dokploy env vars cover it
+   (dotenv in `src/` tolerates a missing file).
+
+5. Stop the old Auto script container first � two writers must never touch
+   Neon attendance at once.
+6. Post-deploy checks: `GET /api/status` lists 3 schedules; `POST /api/agent/jobs`
+   with the agent secret runs a job; Hermes Telegram shows the new format.

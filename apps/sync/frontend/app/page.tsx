@@ -46,18 +46,16 @@ const DEFAULT_SCHEDULE_DISPLAY: ScheduleDisplay = {
 
 export default function HomePage() {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
-  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const [scheduleDisplay, setScheduleDisplay] = useState<ScheduleDisplay>(
     DEFAULT_SCHEDULE_DISPLAY
   );
 
-  // On mount: fetch the Google Sheet link to show in the header
+  // On mount: fetch scheduler labels for the header
   useEffect(() => {
     fetch("/api/config")
       .then((r) => r.json())
       .then(
         (data: {
-          sheetUrl: string | null;
           scheduler?: {
             timezone?: string;
             schedules?: {
@@ -66,7 +64,6 @@ export default function HomePage() {
             };
           };
         }) => {
-          setSheetUrl(data.sheetUrl);
           setScheduleDisplay({
             timezone:
               data.scheduler?.timezone ?? DEFAULT_SCHEDULE_DISPLAY.timezone,
@@ -199,7 +196,7 @@ export default function HomePage() {
             Sabha Sync
           </h1>
           <p className="text-gray-400 mt-1.5 text-sm">
-            Chirag Nagar attendance automation — Sampark → Google Sheets
+            Chirag Nagar attendance automation — Sampark → Neon
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -209,20 +206,6 @@ export default function HomePage() {
           >
             View Logs
           </a>
-          {sheetUrl && (
-            <a
-              href={sheetUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-green-700 bg-green-900/30 px-3 py-2 text-sm font-medium text-green-300 transition-colors hover:bg-green-900/60 hover:text-green-200"
-            >
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h4v1.5H8V10z" />
-              </svg>
-              <span className="hidden sm:inline">Open Google Sheet</span>
-              <span className="sm:hidden">Sheet</span>
-            </a>
-          )}
         </div>
       </div>
 

@@ -67,7 +67,7 @@ Send the secret as `Authorization: Bearer <secret>`. The start endpoint accepts 
 | `HERMES_NOTIFICATIONS_ENABLED` | `true`/`1`/`on`/`yes` enables the Hermes webhook delivery |
 | `HERMES_WEBHOOK_URL` | Hermes webhook endpoint URL |
 | `HERMES_WEBHOOK_SECRET` | HMAC secret for `X-Webhook-Signature-V2` / legacy `X-Webhook-Signature` |
-| `REPORT_CRON_TIME` | Weekly report job time (default `23:00`), Sunday-only |
+| `REPORT_CRON_TIME` | Weekly report job time (default `23:55`), `REPORT_CRON_DAY` day (default Sunday) |
 
 ---
 
@@ -205,23 +205,28 @@ frontend/
 
 Cron jobs are registered in `instrumentation.ts` when the Next.js server starts. They fire automatically — no separate process needed.
 
-| Sabha | Day | Time | Timezone |
+| Sabha | Default day | Time | Timezone |
 |---|---|---|---|
-| Kishor | Every day | `KISHOR_CRON_TIME` (default `23:30`) | `CRON_TIMEZONE` |
-| Yuva | Every day | `YUVAK_CRON_TIME` (default `23:50`) | `CRON_TIMEZONE` |
-| Report | Sunday only | `REPORT_CRON_TIME` (default `23:00`) | `CRON_TIMEZONE` |
+| Kishor | `KISHOR_CRON_DAY` (default `3` = Wednesday) | `KISHOR_CRON_TIME` (default `23:55`) | `CRON_TIMEZONE` |
+| Yuva | `YUVAK_CRON_DAY` (default `5` = Friday) | `YUVAK_CRON_TIME` (default `23:55`) | `CRON_TIMEZONE` |
+| Report | `REPORT_CRON_DAY` (default `0` = Sunday) | `REPORT_CRON_TIME` (default `23:55`) | `CRON_TIMEZONE` |
 
 Configure the schedule in the Sabha application environment:
 
 ```env
-KISHOR_CRON_TIME=23:30
-YUVAK_CRON_TIME=23:50
-REPORT_CRON_TIME=23:00
+KISHOR_CRON_TIME=23:55
+KISHOR_CRON_DAY=3
+YUVAK_CRON_TIME=23:55
+YUVAK_CRON_DAY=5
+REPORT_CRON_TIME=23:55
+REPORT_CRON_DAY=0
 CRON_TIMEZONE=Asia/Kolkata
 ```
 
-Times must use 24-hour `HH:mm` format. Invalid values are logged at startup and
-fall back to the defaults above. `CRON_TIMEZONE` must be a valid IANA timezone.
+Times must use 24-hour `HH:mm` format and days must be a single day-of-week
+`0-6` (0=Sunday, 3=Wednesday, 5=Friday). Invalid values are logged at startup
+and fall back to the defaults above. `CRON_TIMEZONE` must be a valid IANA
+timezone.
 Changing these values requires restarting or redeploying the Sabha application.
 
 Scheduled runs are queued when another job is active instead of being dropped.
