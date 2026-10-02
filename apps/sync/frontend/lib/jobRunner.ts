@@ -2,6 +2,8 @@ import { EventEmitter } from "events";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import { logEvent } from "./appLogger";
+import { notifyHermes } from "./hermesNotifier";
+import { getAgentJobResult } from "./agentJobResult";
 
 export type JobType = "kishor" | "yuvak" | "report";
 export type JobStatus = "running" | "done" | "error" | "terminated";
@@ -149,6 +151,29 @@ export function startJob(jobType: JobType, trigger: JobTrigger = "manual"): stri
       durationMs: job.finishedAt.getTime() - job.startedAt.getTime(),
       spawnError: spawnError?.message ?? null,
     });
+
+    // Manual UI runs should also reach Hermes Telegram. Agent runs are NOT
+    // notified here — Hermes polls the job status itself and would double-send.
+    if (trigger === "manual") {
+      void notifyHermes({
+        jobType,
+        scheduleDay: new Date().toISOString().slice(0, 10),
+        reason: "manual",
+        outcome: job.status === "done" ? "success" : "failed",
+        attempts: 1,
+        maxAttempts: 1,
+        jobId,
+        durationSeconds: Math.round((job.finishedAt.getTime() - job.startedAt.getTime()) / 1000),
+        error: job.status === "done" ? undefined : `Job status: ${job.status}`,
+        result: job.exitCode === 0 ? getAgentJobResult(jobId) : undefined,
+      }).then((delivery) => {
+        logEvent(delivery.status === "failed" ? "warn" : "info", "manual_hermes_delivery", {
+          jobId,
+          status: delivery.status,
+          error: delivery.error ?? null,
+        });
+      });
+    }
     emitter.emit("done", job.exitCode ?? 1);
   };
 
