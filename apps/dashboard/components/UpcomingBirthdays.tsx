@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useSheetData } from '@/hooks/useSheetData';
 import { Yuvak } from '@/lib/types';
 
-type BirthdayEntry = {
+export type BirthdayEntry = {
   name: string;
   followUpKK: string;
   phoneNumber: string;
@@ -47,7 +47,7 @@ function parseIsoDate(value: string) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function getUpcomingBirthdays(values: Array<{ name: string; dob: string; followUpKK: string; phoneNumber: string }>) {
+export function getUpcomingBirthdays(values: Array<{ name: string; dob: string; followUpKK: string; phoneNumber: string }>) {
   const today = new Date();
   const todayUtc = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 

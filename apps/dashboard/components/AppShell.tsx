@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import ReminderCenter from '@/components/ReminderCenter';
-import UpcomingBirthdays from '@/components/UpcomingBirthdays';
 import { ScopedSheetDataProvider } from '@/hooks/ScopedSheetDataProvider';
 import { useAuthSession } from '@/hooks/useAuthSession';
 
@@ -77,12 +75,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Navbar sidebarCollapsed={sidebarCollapsed} onSidebarCollapsedChange={setSidebarCollapsed} />
       <main className={`min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(252,227,190,0.24),_transparent_28%),linear-gradient(180deg,_#fffdf9_0%,_#fff8ef_100%)] pt-[4.75rem] transition-[margin-left] duration-200 md:pt-[5.25rem] dark:bg-[radial-gradient(circle_at_top_right,_rgba(245,158,11,0.10),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#111827_100%)] ${sidebarCollapsed ? 'md:ml-20' : 'md:ml-[16.5rem]'}`}>
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.85fr)_minmax(19rem,0.9fr)] xl:items-start">
-            <div id="shell-reminders">
-              <ReminderCenter variant="compact" />
-            </div>
-            <UpcomingBirthdays />
-          </div>
+          {/* Follow-up reminders (ReminderCenter) and the birthday aside moved off
+              the shell: reminders are hidden, birthdays live on /birthdays. */}
           {children}
         </div>
       </main>

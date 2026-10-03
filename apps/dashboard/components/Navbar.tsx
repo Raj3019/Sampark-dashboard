@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertTriangle,
   BookOpen,
+  Cake,
   CalendarDays,
   ChartColumn,
   CheckCircle,
@@ -40,6 +41,7 @@ type NavItem = {
 
 const leaderNavItems: NavItem[] = [
   { href: '/sabha/kishor', label: 'AYC Sabha', icon: BookOpen },
+  { href: '/birthdays', label: 'Birthdays', icon: Cake },
   { href: '/kk-analysis', label: 'KK Analysis', icon: ChartColumn },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: Users },
   { href: '/attendance', label: 'Attendance', icon: CheckCircle },
@@ -50,6 +52,7 @@ const adminPrimaryNavItems: NavItem[] = [
   { href: '/sabha/kishor', label: 'AYC Sabha', icon: BookOpen },
   { href: '/sabha/chirag-nagar', label: 'Yuva Sabha', icon: BookOpen },
   { href: '/sabha/bal', label: 'Bal Sabha', icon: BookOpen },
+  { href: '/birthdays', label: 'Birthdays', icon: Cake },
   { href: '/kk-analysis', label: 'KK Analysis', icon: ChartColumn },
   { href: '/yuvaks', label: 'Yuvak Directory', icon: Users },
   { href: '/attendance', label: 'Attendance', icon: CheckCircle },
@@ -58,6 +61,7 @@ const adminPrimaryNavItems: NavItem[] = [
 const kkNavItems: NavItem[] = [
   { href: '/kk-home', label: 'My Dashboard', icon: LayoutDashboard },
   { href: '/yuvaks', label: 'My Yuvaks', icon: Users },
+  { href: '/birthdays', label: 'Birthdays', icon: Cake },
 ];
 
 const adminSecondaryNavItems: NavItem[] = [

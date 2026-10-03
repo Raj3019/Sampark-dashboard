@@ -185,6 +185,8 @@ export default function AttendanceClient() {
   const [savingMeta, setSavingMeta] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'absent'>('all');
+  const [areaFilter, setAreaFilter] = useState('');
+  const [stdFilter, setStdFilter] = useState('');
 
   const fetchSessions = useCallback(async (type: string) => {
     try {
@@ -207,6 +209,8 @@ export default function AttendanceClient() {
     setVaktaDraft(session.vakta ?? '');
     setTopicDraft(session.topic ?? '');
     setStatusFilter('all');
+    setAreaFilter('');
+    setStdFilter('');
     setSavedFlash(false);
     setMarksLoading(true);
     try {
@@ -224,9 +228,27 @@ export default function AttendanceClient() {
 
   const presentCount = useMemo(() => marks.filter((mark) => mark.present).length, [marks]);
 
+  const areaOptions = useMemo(
+    () => Array.from(new Set(marks.map((mark) => mark.area).filter((area): area is string => Boolean(area)))).sort((a, b) => a.localeCompare(b)),
+    [marks]
+  );
+
+  const stdOptions = useMemo(
+    () => Array.from(new Set(marks.map((mark) => mark.std).filter((std): std is string => Boolean(std)))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [marks]
+  );
+
+  const hasAnyFilter = statusFilter !== 'all' || areaFilter !== '' || stdFilter !== '';
+
   const filteredMarks = useMemo(
-    () => (statusFilter === 'all' ? marks : marks.filter((mark) => (statusFilter === 'present' ? mark.present : !mark.present))),
-    [marks, statusFilter]
+    () =>
+      marks.filter(
+        (mark) =>
+          (statusFilter === 'all' || (statusFilter === 'present' ? mark.present : !mark.present)) &&
+          (!areaFilter || mark.area === areaFilter) &&
+          (!stdFilter || mark.std === stdFilter)
+      ),
+    [marks, statusFilter, areaFilter, stdFilter]
   );
 
   const handleSaveMeta = async () => {
@@ -272,8 +294,9 @@ export default function AttendanceClient() {
           </div>
           {!activeSession && (
             <button
-              onClick={() => setShowCreate(true)}
-              className="w-full sm:w-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
+              disabled
+              title="Sessions are created automatically by the nightly sync"
+              className="w-full sm:w-auto px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg cursor-not-allowed opacity-50"
             >
               + New Session
             </button>
@@ -395,6 +418,39 @@ export default function AttendanceClient() {
                   </span>
                 </button>
               ))}
+
+              <span className="mx-1 hidden h-4 w-px bg-slate-700 sm:block" />
+
+              <select
+                value={areaFilter}
+                onChange={(e) => setAreaFilter(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-900/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-slate-500 focus:outline-none focus:border-orange-500"
+              >
+                <option value="">All areas</option>
+                {areaOptions.map((area) => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
+
+              <select
+                value={stdFilter}
+                onChange={(e) => setStdFilter(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-900/60 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-slate-500 focus:outline-none focus:border-orange-500"
+              >
+                <option value="">All standards</option>
+                {stdOptions.map((std) => (
+                  <option key={std} value={std}>{std}</option>
+                ))}
+              </select>
+
+              {hasAnyFilter && (
+                <button
+                  onClick={() => { setStatusFilter('all'); setAreaFilter(''); setStdFilter(''); }}
+                  className="rounded-full border border-transparent px-2 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-200"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table style={{ minWidth: 720 }} className="w-full text-sm">
@@ -417,9 +473,9 @@ export default function AttendanceClient() {
                   ) : filteredMarks.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-5 py-10 text-center text-slate-500">
-                        {statusFilter === 'all'
-                          ? 'No attending members in this sabha yet. Add members in Member Management.'
-                          : `No ${statusFilter === 'present' ? 'present' : 'absent'} members in this roster.`}
+                        {hasAnyFilter
+                          ? 'No members match the current filters.'
+                          : 'No attending members in this sabha yet. Add members in Member Management.'}
                       </td>
                     </tr>
                   ) : (
@@ -499,7 +555,7 @@ export default function AttendanceClient() {
                         onClick={() => openMarks(session)}
                         className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 transition-colors shadow-[0_2px_6px_rgba(217,119,6,0.28)] disabled:opacity-60"
                       >
-                        Marks
+                        View
                       </button>
                     </td>
                   </tr>
