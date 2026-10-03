@@ -90,11 +90,18 @@ export async function PATCH(
     }
 
     values.push(id);
-    const result = await pool.query<DbSessionRow>(
-      `${SESSION_SELECT_SQL} WHERE s."id" = (
-         UPDATE "sabha_session" SET ${sets.join(', ')}, "updated_at" = NOW() WHERE "id" = $${values.length} RETURNING "id"
-       ) GROUP BY s."id" LIMIT 1`,
+    const updated = await pool.query<{ id: string }>(
+      `UPDATE "sabha_session" SET ${sets.join(', ')}, "updated_at" = NOW() WHERE "id" = $${values.length} RETURNING "id"`,
       values
+    );
+
+    if (!updated.rows[0]) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    const result = await pool.query<DbSessionRow>(
+      `${SESSION_SELECT_SQL} WHERE s."id" = $1 GROUP BY s."id" LIMIT 1`,
+      [updated.rows[0].id]
     );
 
     if (!result.rows[0]) {
