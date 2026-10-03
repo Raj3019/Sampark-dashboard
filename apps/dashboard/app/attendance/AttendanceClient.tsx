@@ -183,6 +183,8 @@ export default function AttendanceClient() {
   const [vaktaDraft, setVaktaDraft] = useState('');
   const [topicDraft, setTopicDraft] = useState('');
   const [savingMeta, setSavingMeta] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'absent'>('all');
 
   const fetchSessions = useCallback(async (type: string) => {
     try {
@@ -204,6 +206,8 @@ export default function AttendanceClient() {
     setActiveSession(session);
     setVaktaDraft(session.vakta ?? '');
     setTopicDraft(session.topic ?? '');
+    setStatusFilter('all');
+    setSavedFlash(false);
     setMarksLoading(true);
     try {
       const res = await fetch(`/api/attendance/sessions/${session.id}/marks`);
@@ -219,6 +223,11 @@ export default function AttendanceClient() {
   }, []);
 
   const presentCount = useMemo(() => marks.filter((mark) => mark.present).length, [marks]);
+
+  const filteredMarks = useMemo(
+    () => (statusFilter === 'all' ? marks : marks.filter((mark) => (statusFilter === 'present' ? mark.present : !mark.present))),
+    [marks, statusFilter]
+  );
 
   const handleSaveMeta = async () => {
     if (!activeSession) return;
@@ -236,6 +245,8 @@ export default function AttendanceClient() {
         setSessions((prev) => prev.map((s) => (s.id === data.session!.id ? data.session! : s)));
       }
       toast.success('Session details saved');
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save session details');
     } finally {
@@ -349,15 +360,42 @@ export default function AttendanceClient() {
                 <button
                   onClick={handleSaveMeta}
                   disabled={savingMeta}
-                  className="w-full sm:w-auto px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-medium transition-colors"
+                  className={`w-full sm:w-auto px-5 py-2 rounded-lg text-white text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
+                    savedFlash
+                      ? 'bg-emerald-600 shadow-[0_4px_12px_rgba(5,150,105,0.35)]'
+                      : 'bg-orange-500 hover:bg-orange-600 hover:shadow-[0_6px_16px_rgba(217,119,6,0.40)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_6px_rgba(217,119,6,0.30)]'
+                  }`}
                 >
-                  {savingMeta ? 'Saving...' : 'Save Details'}
+                  {savingMeta ? 'Saving...' : savedFlash ? 'Saved ✓' : 'Save Details'}
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-[0_10px_30px_rgba(2,6,23,0.18)]">
+          <div className="rounded-2xl border border-slate-700 bg-slate-800 shadow-[0_10px_30px_rgba(2,6,23,0.18)]">
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-700/70 px-4 py-3">
+              <span className="mr-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">Filter</span>
+              {([
+                { key: 'all' as const, label: 'All', count: marks.length, active: 'border-slate-500/50 bg-slate-700/30 text-slate-200', idle: 'border-slate-700 bg-transparent text-slate-400 hover:border-slate-500 hover:text-slate-200' },
+                { key: 'present' as const, label: 'Present', count: presentCount, active: 'border-green-500/40 bg-green-500/15 text-green-300', idle: 'border-slate-700 bg-transparent text-slate-400 hover:border-green-500/50 hover:text-green-300' },
+                { key: 'absent' as const, label: 'Absentees', count: marks.length - presentCount, active: 'border-amber-500/40 bg-amber-500/15 text-amber-300', idle: 'border-slate-700 bg-transparent text-slate-400 hover:border-amber-500/50 hover:text-amber-300' },
+              ]).map((chip) => (
+                <button
+                  key={chip.key}
+                  onClick={() => setStatusFilter(chip.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    statusFilter === chip.key ? chip.active : chip.idle
+                  }`}
+                >
+                  {chip.label}
+                  <span className={`rounded-full px-1.5 text-[10px] font-semibold ${
+                    statusFilter === chip.key ? 'bg-white/10' : 'bg-slate-700/60'
+                  }`}>
+                    {chip.count}
+                  </span>
+                </button>
+              ))}
+            </div>
             <div className="overflow-x-auto">
               <table style={{ minWidth: 720 }} className="w-full text-sm">
                 <thead className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur border-b border-slate-700">
@@ -376,14 +414,16 @@ export default function AttendanceClient() {
                         <div className="mx-auto w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
                       </td>
                     </tr>
-                  ) : marks.length === 0 ? (
+                  ) : filteredMarks.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-5 py-10 text-center text-slate-500">
-                        No attending members in this sabha yet. Add members in Member Management.
+                        {statusFilter === 'all'
+                          ? 'No attending members in this sabha yet. Add members in Member Management.'
+                          : `No ${statusFilter === 'present' ? 'present' : 'absent'} members in this roster.`}
                       </td>
                     </tr>
                   ) : (
-                    marks.map((mark) => (
+                    filteredMarks.map((mark) => (
                       <tr key={mark.memberId} className="hover:bg-slate-700/30 transition-colors">
                         <td className="px-5 py-3.5 text-slate-100 font-medium">
                           <div className="flex items-center gap-2">
